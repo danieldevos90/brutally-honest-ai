@@ -1,0 +1,43 @@
+# Core FastAPI and async support
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+websockets==12.0
+
+# Audio processing
+openai-whisper==20231117
+pyannote.audio==3.1.1
+librosa==0.10.1
+soundfile==0.12.1
+pydub==0.25.1
+
+# Speaker diarization and identification
+torch==2.1.0
+torchaudio==2.1.0
+speechbrain==0.5.16
+resemblyzer==0.1.1
+
+# Local LLM integration
+ollama==0.1.7
+requests==2.31.0
+
+# Database and vector search
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+qdrant-client==1.6.9
+alembic==1.12.1
+
+# USB/Serial communication
+pyserial==3.5
+pyusb==1.2.1
+libusb1==3.0.0
+
+# Security and authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# Utilities
+numpy==1.24.3
+pandas==2.0.3
+python-dateutil==2.8.2
