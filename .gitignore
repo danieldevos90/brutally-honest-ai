@@ -30,11 +30,12 @@ ENV/
 env.bak/
 venv.bak/
 
-# Environment Variables
+# Environment variables
 .env
 .env.local
-.env.production
-.env.staging
+.env.development.local
+.env.test.local
+.env.production.local
 
 # IDE
 .vscode/
@@ -43,65 +44,63 @@ venv.bak/
 *.swo
 *~
 
-# macOS
+# OS
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon
+.DS_Store?
 ._*
-.DocumentRevisions-V100
-.fseventsd
 .Spotlight-V100
-.TemporaryItems
 .Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+ehthumbs.db
+Thumbs.db
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Logs
 logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Temporary files
-tmp/
-temp/
-*.tmp
-*.temp
-
-# Audio files (for testing)
+# Audio files (temporary)
 *.wav
 *.mp3
 *.m4a
 *.flac
-
-# Model files
-*.bin
-*.onnx
-*.pt
-*.pth
+temp_audio/
+uploads/
 
 # Docker
 .dockerignore
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Test files
+test_*.txt
+temp_*
+*.tmp
 
-# pytest
-.pytest_cache/
-.coverage
+# Model files (too large for git)
+models/
+*.model
+*.bin
+*.safetensors
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Coverage reports
 htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
 
 # mypy
 .mypy_cache/
