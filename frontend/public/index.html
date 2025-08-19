@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Insight Platform</title>
+    <title>Brutal Honest AI</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
@@ -11,7 +11,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Voice Insight Platform</h1>
+            <h1>Brutal Honest AI</h1>
             <div class="status-bar">
                 <div class="status-item">
                     <div class="status-dot" id="backend-status"></div>
@@ -104,15 +104,42 @@
             try {
                 const response = await fetch('/api/status');
                 if (response.ok) {
-                    document.getElementById('backend-status').classList.add('online');
-                    document.getElementById('llm-status').classList.add('online');
-                    document.getElementById('audio-status').classList.add('online');
+                    const data = await response.json();
+                    
+                    // Update Backend status
+                    const backendStatus = document.getElementById('backend-status');
+                    backendStatus.classList.remove('online', 'offline');
+                    backendStatus.classList.add('online');
+                    
+                    // Update LLM status based on actual data
+                    const llmStatus = document.getElementById('llm-status');
+                    llmStatus.classList.remove('online', 'offline');
+                    if (data.llm_analyzer && data.services && data.services.ollama) {
+                        llmStatus.classList.add('online');
+                    } else {
+                        llmStatus.classList.add('offline');
+                    }
+                    
+                    // Update Audio status based on actual data
+                    const audioStatus = document.getElementById('audio-status');
+                    audioStatus.classList.remove('online', 'offline');
+                    if (data.audio_processor && data.omi_connected) {
+                        audioStatus.classList.add('online');
+                    } else {
+                        audioStatus.classList.add('offline');
+                    }
                 } else {
+                    // All offline if backend is not responding
                     document.getElementById('backend-status').classList.add('offline');
+                    document.getElementById('llm-status').classList.add('offline');
+                    document.getElementById('audio-status').classList.add('offline');
                 }
             } catch (error) {
-                                    document.getElementById('backend-status').classList.add('offline');
-                    addDemoLog('[ERROR] Backend connection failed');
+                // All offline if there's an error
+                document.getElementById('backend-status').classList.add('offline');
+                document.getElementById('llm-status').classList.add('offline');
+                document.getElementById('audio-status').classList.add('offline');
+                addDemoLog('[ERROR] Backend connection failed');
             }
         }
 
