@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Insight Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Voice Insight Platform</h1>
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-dot" id="backend-status"></div>
+                    <span>Backend</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="llm-status"></div>
+                    <span>LLM</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot" id="audio-status"></div>
+                    <span>Audio</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Live Recording Section -->
+            <div class="section">
+                <h2>Live Recording</h2>
+                
+                <!-- Recording Controls -->
+                <div class="recording-controls">
+                    <button id="start-record-btn" class="btn btn-primary" onclick="startRecording()">
+                        Start Recording
+                    </button>
+                    <button id="stop-record-btn" class="btn btn-secondary" onclick="stopRecording()" disabled>
+                        Stop Recording
+                    </button>
+                    <button id="toggle-log-btn" class="btn btn-secondary" onclick="toggleSystemLog()">
+                        Enable System Log
+                    </button>
+                </div>
+
+                <!-- Recording Status -->
+                <div class="recording-status" id="recording-status">
+                    <div class="recording-indicator" id="recording-indicator">●</div>
+                    <span>Ready to record</span>
+                </div>
+
+                <!-- Results Display -->
+                <div class="results-container" id="results-container" style="display: none;">
+                    <!-- Transcript -->
+                    <div class="result-section">
+                        <h3>Transcript</h3>
+                        <div class="transcript-text" id="transcript-text">
+                            Your transcribed speech will appear here...
+                        </div>
+                    </div>
+
+                    <!-- Analysis -->
+                    <div class="result-section">
+                        <h3>BRUTAL HONESTY ANALYSIS</h3>
+                        <div class="analysis-text robot-analysis" id="analysis-text">
+                            <div class="robot-header">
+                                <span class="robot-indicator">[ANALYZING...]</span>
+                                <span class="robot-status">SYSTEM READY</span>
+                            </div>
+                            <div class="robot-content">
+                                Analysis will appear here...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Log -->
+            <div class="section" id="system-log-section" style="display: none;">
+                <h2>System Log</h2>
+                <div class="demo-log" id="demo-log">
+                    System log will appear here...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isRecording = false;
+        let systemLogEnabled = false;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkBackendStatus();
+            connectWebSocket();
+        });
+
+        async function checkBackendStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (response.ok) {
+                    document.getElementById('backend-status').classList.add('online');
+                    document.getElementById('llm-status').classList.add('online');
+                    document.getElementById('audio-status').classList.add('online');
+                } else {
+                    document.getElementById('backend-status').classList.add('offline');
+                }
+            } catch (error) {
+                                    document.getElementById('backend-status').classList.add('offline');
+                    addDemoLog('[ERROR] Backend connection failed');
+            }
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:8000/api/audio/stream');
+            
+            ws.onopen = () => {
+                console.log('Connected to server');
+                addDemoLog('[SYSTEM] Connected to Voice Insight Platform');
+            };
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                console.log('Received:', message);
+                
+                switch(message.type) {
+                    case 'connection':
+                        addDemoLog('[CONNECT] ' + message.data);
+                        break;
+                        
+                    case 'info':
+                        addDemoLog('[INFO] ' + message.data.message);
+                        break;
+                        
+                    case 'recording_start':
+                        updateRecordingStatus(message.data.message, true);
+                        addDemoLog('[RECORD] ' + message.data.message);
+                        updateRobotStatus('RECORDING');
+                        break;
+                        
+                    case 'recording_stop':
+                        updateRecordingStatus(message.data.message, false);
+                        addDemoLog('[STOP] ' + message.data.message);
+                        updateRobotStatus('PROCESSING');
+                        break;
+                        
+                    case 'transcript':
+                        showTranscript(message.data);
+                        break;
+                        
+                    case 'analysis':
+                        showAnalysis(message.data.brutal_response);
+                        updateRobotStatus('ANALYSIS COMPLETE');
+                        break;
+                        
+                    case 'error':
+                        addDemoLog('[ERROR] ' + message.data.message);
+                        updateRobotStatus('ERROR');
+                        resetRecordingButtons();
+                        break;
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addDemoLog('[ERROR] Connection error');
+            };
+            
+            ws.onclose = () => {
+                console.log('Disconnected from server');
+                addDemoLog('[DISCONNECT] Connection lost - attempting reconnect...');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function startRecording() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addDemoLog('[ERROR] Not connected to server');
+                return;
+            }
+            
+            isRecording = true;
+            document.getElementById('start-record-btn').disabled = true;
+            document.getElementById('stop-record-btn').disabled = false;
+            
+            // Hide previous results
+            document.getElementById('results-container').style.display = 'none';
+            updateRobotStatus('INITIALIZING');
+            
+            ws.send(JSON.stringify({ action: 'start_recording' }));
+        }
+
+        function stopRecording() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                addDemoLog('[ERROR] Not connected to server');
+                return;
+            }
+            
+            isRecording = false;
+            document.getElementById('start-record-btn').disabled = false;
+            document.getElementById('stop-record-btn').disabled = true;
+            
+            ws.send(JSON.stringify({ action: 'stop_recording' }));
+        }
+
+        function resetRecordingButtons() {
+            isRecording = false;
+            document.getElementById('start-record-btn').disabled = false;
+            document.getElementById('stop-record-btn').disabled = true;
+            updateRecordingStatus('Ready to record', false);
+        }
+
+        function updateRecordingStatus(message, recording) {
+            const statusElement = document.querySelector('#recording-status span');
+            const indicator = document.getElementById('recording-indicator');
+            
+            statusElement.textContent = message;
+            
+            if (recording) {
+                indicator.style.color = '#ef4444';
+                indicator.classList.add('pulse');
+            } else {
+                indicator.style.color = '#cccccc';
+                indicator.classList.remove('pulse');
+            }
+        }
+
+        function showTranscript(text) {
+            document.getElementById('results-container').style.display = 'block';
+            document.getElementById('transcript-text').textContent = text;
+        }
+
+        function showAnalysis(text) {
+            const robotContent = document.querySelector('.robot-content');
+            robotContent.textContent = text;
+        }
+
+        function updateRobotStatus(status) {
+            const robotStatus = document.querySelector('.robot-status');
+            const robotIndicator = document.querySelector('.robot-indicator');
+            
+            robotStatus.textContent = status;
+            
+            switch(status) {
+                case 'RECORDING':
+                    robotIndicator.textContent = '[RECORDING...]';
+                    robotIndicator.className = 'robot-indicator recording';
+                    break;
+                case 'PROCESSING':
+                    robotIndicator.textContent = '[PROCESSING...]';
+                    robotIndicator.className = 'robot-indicator processing';
+                    break;
+                case 'ANALYSIS COMPLETE':
+                    robotIndicator.textContent = '[COMPLETE]';
+                    robotIndicator.className = 'robot-indicator complete';
+                    break;
+                case 'ERROR':
+                    robotIndicator.textContent = '[ERROR]';
+                    robotIndicator.className = 'robot-indicator error';
+                    break;
+                default:
+                    robotIndicator.textContent = '[READY]';
+                    robotIndicator.className = 'robot-indicator ready';
+            }
+        }
+
+        function toggleSystemLog() {
+            const logSection = document.getElementById('system-log-section');
+            const toggleBtn = document.getElementById('toggle-log-btn');
+            
+            systemLogEnabled = !systemLogEnabled;
+            
+            if (systemLogEnabled) {
+                logSection.style.display = 'block';
+                toggleBtn.textContent = 'Disable System Log';
+                addDemoLog('[SYSTEM] System log enabled');
+            } else {
+                logSection.style.display = 'none';
+                toggleBtn.textContent = 'Enable System Log';
+            }
+        }
+
+        function addDemoLog(message) {
+            if (!systemLogEnabled) return;
+            
+            const logElement = document.getElementById('demo-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+    </script>
+</body>
+</html>

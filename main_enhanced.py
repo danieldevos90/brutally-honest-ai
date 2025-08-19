@@ -8,6 +8,7 @@ import logging
 import tempfile
 import os
 import time
+import json
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
@@ -56,13 +57,16 @@ class OMIConnector:
         for port in ports:
             # Check for OMI device patterns
             desc = port.description.lower()
-            if any(keyword in desc for keyword in ['omi', 'pico', 'rp2040', 'raspberry']):
+            if any(keyword in desc for keyword in ['omi', 'pico', 'rp2040', 'raspberry', 'xiao', 'nrf52840']):
                 return port.device
             
             # Check by VID/PID if available
             if hasattr(port, 'vid') and hasattr(port, 'pid'):
                 # Common Raspberry Pi Pico VID/PID
                 if port.vid == 0x2E8A and port.pid in [0x0005, 0x000A]:
+                    return port.device
+                # Seeed XIAO nRF52840 Sense (OMI DevKit 2)
+                if port.vid == 10374 and port.pid == 69:  # 0x2886:0x0045
                     return port.device
         
         return None
@@ -90,25 +94,80 @@ class OMIConnector:
         return self.serial_connection is not None and self.serial_connection.is_open
     
     async def stream_audio(self):
-        """Stream audio data (simulated for now)"""
+        """Stream real audio data from microphone"""
         if not self.is_connected():
             return
         
-        self.is_streaming = True
-        chunk_size = 1024
-        
-        while self.is_streaming:
-            # Simulate audio chunk (in real implementation, read from serial)
-            audio_data = np.random.randint(-1000, 1000, chunk_size, dtype=np.int16).tobytes()
+        try:
+            import pyaudio
             
-            yield AudioChunk(
-                data=audio_data,
-                timestamp=time.time(),
-                sample_rate=16000,
-                channels=1
+            # Audio configuration
+            chunk_size = 1024
+            sample_rate = 16000
+            channels = 1
+            format = pyaudio.paInt16
+            
+            # Initialize PyAudio
+            audio = pyaudio.PyAudio()
+            
+            # Open microphone stream
+            stream = audio.open(
+                format=format,
+                channels=channels,
+                rate=sample_rate,
+                input=True,
+                frames_per_buffer=chunk_size
             )
             
-            await asyncio.sleep(0.1)  # 100ms chunks
+            self.is_streaming = True
+            logger.info("Started real audio streaming from microphone")
+            
+            while self.is_streaming:
+                try:
+                    # Read audio data from microphone
+                    audio_data = stream.read(chunk_size, exception_on_overflow=False)
+                    
+                    yield AudioChunk(
+                        data=audio_data,
+                        timestamp=time.time(),
+                        sample_rate=sample_rate,
+                        channels=channels
+                    )
+                    
+                    await asyncio.sleep(0.01)  # Small delay to prevent overwhelming
+                    
+                except Exception as e:
+                    logger.error(f"Error reading audio: {e}")
+                    break
+            
+            # Cleanup
+            stream.stop_stream()
+            stream.close()
+            audio.terminate()
+            logger.info("Stopped real audio streaming")
+            
+        except ImportError:
+            logger.warning("PyAudio not available, falling back to simulated audio")
+            # Fallback to simulated audio
+            self.is_streaming = True
+            chunk_size = 1024
+            
+            while self.is_streaming:
+                # Simulate audio chunk
+                audio_data = np.random.randint(-1000, 1000, chunk_size, dtype=np.int16).tobytes()
+                
+                yield AudioChunk(
+                    data=audio_data,
+                    timestamp=time.time(),
+                    sample_rate=16000,
+                    channels=1
+                )
+                
+                await asyncio.sleep(0.1)  # 100ms chunks
+                
+        except Exception as e:
+            logger.error(f"Audio streaming error: {e}")
+            self.is_streaming = False
     
     def stop_streaming(self):
         """Stop audio streaming"""
@@ -187,8 +246,18 @@ async def startup_event():
     omi_connector = OMIConnector()
     await omi_connector.initialize()
     
-    # Initialize basic processor
-    audio_processor = BasicProcessor()
+    # Try to initialize real AudioProcessor, fallback to BasicProcessor
+    try:
+        from src.audio.processor import AudioProcessor
+        audio_processor = AudioProcessor()
+        if await audio_processor.initialize():
+            logger.info("Real AudioProcessor with Whisper initialized")
+        else:
+            logger.warning("Failed to initialize real AudioProcessor, using BasicProcessor")
+            audio_processor = BasicProcessor()
+    except Exception as e:
+        logger.warning(f"Could not load real AudioProcessor ({e}), using BasicProcessor")
+        audio_processor = BasicProcessor()
     
     logger.info("Platform initialization complete")
 
@@ -244,7 +313,7 @@ async def get_status():
     return {
         "omi_connected": omi_connected,
         "omi_device": omi_device,
-        "audio_processor": audio_processor.is_ready if audio_processor else False,
+        "audio_processor": audio_processor.is_ready() if audio_processor else False,
         "llm_analyzer": ollama_ready,
         "database": postgres_ready and qdrant_ready,
         "services": {
@@ -271,11 +340,14 @@ async def list_serial_ports():
         
         for port in ports:
             desc = port.description.lower()
-            is_omi = any(keyword in desc for keyword in ['omi', 'pico', 'rp2040', 'raspberry'])
+            is_omi = any(keyword in desc for keyword in ['omi', 'pico', 'rp2040', 'raspberry', 'xiao', 'nrf52840'])
             
             # Also check VID/PID
             if hasattr(port, 'vid') and hasattr(port, 'pid'):
                 if port.vid == 0x2E8A and port.pid in [0x0005, 0x000A]:
+                    is_omi = True
+                # Seeed XIAO nRF52840 Sense (OMI DevKit 2)
+                if port.vid == 10374 and port.pid == 69:  # 0x2886:0x0045
                     is_omi = True
             
             port_info = {
@@ -319,57 +391,195 @@ async def connect_omi():
 
 @app.websocket("/api/audio/stream")
 async def websocket_audio_stream(websocket: WebSocket):
-    """WebSocket endpoint for real-time audio streaming"""
+    """WebSocket endpoint for real-time audio streaming with demo simulation"""
     await websocket.accept()
+    
+    async def safe_send(message_type: str, data):
+        """Safely send WebSocket message with connection check"""
+        try:
+            if websocket.client_state.name == "CONNECTED":
+                await websocket.send_json({
+                    "type": message_type,
+                    "data": data
+                })
+                logger.debug(f"Successfully sent {message_type}")
+                return True
+            else:
+                logger.debug(f"WebSocket not connected, cannot send {message_type}")
+                return False
+        except Exception as e:
+            logger.warning(f"Failed to send {message_type}: {e}")
+            return False
+    
+    # Shared state for recording control
+    recording_state = {"is_recording": False, "stop_requested": False}
     
     try:
         logger.info("WebSocket connection established for audio streaming")
         
-        if not omi_connector or not omi_connector.is_connected():
-            await websocket.send_json({
-                "type": "error",
-                "data": {"message": "OMI device not connected"}
-            })
+        # Send initial connection message
+        if not await safe_send("connection", "Connected to Voice Insight Platform"):
             return
         
-        # Start audio streaming
-        async for audio_chunk in omi_connector.stream_audio():
-            # Process audio chunk
-            result = await audio_processor.process_chunk(audio_chunk)
-            
-            if result:
-                # Send transcription
-                await websocket.send_json({
-                    "type": "transcription",
-                    "data": {
-                        "text": result.transcript,
-                        "duration": result.duration,
-                        "confidence": result.confidence,
-                        "timestamp": result.timestamp.isoformat()
-                    }
-                })
-                
-                # Send basic analysis
-                await websocket.send_json({
-                    "type": "analysis",
-                    "data": {
-                        "summary": f"Processed {result.duration:.1f}s of audio",
-                        "confidence": result.confidence,
-                        "status": "simulated_processing"
-                    }
-                })
+        # Keep connection alive and wait for client to be ready
+        import asyncio
+        await asyncio.sleep(1.0)  # Give frontend more time to stabilize
+        
+        # Always use manual control mode for demo
+        # Send info message about user-controlled processing
+        await safe_send("info", {"message": "Ready for user-controlled recording - click Start to begin, Stop to process. Any duration works!"})
+        
+        # Keep connection alive and wait for manual control
+        try:
+            while websocket.client_state.name == "CONNECTED":
+                # Wait for messages from client (start/stop commands)
+                try:
+                    message = await asyncio.wait_for(websocket.receive(), timeout=1.0)
+                    if message['type'] == 'websocket.receive':
+                        if 'text' in message:
+                            message_text = message['text']
+                        elif 'bytes' in message:
+                            message_text = message['bytes'].decode('utf-8')
+                        else:
+                            continue
+                    else:
+                        continue
+                    
+                    data = json.loads(message_text)
+                    logger.info(f"Received command: {data}")
+                    
+                    if data.get("action") == "start_recording":
+                        recording_state["is_recording"] = True
+                        recording_state["stop_requested"] = False
+                        
+                        await safe_send("recording_start", {"message": "🎤 Recording started - speak now, click Stop when done!"})
+                        await safe_send("info", {"message": "OMI connected - buffering audio until you click Stop"})
+                        
+                        # Start real audio streaming and processing
+                        try:
+                            if omi_connector and audio_processor.is_ready():
+                                # Start real-time audio buffering (no processing until stop)
+                                chunk_start_time = time.time()
+                                last_progress_update = 0
+                                recording_active = True
+                                
+                                async for audio_chunk in omi_connector.stream_audio():
+                                    # Check if stop was requested via shared state
+                                    if recording_state["stop_requested"]:
+                                        logger.info("Stop requested - processing buffered audio")
+                                        recording_active = False
+                                        omi_connector.stop_streaming()
+                                        
+                                        # Process the complete buffered audio
+                                        await safe_send("recording_stop", {"message": "⏹️ Recording stopped - processing..."})
+                                        
+                                        # Process the buffered audio
+                                        result = await audio_processor.process_on_stop()
+                                        
+                                        if result and result.transcript:
+                                            # Send complete transcription
+                                            await safe_send("transcript", result.transcript)
+                                            
+                                            # Send analysis with LLM
+                                            try:
+                                                from src.llm.analyzer import LLMAnalyzer
+                                                llm_analyzer = LLMAnalyzer()
+                                                if await llm_analyzer.initialize():
+                                                    analysis = await llm_analyzer.analyze_transcript(result)
+                                                    brutal_response = getattr(analysis.fact_check, 'brutal_response', 
+                                                                            f"Let me be brutally honest... '{result.transcript}' - I'm analyzing this with real AI now!")
+                                                    await safe_send("analysis", {
+                                                        "brutal_response": brutal_response,
+                                                        "confidence": analysis.confidence,
+                                                        "status": "real_llm_analysis",
+                                                        "issues": analysis.fact_check.issues,
+                                                        "corrections": analysis.fact_check.corrections,
+                                                        "honesty_level": getattr(analysis.fact_check, 'honesty_level', 'brutal')
+                                                    })
+                                                else:
+                                                    # Fallback to simple brutal response
+                                                    brutal_response = f"Let me be brutally honest... '{result.transcript}' - I'm analyzing this with real AI now!"
+                                                    await safe_send("analysis", {
+                                                        "brutal_response": brutal_response,
+                                                        "confidence": result.confidence,
+                                                        "status": "real_whisper_processing"
+                                                    })
+                                            except Exception as llm_error:
+                                                logger.warning(f"LLM analysis failed: {llm_error}")
+                                                # Fallback to simple brutal response
+                                                brutal_response = f"Let me be brutally honest... '{result.transcript}' - I'm analyzing this with real AI now!"
+                                                await safe_send("analysis", {
+                                                    "brutal_response": brutal_response,
+                                                    "confidence": result.confidence,
+                                                    "status": "real_whisper_processing"
+                                                })
+                                        else:
+                                            await safe_send("error", {"message": "No audio captured or transcription failed"})
+                                        
+                                        # Reset recording state
+                                        recording_state["is_recording"] = False
+                                        recording_state["stop_requested"] = False
+                                        break  # Exit the streaming loop
+                                    
+                                    # Send progress updates every 10 seconds
+                                    current_time = time.time()
+                                    elapsed = current_time - chunk_start_time
+                                    
+                                    if elapsed - last_progress_update >= 10:
+                                        progress_msg = f"Recording... {int(elapsed)}s elapsed - click Stop to process"
+                                        await safe_send("info", {"message": progress_msg})
+                                        last_progress_update = elapsed
+                                    
+                                    # Just buffer the audio chunk (don't process until stop)
+                                    await audio_processor.process_chunk(audio_chunk)
+                            else:
+                                # Fallback to demo mode if real processing not available
+                                await safe_send("info", {"message": "Demo mode - real Whisper not available"})
+                                
+                        except Exception as stream_error:
+                            logger.error(f"Real streaming error: {stream_error}")
+                            await safe_send("error", {"message": f"Streaming error: {stream_error}"})
+                        
+                    elif data.get("action") == "stop_recording":
+                        # Set the stop flag for the streaming loop to detect
+                        if recording_state["is_recording"]:
+                            logger.info("Stop command received - setting stop flag")
+                            recording_state["stop_requested"] = True
+                        else:
+                            logger.info("Stop command received but no active recording")
+                            await safe_send("error", {"message": "No active recording to stop"})
+                        
+                except asyncio.TimeoutError:
+                    # No message received, continue waiting
+                    continue
+                except json.JSONDecodeError:
+                    # Invalid JSON, ignore
+                    continue
+                        
+        except Exception as e:
+            logger.error(f"Demo control error: {e}")
+        
+        # Removed automatic streaming - now controlled by start/stop commands only
                 
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        await websocket.send_json({
-            "type": "error",
-            "data": {"message": str(e)}
-        })
+        # Don't try to send error message if connection is already closed
+        if websocket.client_state.name == "CONNECTED":
+            try:
+                await websocket.send_json({
+                    "type": "error",
+                    "data": {"message": str(e)}
+                })
+            except:
+                pass
     finally:
         if omi_connector:
-            omi_connector.stop_streaming()
+            try:
+                omi_connector.stop_streaming()
+            except:
+                pass
 
 @app.post("/api/audio/upload")
 async def upload_audio(file: UploadFile = File(...)):

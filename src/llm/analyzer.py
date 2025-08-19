@@ -202,9 +202,9 @@ class LLMAnalyzer:
             return ""
     
     def _create_fact_check_prompt(self, transcript: str, context: str) -> str:
-        """Create prompt for fact-checking"""
+        """Create prompt for brutally honest fact-checking"""
         return f"""
-You are a fact-checking assistant for a company. Analyze the following statement against the provided company knowledge base.
+You are a brutally honest fact-checking AI. You ALWAYS start your responses with "Let me be brutally honest..." and then tell the unvarnished truth without sugar-coating anything.
 
 COMPANY KNOWLEDGE:
 {context}
@@ -212,20 +212,28 @@ COMPANY KNOWLEDGE:
 STATEMENT TO CHECK:
 "{transcript}"
 
-Please analyze this statement and respond in JSON format:
+Analyze this statement and respond in JSON format, but make your "brutal_response" field conversational and direct:
 {{
+    "brutal_response": "Let me be brutally honest... [your direct, honest assessment]",
     "is_accurate": true/false,
     "confidence": 0.0-1.0,
     "issues": ["list of factual issues found"],
     "corrections": ["list of corrections needed"],
-    "sources": ["relevant knowledge base sections"]
+    "sources": ["relevant knowledge base sections"],
+    "honesty_level": "brutal"
 }}
 
-Focus on:
-1. Factual accuracy against company data
-2. Process compliance
-3. Completeness of information
-4. Potential misleading statements
+Your brutal_response should:
+1. Start with "Let me be brutally honest..."
+2. Point out exactly what's wrong or questionable
+3. Be direct but not insulting
+4. Highlight gaps in reasoning or evidence
+5. Call out assumptions or oversimplifications
+
+Examples of brutal honesty:
+- "Let me be brutally honest... that statement sounds confident but lacks any supporting evidence."
+- "Let me be brutally honest... you're making assumptions that aren't backed by the data we have."
+- "Let me be brutally honest... while technically correct, you're missing the bigger picture here."
 """
     
     def _create_feedback_prompt(self, audio_result: AudioProcessingResult) -> str:
@@ -269,7 +277,7 @@ Focus on:
         return "\n\n".join(relevant_docs[:3])  # Limit to top 3 relevant docs
     
     def _parse_fact_check_response(self, response: str) -> FactCheckResult:
-        """Parse LLM response for fact-checking"""
+        """Parse LLM response for brutally honest fact-checking"""
         try:
             # Try to extract JSON from response
             if "{" in response and "}" in response:
@@ -278,13 +286,20 @@ Focus on:
                 json_str = response[json_start:json_end]
                 data = json.loads(json_str)
                 
-                return FactCheckResult(
+                # Create a custom FactCheckResult that includes brutal honesty
+                result = FactCheckResult(
                     is_accurate=data.get("is_accurate", False),
                     confidence=float(data.get("confidence", 0.5)),
                     issues=data.get("issues", []),
                     corrections=data.get("corrections", []),
                     sources=data.get("sources", [])
                 )
+                
+                # Add brutal honesty response as an additional attribute
+                result.brutal_response = data.get("brutal_response", "Let me be brutally honest... I couldn't analyze that properly.")
+                result.honesty_level = data.get("honesty_level", "brutal")
+                
+                return result
             else:
                 # Fallback parsing
                 return self._create_fallback_fact_check()
@@ -348,14 +363,18 @@ Focus on:
         )
     
     def _create_fallback_fact_check(self) -> FactCheckResult:
-        """Create fallback fact-check result"""
-        return FactCheckResult(
+        """Create fallback fact-check result with brutal honesty"""
+        result = FactCheckResult(
             is_accurate=True,  # Assume accurate when can't verify
             confidence=0.5,
-            issues=[],
-            corrections=[],
+            issues=["Unable to verify due to system limitations"],
+            corrections=["Verify claims independently"],
             sources=["LLM analyzer offline"]
         )
+        # Add brutal honesty attributes
+        result.brutal_response = "Let me be brutally honest... I can't properly fact-check that right now because my analysis system is offline. Don't take that as validation - you should still verify your claims."
+        result.honesty_level = "brutal"
+        return result
     
     def _create_fallback_feedback(self) -> FeedbackResult:
         """Create fallback feedback result"""
