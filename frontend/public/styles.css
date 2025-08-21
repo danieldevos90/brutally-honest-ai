@@ -352,6 +352,127 @@ body {
     }
 }
 
+/* Connection Info Panel */
+.connection-info {
+    margin: 15px auto 0 auto;
+    padding: 16px 24px;
+    display: inline-flex;
+    gap: 32px;
+    align-items: center;
+    font-size: 14px;
+    color: #333;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    width: fit-content;
+}
+
+.connection-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.connection-icon {
+    width: 16px;
+    height: 16px;
+    color: #666;
+    flex-shrink: 0;
+}
+
+.connection-label {
+    font-weight: 500;
+    color: #666;
+    margin-right: 4px;
+}
+
+.connection-value {
+    font-weight: 600;
+    color: #000;
+}
+
+.battery-text, .signal-text {
+    font-weight: 600;
+    color: #000;
+}
+
+/* Battery Indicator */
+.battery-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+}
+
+.battery-level {
+    height: 12px;
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s ease;
+    min-width: 40px;
+    max-width: 40px;
+    position: relative;
+    border: 1px solid #d1d5db;
+}
+
+.battery-level::after {
+    content: '';
+    position: absolute;
+    right: -3px;
+    top: 3px;
+    width: 2px;
+    height: 6px;
+    background: #d1d5db;
+    border-radius: 0 1px 1px 0;
+}
+
+.battery-level.low {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.battery-level.medium {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.battery-text {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6c757d;
+    min-width: 30px;
+}
+
+/* Signal Indicator */
+.signal-indicator {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+}
+
+.signal-bar {
+    width: 3px;
+    background: #d1d5db;
+    border-radius: 1px;
+    transition: background 0.3s ease;
+}
+
+.signal-bar:nth-child(1) { height: 3px; }
+.signal-bar:nth-child(2) { height: 6px; }
+.signal-bar:nth-child(3) { height: 9px; }
+.signal-bar:nth-child(4) { height: 12px; }
+
+.signal-bar.active {
+    background: #22c55e;
+}
+
+.signal-text {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6c757d;
+    margin-left: 6px;
+    min-width: 40px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {

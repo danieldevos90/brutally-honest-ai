@@ -6,6 +6,7 @@
     <title>Brutal Honest AI</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body>
     <div class="container">
@@ -24,6 +25,25 @@
                 <div class="status-item">
                     <div class="status-dot" id="audio-status"></div>
                     <span>Audio</span>
+                </div>
+            </div>
+            
+            <!-- Connection Info Panel -->
+            <div class="connection-info" id="connection-info" style="display: none;">
+                <div class="connection-item">
+                    <i data-lucide="bluetooth" class="connection-icon"></i>
+                    <span class="connection-label">Connection:</span>
+                    <span class="connection-value" id="connection-type">Bluetooth</span>
+                </div>
+                <div class="connection-item">
+                    <i data-lucide="battery" class="connection-icon"></i>
+                    <span class="connection-label">Battery:</span>
+                    <span class="battery-text" id="battery-text">100%</span>
+                </div>
+                <div class="connection-item">
+                    <i data-lucide="signal" class="connection-icon"></i>
+                    <span class="connection-label">Signal:</span>
+                    <span class="signal-text" id="signal-text">Strong</span>
                 </div>
             </div>
         </div>
@@ -96,8 +116,14 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Lucide icons
+            lucide.createIcons();
+            
             checkBackendStatus();
             connectWebSocket();
+            
+            // Update connection info every 5 seconds
+            setInterval(updateDetailedConnectionInfo, 5000);
         });
 
         async function checkBackendStatus() {
@@ -125,21 +151,159 @@
                     audioStatus.classList.remove('online', 'offline');
                     if (data.audio_processor && data.omi_connected) {
                         audioStatus.classList.add('online');
+                        
+                        // Show connection info if OMI is connected
+                        updateConnectionInfo(data);
                     } else {
                         audioStatus.classList.add('offline');
+                        hideConnectionInfo();
                     }
                 } else {
                     // All offline if backend is not responding
                     document.getElementById('backend-status').classList.add('offline');
                     document.getElementById('llm-status').classList.add('offline');
                     document.getElementById('audio-status').classList.add('offline');
+                    hideConnectionInfo();
                 }
             } catch (error) {
                 // All offline if there's an error
                 document.getElementById('backend-status').classList.add('offline');
                 document.getElementById('llm-status').classList.add('offline');
                 document.getElementById('audio-status').classList.add('offline');
+                hideConnectionInfo();
                 addDemoLog('[ERROR] Backend connection failed');
+            }
+        }
+        
+        function updateConnectionInfo(data) {
+            const connectionInfo = document.getElementById('connection-info');
+            
+            // Show connection info panel
+            connectionInfo.style.display = 'flex';
+            
+            // Update connection type and icon
+            const connectionType = document.getElementById('connection-type');
+            const connectionIcon = document.querySelector('.connection-item i[data-lucide]');
+            
+            if (data.connection_type === 'bluetooth' || (data.omi_device && data.omi_device.includes('BLE'))) {
+                connectionType.textContent = 'Bluetooth';
+                connectionIcon.setAttribute('data-lucide', 'bluetooth');
+            } else if (data.connection_type === 'usb' || data.omi_device) {
+                connectionType.textContent = 'USB';
+                connectionIcon.setAttribute('data-lucide', 'usb');
+            } else {
+                connectionType.textContent = 'Unknown';
+                connectionIcon.setAttribute('data-lucide', 'help-circle');
+            }
+            
+            // Refresh icons after changing attributes
+            lucide.createIcons();
+            
+            // Update battery level (simulate if not available)
+            let batteryLevel = 100;
+            if (data.battery_level !== undefined) {
+                batteryLevel = data.battery_level;
+            } else {
+                // Simulate battery level based on connection type
+                batteryLevel = data.omi_device && data.omi_device.includes('bluetooth') ? 85 : 100;
+            }
+            
+            updateBatteryIndicator(batteryLevel);
+            
+            // Update signal strength (simulate based on connection)
+            let signalStrength = 4; // Strong signal
+            if (data.signal_strength !== undefined) {
+                signalStrength = data.signal_strength;
+            } else {
+                // Simulate signal strength
+                if (data.omi_device && data.omi_device.includes('bluetooth')) {
+                    signalStrength = Math.floor(Math.random() * 2) + 3; // 3-4 bars for Bluetooth
+                } else {
+                    signalStrength = 4; // Full signal for USB
+                }
+            }
+            
+            updateSignalIndicator(signalStrength);
+        }
+        
+        function hideConnectionInfo() {
+            const connectionInfo = document.getElementById('connection-info');
+            connectionInfo.style.display = 'none';
+        }
+        
+        function updateBatteryIndicator(level) {
+            const batteryLevelEl = document.getElementById('battery-level');
+            const batteryTextEl = document.getElementById('battery-text');
+            
+            // Update width
+            batteryLevelEl.style.width = level + '%';
+            batteryTextEl.textContent = level + '%';
+            
+            // Update color based on level
+            batteryLevelEl.classList.remove('low', 'medium');
+            if (level <= 20) {
+                batteryLevelEl.classList.add('low');
+            } else if (level <= 50) {
+                batteryLevelEl.classList.add('medium');
+            }
+        }
+        
+        function updateSignalIndicator(strength) {
+            const signalTextEl = document.getElementById('signal-text');
+            
+            // Update signal bars
+            for (let i = 1; i <= 4; i++) {
+                const bar = document.getElementById(`signal-bar-${i}`);
+                if (i <= strength) {
+                    bar.classList.add('active');
+                } else {
+                    bar.classList.remove('active');
+                }
+            }
+            
+            // Update signal text
+            const signalTexts = ['None', 'Weak', 'Fair', 'Good', 'Strong'];
+            signalTextEl.textContent = signalTexts[strength] || 'Unknown';
+        }
+        
+        async function updateDetailedConnectionInfo() {
+            try {
+                const response = await fetch('/api/connection/info');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.connected) {
+                        // Update connection type and icon
+                        const connectionType = document.getElementById('connection-type');
+                        const connectionIcon = document.querySelector('.connection-item i[data-lucide]');
+                        
+                        if (data.connection_type === 'bluetooth') {
+                            connectionType.textContent = 'Bluetooth';
+                            connectionIcon.setAttribute('data-lucide', 'bluetooth');
+                        } else {
+                            connectionType.textContent = 'USB';
+                            connectionIcon.setAttribute('data-lucide', 'usb');
+                        }
+                        
+                        // Refresh icons
+                        lucide.createIcons();
+                        
+                        // Update battery level with real data
+                        updateBatteryIndicator(data.battery_level || 100);
+                        
+                        // Update signal strength with real data
+                        updateSignalIndicator(data.signal_strength || 4);
+                        
+                        // Show connection info if not already visible
+                        const connectionInfo = document.getElementById('connection-info');
+                        if (connectionInfo.style.display === 'none') {
+                            connectionInfo.style.display = 'flex';
+                        }
+                    }
+                }
+            } catch (error) {
+                // Silently fail - connection info will be hidden by main status check
+                console.log('Connection info update failed:', error);
             }
         }
 
