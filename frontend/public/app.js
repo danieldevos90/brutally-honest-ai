@@ -17,6 +17,16 @@ class VoiceInsightApp {
         this.setupEventListeners();
         this.checkInitialStatus();
         this.setupDragAndDrop();
+        
+        // Initialize device status
+        this.updateDeviceStatus();
+        this.getBLERecordings();
+        
+        // Set up periodic updates
+        setInterval(() => {
+            this.updateDeviceStatus();
+        }, 10000); // Update every 10 seconds
+        
         // Demo will start when user clicks Start Recording
     }
     
@@ -32,6 +42,18 @@ class VoiceInsightApp {
         uploadArea.addEventListener('click', () => {
             audioInput.click();
         });
+        
+        // BLE and USB connection buttons
+        const connectBLEBtn = document.getElementById('connect-ble-btn');
+        const usbRefreshBtn = document.getElementById('usb-refresh-btn');
+        
+        if (connectBLEBtn) {
+            connectBLEBtn.addEventListener('click', () => this.connectBLE());
+        }
+        
+        if (usbRefreshBtn) {
+            usbRefreshBtn.addEventListener('click', () => this.connectUSB());
+        }
     }
     
     setupDragAndDrop() {
@@ -72,7 +94,7 @@ class VoiceInsightApp {
         // Update UI
         const uploadContent = document.querySelector('.upload-content');
         uploadContent.innerHTML = `
-            <div class="upload-icon">✅</div>
+            <div class="upload-icon">FILE</div>
             <p><strong>${file.name}</strong></p>
             <p class="upload-subtitle">Size: ${this.formatFileSize(file.size)}</p>
         `;
@@ -99,11 +121,11 @@ class VoiceInsightApp {
     }
     
     showError(message) {
-        alert(`❌ Error: ${message}`);
+        alert(`Error: ${message}`);
     }
     
     showSuccess(message) {
-        alert(`✅ Success: ${message}`);
+        alert(`Success: ${message}`);
     }
     
     updateOutput(elementId, content, isJson = false) {
@@ -143,25 +165,25 @@ class VoiceInsightApp {
             
             // Update output
             let output = `<div style="font-family: monospace;">`;
-            output += `<p><strong>Platform Status:</strong> ✅ Online</p>`;
-            output += `<p><strong>OMI Connected:</strong> ${data.omi_connected ? '✅' : '❌'} ${data.omi_connected}</p>`;
-            output += `<p><strong>Audio Processor:</strong> ${data.audio_processor ? '✅' : '❌'} ${data.audio_processor}</p>`;
-            output += `<p><strong>LLM Analyzer:</strong> ${data.llm_analyzer ? '✅' : '❌'} ${data.llm_analyzer}</p>`;
-            output += `<p><strong>Database:</strong> ${data.database ? '✅' : '❌'} ${data.database}</p>`;
+            output += `<p><strong>Platform Status:</strong> Online</p>`;
+            output += `<p><strong>OMI Connected:</strong> ${data.omi_connected}</p>`;
+            output += `<p><strong>Audio Processor:</strong> ${data.audio_processor}</p>`;
+            output += `<p><strong>LLM Analyzer:</strong> ${data.llm_analyzer}</p>`;
+            output += `<p><strong>Database:</strong> ${data.database}</p>`;
             
             if (data.services) {
                 output += `<br><p><strong>Services:</strong></p>`;
-                output += `<p>• PostgreSQL: ${data.services.postgres ? '✅' : '❌'}</p>`;
-                output += `<p>• Qdrant: ${data.services.qdrant ? '✅' : '❌'}</p>`;
-                output += `<p>• Ollama: ${data.services.ollama ? '✅' : '❌'}</p>`;
+                output += `<p>• PostgreSQL: ${data.services.postgres}</p>`;
+                output += `<p>• Qdrant: ${data.services.qdrant}</p>`;
+                output += `<p>• Ollama: ${data.services.ollama}</p>`;
             }
             
             if (data.capabilities) {
                 output += `<br><p><strong>Capabilities:</strong></p>`;
-                output += `<p>• Real-time Streaming: ${data.capabilities.real_time_streaming ? '✅' : '❌'}</p>`;
-                output += `<p>• Audio Processing: ${data.capabilities.audio_processing ? '✅' : '❌'}</p>`;
+                output += `<p>• Real-time Streaming: ${data.capabilities.real_time_streaming}</p>`;
+                output += `<p>• Audio Processing: ${data.capabilities.audio_processing}</p>`;
                 output += `<p>• Transcription: ${data.capabilities.transcription}</p>`;
-                output += `<p>• Fact Checking: ${data.capabilities.fact_checking ? '✅' : '❌'}</p>`;
+                output += `<p>• Fact Checking: ${data.capabilities.fact_checking}</p>`;
             }
             
             output += `</div>`;
@@ -169,7 +191,7 @@ class VoiceInsightApp {
             
         } catch (error) {
             this.updateStatusDot('platform-status', false);
-            this.updateOutput('system-output', `<p style="color: red;">❌ Failed to connect to platform: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">Failed to connect to platform: ${error.message}</p>`);
         } finally {
             this.showLoading(false);
         }
@@ -360,7 +382,7 @@ class VoiceInsightApp {
         statusElement.textContent = 'Connecting...';
         indicator.classList.remove('connected');
         
-        this.websocket = new WebSocket('ws://localhost:3001');
+        this.websocket = new WebSocket('ws://localhost:8000/ws');
         
         this.websocket.onopen = () => {
             this.isConnected = true;
@@ -674,7 +696,7 @@ class VoiceInsightApp {
         
         this.addDemoLog('📡 Connecting to live audio stream...');
         
-        this.demoWebSocket = new WebSocket('ws://localhost:3001');
+        this.demoWebSocket = new WebSocket('ws://localhost:8000/ws');
         
         this.demoWebSocket.onopen = () => {
             this.addDemoLog('🔗 Connected to live stream - listening for audio...');
@@ -1032,6 +1054,407 @@ class VoiceInsightApp {
             this.showLoading(false);
         }
     }
+    
+    // BLE Connection Methods
+    async connectBLE() {
+        try {
+            this.showLoading(true, 'Connecting via BLE...');
+            
+            const response = await fetch('/api/ble/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.updateOutput('system-output', `<p style="color: green;">✅ BLE Connected: ${data.message}</p>`);
+                this.updateBLEStatus('connected');
+                await this.getBLEInfo();
+                await this.getBLERecordings();
+            } else {
+                this.updateOutput('system-output', `<p style="color: red;">❌ BLE Connection Failed: ${data.message}</p>`);
+                this.updateBLEStatus('disconnected');
+            }
+        } catch (error) {
+            this.updateOutput('system-output', `<p style="color: red;">❌ BLE Error: ${error.message}</p>`);
+            this.updateBLEStatus('error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async connectUSB() {
+        try {
+            this.showLoading(true, 'Connecting via USB...');
+            
+            const response = await fetch('/api/usb/connect', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.updateOutput('system-output', `<p style="color: green;">✅ USB Connected: ${data.message}</p>`);
+                this.updateBLEStatus('connected');
+                await this.getBLEInfo();
+                await this.getBLERecordings();
+            } else {
+                this.updateOutput('system-output', `<p style="color: red;">❌ USB Connection Failed: ${data.message}</p>`);
+                this.updateBLEStatus('disconnected');
+            }
+        } catch (error) {
+            this.updateOutput('system-output', `<p style="color: red;">❌ USB Error: ${error.message}</p>`);
+            this.updateBLEStatus('error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async getBLEInfo() {
+        try {
+            const response = await fetch('/api/ble/info');
+            const data = await response.json();
+            
+            if (data.error) {
+                this.updateOutput('system-output', `<p style="color: orange;">⚠️ Device Info: ${data.error}</p>`);
+                return;
+            }
+            
+            // Update device status display
+            const batteryEl = document.getElementById('battery-level');
+            const storageEl = document.getElementById('storage-used');
+            
+            if (batteryEl) batteryEl.textContent = data.battery_level || 'N/A';
+            if (storageEl) storageEl.textContent = data.storage_used || 'N/A';
+            
+            let info = `<div style="font-family: monospace;">`;
+            info += `<h4>📱 Device Information</h4>`;
+            info += `<p><strong>Name:</strong> ${data.device_name}</p>`;
+            info += `<p><strong>Connection:</strong> ${data.connection_type}</p>`;
+            info += `<p><strong>Recording:</strong> ${data.is_recording ? 'YES' : 'NO'}</p>`;
+            info += `<p><strong>Files:</strong> ${data.recording_count || 'N/A'}</p>`;
+            info += `<p><strong>Battery:</strong> ${data.battery_level || 'N/A'}</p>`;
+            info += `<p><strong>Storage:</strong> ${data.storage_used || 'N/A'}</p>`;
+            info += `<p><strong>Firmware:</strong> ${data.firmware_version || 'N/A'}</p>`;
+            info += `<p><strong>Updated:</strong> ${new Date(data.last_updated).toLocaleTimeString()}</p>`;
+            info += `</div>`;
+            
+            this.updateOutput('system-output', info);
+            
+        } catch (error) {
+            this.updateOutput('system-output', `<p style="color: red;">❌ Failed to get device info: ${error.message}</p>`);
+        }
+    }
+    
+    async getBLERecordings() {
+        try {
+            const response = await fetch('/api/device/recordings');
+            const data = await response.json();
+            
+            if (data.error) {
+                this.updateOutput('system-output', `<p style="color: orange;">⚠️ Recordings: ${data.error}</p>`);
+                return;
+            }
+            
+            let recordingsHtml = `<div style="font-family: monospace;">`;
+            recordingsHtml += `<h4>📁 Recordings (${data.total_files} files, ${(data.total_size_mb || 0).toFixed(2)} MB)</h4>`;
+            
+            if (data.recordings && data.recordings.length > 0) {
+                recordingsHtml += `<div class="recordings-grid">`;
+                data.recordings.forEach(recording => {
+                    recordingsHtml += `
+                        <div class="recording-item">
+                            <div class="recording-info">
+                                <div class="recording-name">${recording.name}</div>
+                                <div class="recording-meta">
+                                    <span class="recording-size">${recording.size_mb} MB</span>
+                                    <span class="recording-date">${recording.timestamp ? new Date(recording.timestamp).toLocaleString() : 'Unknown'}</span>
+                                </div>
+                            </div>
+                            <div class="recording-actions">
+                                <button class="btn-mini" onclick="app.playRecording('${recording.name}')" title="Play">
+                                    Play
+                                </button>
+                                <button class="btn-mini" onclick="app.downloadRecording('${recording.name}')" title="Download">
+                                    Download
+                                </button>
+                                <button class="btn-mini" onclick="app.deleteRecording('${recording.name}')" title="Delete">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                recordingsHtml += `</div>`;
+            } else {
+                recordingsHtml += `<p style="color: #666;">No recordings found</p>`;
+            }
+            
+            recordingsHtml += `<p><strong>Status:</strong> ${data.success ? 'Connected' : 'Error'}</p>`;
+            recordingsHtml += `</div>`;
+            
+            this.updateOutput('system-output', recordingsHtml);
+            
+            // Also update the recordings list in the device status section
+            const recordingsListEl = document.getElementById('recordings-list');
+            if (recordingsListEl) {
+                            if (data.recordings && data.recordings.length > 0) {
+                let listHtml = `<div class="recordings-grid">`;
+                data.recordings.forEach(recording => {
+                    listHtml += `
+                        <div class="recording-item">
+                            <div class="recording-info">
+                                <div class="recording-name">${recording.name}</div>
+                                <div class="recording-meta">
+                                    <span class="recording-size">${recording.size_mb} MB</span>
+                                </div>
+                            </div>
+                            <div class="recording-actions">
+                                <button class="btn-mini" onclick="app.playRecording('${recording.name}')" title="Play">Play</button>
+                                <button class="btn-mini" onclick="app.downloadRecording('${recording.name}')" title="Download">Download</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                listHtml += `</div>`;
+                recordingsListEl.innerHTML = listHtml;
+                } else {
+                    recordingsListEl.innerHTML = '<p>No recordings found</p>';
+                }
+            }
+            
+        } catch (error) {
+            this.updateOutput('system-output', `<p style="color: red;">❌ Failed to get recordings: ${error.message}</p>`);
+        }
+    }
+    
+    async playRecording(filename) {
+        try {
+            this.showLoading(true, `Playing ${filename}...`);
+            
+            // Download the file for playback
+            const response = await fetch(`/api/device/recordings/download/${filename}`);
+            if (!response.ok) {
+                throw new Error(`Failed to download ${filename}: ${response.statusText}`);
+            }
+            
+            // Create audio blob and play
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            // Create audio element
+            const audio = new Audio(audioUrl);
+            audio.controls = true;
+            
+            // Show audio player in a modal or dedicated area
+            this.showAudioPlayer(filename, audio);
+            
+            // Auto-play
+            audio.play().catch(e => {
+                console.warn('Auto-play prevented:', e);
+                this.showSuccess(`Audio ready to play: ${filename}`);
+            });
+            
+            // Cleanup URL when done
+            audio.addEventListener('ended', () => {
+                URL.revokeObjectURL(audioUrl);
+            });
+            
+        } catch (error) {
+            this.showError(`Failed to play ${filename}: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async downloadRecording(filename) {
+        try {
+            this.showLoading(true, `Downloading ${filename}...`);
+            
+            const response = await fetch(`/api/device/recordings/download/${filename}`);
+            if (!response.ok) {
+                throw new Error(`Failed to download ${filename}: ${response.statusText}`);
+            }
+            
+            // Create download link
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            this.showSuccess(`Downloaded: ${filename}`);
+            
+        } catch (error) {
+            this.showError(`Failed to download ${filename}: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async deleteRecording(filename) {
+        if (!confirm(`Are you sure you want to delete ${filename}? This action cannot be undone.`)) {
+            return;
+        }
+        
+        try {
+            this.showLoading(true, `Deleting ${filename}...`);
+            
+            const response = await fetch(`/api/device/recordings/${filename}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showSuccess(`Deleted: ${filename}`);
+                // Refresh recordings list
+                await this.getBLERecordings();
+            } else {
+                throw new Error(data.error || 'Delete failed');
+            }
+            
+        } catch (error) {
+            this.showError(`Failed to delete ${filename}: ${error.message}`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    showAudioPlayer(filename, audio) {
+        // Create or update audio player area
+        let playerArea = document.getElementById('audio-player-area');
+        if (!playerArea) {
+            playerArea = document.createElement('div');
+            playerArea.id = 'audio-player-area';
+            playerArea.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: white;
+                border: 2px solid #00ff41;
+                border-radius: 10px;
+                padding: 15px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                z-index: 1000;
+                min-width: 300px;
+            `;
+            document.body.appendChild(playerArea);
+        }
+        
+        playerArea.innerHTML = `
+            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                <h4 style="margin: 0; color: #333;">🎵 Now Playing</h4>
+                <button onclick="this.parentElement.parentElement.style.display='none'" 
+                        style="background: none; border: none; font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <p style="margin: 5px 0; font-weight: bold; color: #555;">${filename}</p>
+            <div id="audio-container"></div>
+        `;
+        
+        const container = playerArea.querySelector('#audio-container');
+        container.appendChild(audio);
+        
+        playerArea.style.display = 'block';
+    }
+    
+    updateBLEStatus(status) {
+        const bleStatusEl = document.getElementById('ble-status');
+        if (bleStatusEl) {
+            bleStatusEl.className = `ble-status ${status}`;
+            switch (status) {
+                case 'connected':
+                    bleStatusEl.textContent = 'Connected';
+                    break;
+                case 'disconnected':
+                    bleStatusEl.textContent = 'Disconnected';
+                    break;
+                case 'error':
+                    bleStatusEl.textContent = 'Error';
+                    break;
+                default:
+                    bleStatusEl.textContent = 'Unknown';
+            }
+        }
+    }
+    
+    async refreshRecordings() {
+        try {
+            this.showLoading(true, 'Refreshing recordings...');
+            
+            // Connect via USB first
+            await this.connectUSB();
+            
+            // Then get recordings
+            await this.getBLERecordings();
+            
+        } catch (error) {
+            this.updateOutput('system-output', `<p style="color: red;">❌ Refresh Error: ${error.message}</p>`);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+    
+    async updateDeviceStatus() {
+        try {
+            const response = await fetch('/api/ble/info');
+            const data = await response.json();
+            
+            if (!data.error) {
+                // Update device info display
+                const fileCountEl = document.getElementById('file-count');
+                const deviceStatusEl = document.getElementById('device-status');
+                const connectionStatusEl = document.getElementById('connection-status');
+                const batteryLevelEl = document.getElementById('battery-level');
+                const storageUsedEl = document.getElementById('storage-used');
+                const bleStatusEl = document.getElementById('ble-status');
+                
+                if (fileCountEl) fileCountEl.textContent = data.recording_count || '0';
+                if (deviceStatusEl) deviceStatusEl.textContent = data.is_recording ? 'Recording' : 'Ready';
+                if (connectionStatusEl) connectionStatusEl.textContent = data.connection_type || 'Disconnected';
+                if (batteryLevelEl) batteryLevelEl.textContent = data.battery_level || 'N/A';
+                if (storageUsedEl) storageUsedEl.textContent = data.storage_used || 'N/A';
+                
+                // Update firmware version
+                const firmwareVersionEl = document.getElementById('firmware-version');
+                if (firmwareVersionEl) firmwareVersionEl.textContent = data.firmware_version || 'N/A';
+                
+                // Update BLE status
+                const bleStatusEl = document.getElementById('ble-status');
+                if (bleStatusEl) bleStatusEl.textContent = data.connection_type === 'ble' ? 'Connected' : 'Disconnected';
+            }
+        } catch (error) {
+            console.error('Failed to update device status:', error);
+        }
+    }
+    
+    showLoading(show, message = 'Loading...') {
+        // Simple loading indicator - you can enhance this
+        if (show) {
+            console.log(`🔄 ${message}`);
+        }
+    }
+    
+    toggleSystemLog() {
+        const logSection = document.getElementById('system-log-section');
+        const toggleBtn = document.getElementById('toggle-log-btn');
+        
+        if (logSection && toggleBtn) {
+            if (logSection.style.display === 'none') {
+                logSection.style.display = 'block';
+                toggleBtn.textContent = 'Disable System Log';
+                this.systemLogEnabled = true;
+            } else {
+                logSection.style.display = 'none';
+                toggleBtn.textContent = 'Enable System Log';
+                this.systemLogEnabled = false;
+            }
+        }
+    }
 }
 
 // Global functions for button onclick handlers
@@ -1070,9 +1493,7 @@ function startLiveDemo() { app.startLiveDemo(); }
 function stopLiveDemo() { app.stopLiveDemo(); }
 function clearDemoOutput() { app.clearDemoOutput(); }
 
-// Recording function bindings
-function startRecording() { app.startRecording(); }
-function stopRecording() { app.stopRecording(); }
+
 
 // Demo.html merged functions
 function openOMIPopup() {
@@ -1089,3 +1510,11 @@ function checkOMIStatus() { app.checkOMIStatus(); }
 function testOMIConnection() { app.testOMIConnection(); }
 function startOMIDemo() { app.startOMIDemo(); }
 function stopOMIDemo() { app.stopOMIDemo(); }
+
+// BLE/USB connection function bindings
+function connectBLE() { app.connectBLE(); }
+function connectUSB() { app.connectUSB(); }
+function getBLEInfo() { app.getBLEInfo(); }
+function getBLERecordings() { app.getBLERecordings(); }
+function refreshRecordings() { app.refreshRecordings(); }
+function updateDeviceStatus() { app.updateDeviceStatus(); }

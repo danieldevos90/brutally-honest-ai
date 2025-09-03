@@ -1,0 +1,6 @@
+# Requirements for Brutally Honest AI Installer
+pyserial>=3.5
+websockets>=11.0
+requests>=2.31.0
+pillow>=10.0.0  # For creating icons and images
+pyinstaller>=6.0.0  # For building executables

@@ -19,6 +19,8 @@ resemblyzer==0.1.1
 
 # Local LLM integration
 ollama==0.1.7
+llama-cpp-python==0.2.11
+transformers==4.35.2
 requests==2.31.0
 
 # Database and vector search

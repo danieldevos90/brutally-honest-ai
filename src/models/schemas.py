@@ -93,3 +93,21 @@ class AnalysisData(BaseModel):
     fact_check: FactCheckResponse
     feedback: str
     confidence: float
+
+class DeviceStatus(BaseModel):
+    """ESP32S3 device status"""
+    connected: bool
+    recording: bool
+    files: int
+    sd_card_present: bool
+    ble_connected: bool
+    free_ram: str
+    device_model: str
+    port: str
+    timestamp: Optional[datetime] = None
+
+class RecordingInfo(BaseModel):
+    """Recording file information"""
+    name: str
+    size: int
+    date: Optional[str] = None

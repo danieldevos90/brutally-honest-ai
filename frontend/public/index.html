@@ -13,20 +13,6 @@
         <!-- Header -->
         <div class="header">
             <h1>Brutal Honest AI</h1>
-            <div class="status-bar">
-                <div class="status-item">
-                    <div class="status-dot" id="backend-status"></div>
-                    <span>Backend</span>
-                </div>
-                <div class="status-item">
-                    <div class="status-dot" id="llm-status"></div>
-                    <span>LLM</span>
-                </div>
-                <div class="status-item">
-                    <div class="status-dot" id="audio-status"></div>
-                    <span>Audio</span>
-                </div>
-            </div>
             
             <!-- Connection Info Panel -->
             <div class="connection-info" id="connection-info" style="display: none;">
@@ -50,96 +36,243 @@
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Live Recording Section -->
+
+
+            <!-- AI Transcription Section -->
             <div class="section">
-                <h2>Live Recording</h2>
-                
-                <!-- Recording Controls -->
-                <div class="recording-controls">
-                    <button id="start-record-btn" class="btn btn-primary" onclick="startRecording()">
-                        Start Recording
-                    </button>
-                    <button id="stop-record-btn" class="btn btn-secondary" onclick="stopRecording()" disabled>
-                        Stop Recording
-                    </button>
-                    <button id="toggle-log-btn" class="btn btn-secondary" onclick="toggleSystemLog()">
-                        Enable System Log
-                    </button>
-                </div>
-
-                <!-- Recording Status -->
-                <div class="recording-status" id="recording-status">
-                    <div class="recording-indicator" id="recording-indicator">●</div>
-                    <span>Ready to record</span>
-                </div>
-
-                <!-- Results Display -->
-                <div class="results-container" id="results-container" style="display: none;">
-                    <!-- Transcript -->
-                    <div class="result-section">
-                        <h3>Transcript</h3>
-                        <div class="transcript-text" id="transcript-text">
-                            Your transcribed speech will appear here...
+                <h2>AI Transcription</h2>
+                <div class="transcription-section">
+                    <p style="text-align: center; margin-bottom: 15px; color: #666;">
+                        Select a recording from below and transcribe it with Whisper AI
+                    </p>
+                    
+                    <!-- Selected File Display -->
+                    <div id="selected-file-display" style="display: none; background: #f0f8ff; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
+                        <div style="font-weight: 500; margin-bottom: 5px;">Selected Recording:</div>
+                        <div id="selected-file-name" style="font-size: 1.1rem; color: #333;"></div>
+                        <div id="selected-file-size" style="font-size: 0.9rem; color: #666; margin-top: 5px;"></div>
+                    </div>
+                    
+                    <!-- Transcribe Button -->
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFile()" disabled>
+                            Select a recording to transcribe
+                        </button>
+                    </div>
+                    
+                    <!-- Transcription Results -->
+                    <div id="transcription-results" style="display: none;">
+                        <h3 style="margin-bottom: 15px; color: #333;">Transcription Results</h3>
+                        
+                        <!-- Transcript Text -->
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="margin-bottom: 10px; color: #333;">Transcript:</h4>
+                            <div id="transcript-text" style="font-size: 1.1rem; line-height: 1.6; color: #333; min-height: 40px;">
+                                <!-- Transcript will appear here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Metadata -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                            <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Duration</div>
+                                <div id="transcript-duration" style="font-weight: 600; color: #333;">-</div>
+                            </div>
+                            <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Confidence</div>
+                                <div id="transcript-confidence" style="font-weight: 600; color: #333;">-</div>
+                            </div>
+                            <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Speakers</div>
+                                <div id="transcript-speakers" style="font-weight: 600; color: #333;">-</div>
+                            </div>
+                            <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">File</div>
+                                <div id="transcript-filename" style="font-weight: 600; color: #333; font-size: 0.9rem;">-</div>
+                            </div>
                         </div>
                     </div>
+                    
+                    <!-- Processing Indicator -->
+                    <div id="transcription-loading" style="display: none; text-align: center; padding: 20px;">
+                        <div style="margin-bottom: 10px;">
+                            <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #333; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        </div>
+                        <div style="color: #666;">Transcribing with Whisper AI...</div>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Analysis -->
-                    <div class="result-section">
-                        <h3>BRUTAL HONESTY ANALYSIS</h3>
-                        <div class="analysis-text robot-analysis" id="analysis-text">
-                            <div class="robot-header">
-                                <span class="robot-indicator">[ANALYZING...]</span>
-                                <span class="robot-status">SYSTEM READY</span>
+            <!-- Device Status Section -->
+            <div class="section">
+                <h2>ESP32S3 Device Status</h2>
+                <div class="device-status">
+                    <div class="device-info">
+                        <h3>Recordings on SD Card</h3>
+                        
+                        <!-- Recordings Summary -->
+                        <div class="recordings-summary" id="recordings-summary" style="display: none;">
+                            <div class="summary-item">
+                                <span>Files:</span>
+                                <span id="summary-files">0</span>
                             </div>
-                            <div class="robot-content">
-                                Analysis will appear here...
+                            <div class="summary-item">
+                                <span>Size:</span>
+                                <span id="summary-size">0 MB</span>
                             </div>
+                            <div class="summary-item">
+                                <span>Connection:</span>
+                                <span id="summary-connection">USB</span>
+                            </div>
+                            <div class="summary-item">
+                                <span>Status:</span>
+                                <span id="connection-status">--</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Recordings List -->
+                        <div id="recordings-list">
+                            <div class="recordings-empty">
+                                <span class="loading-dots">Loading</span>
+                            </div>
+                        </div>
+                        
+                        <div class="device-buttons">
+                            <button class="btn btn-secondary" onclick="refreshRecordings()">
+                                USB Refresh
+                            </button>
+                            <button class="btn btn-secondary" onclick="getRecordingsDirectly()">
+                                Direct Fetch
+                            </button>
+                            <button class="btn btn-primary" onclick="connectBLE()">
+                                Connect BLE
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="device-info">
+                        <h3>Device Status</h3>
+                        
+                        <!-- System Status Indicators -->
+                        <div class="status-bar" style="margin-bottom: 15px;">
+                            <div class="status-item">
+                                <div class="status-dot" id="backend-status"></div>
+                                <span>Backend</span>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-dot" id="llm-status"></div>
+                                <span>LLM</span>
+                            </div>
+                            <div class="status-item">
+                                <div class="status-dot" id="audio-status"></div>
+                                <span>Audio</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Device Info Grid -->
+                        <div class="device-info-grid">
+                            <div class="device-info-item">
+                                <div class="device-info-label">Device</div>
+                                <div class="device-info-value" id="device-status">--</div>
+                            </div>
+                            <div class="device-info-item">
+                                <div class="device-info-label">Files</div>
+                                <div class="device-info-value" id="file-count">--</div>
+                            </div>
+                            <div class="device-info-item">
+                                <div class="device-info-label">Battery</div>
+                                <div class="device-info-value" id="battery-level">--</div>
+                            </div>
+                            <div class="device-info-item">
+                                <div class="device-info-label">Storage</div>
+                                <div class="device-info-value" id="storage-used">--</div>
+                            </div>
+                            <div class="device-info-item">
+                                <div class="device-info-label">BLE</div>
+                                <div class="device-info-value" id="ble-status">Disconnected</div>
+                            </div>
+                            <div class="device-info-item">
+                                <div class="device-info-label">Firmware</div>
+                                <div class="device-info-value" id="firmware-version">--</div>
+                            </div>
+                        </div>
+                        
+                        <div class="device-buttons">
+                            <button class="btn btn-secondary" onclick="getBLEInfo()">
+                                Get Device Info
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Demo Log -->
-            <div class="section" id="system-log-section" style="display: none;">
-                <h2>System Log</h2>
-                <div class="demo-log" id="demo-log">
-                    System log will appear here...
+
+        </div>
+    </div>
+
+    <!-- AI Processing Modal -->
+    <div class="ai-modal" id="ai-modal" style="display: none;">
+        <div class="ai-modal-content">
+            <button class="ai-close" onclick="closeAIModal()">×</button>
+            <h3 id="ai-modal-title">AI Analysis</h3>
+            <div id="ai-modal-body">
+                <div class="ai-processing">
+                    <div class="loading-dots">Processing with LLAMA AI</div>
+                    <p>Analyzing audio content...</p>
                 </div>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn btn-secondary" onclick="closeAIModal()">Close</button>
             </div>
         </div>
     </div>
 
     <script>
         let ws = null;
-        let isRecording = false;
-        let systemLogEnabled = false;
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Lucide icons
             lucide.createIcons();
             
+            // Set initial connecting state for status dots
+            setAllStatusConnecting();
+            
             checkBackendStatus();
             connectWebSocket();
+            refreshRecordings();
+            updateDeviceInfo(); // Initial device info load
+            
+            // Update status bar every 10 seconds
+            setInterval(checkBackendStatus, 10000);
             
             // Update connection info every 5 seconds
             setInterval(updateDetailedConnectionInfo, 5000);
+            
+            // Refresh recordings every 30 seconds
+            setInterval(refreshRecordings, 30000);
+            
+            // Update device info every 10 seconds
+            setInterval(updateDeviceInfo, 10000);
         });
 
         async function checkBackendStatus() {
             try {
+                console.log('Checking backend status...');
                 const response = await fetch('/api/status');
+                
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Backend status data:', data);
                     
                     // Update Backend status
                     const backendStatus = document.getElementById('backend-status');
-                    backendStatus.classList.remove('online', 'offline');
+                    backendStatus.classList.remove('online', 'offline', 'connecting');
                     backendStatus.classList.add('online');
                     
                     // Update LLM status based on actual data
                     const llmStatus = document.getElementById('llm-status');
-                    llmStatus.classList.remove('online', 'offline');
+                    llmStatus.classList.remove('online', 'offline', 'connecting');
                     if (data.llm_analyzer && data.services && data.services.ollama) {
                         llmStatus.classList.add('online');
                     } else {
@@ -148,31 +281,54 @@
                     
                     // Update Audio status based on actual data
                     const audioStatus = document.getElementById('audio-status');
-                    audioStatus.classList.remove('online', 'offline');
-                    if (data.audio_processor && data.omi_connected) {
+                    audioStatus.classList.remove('online', 'offline', 'connecting');
+                    if (data.omi_connected || (data.capabilities && data.capabilities.real_time_streaming)) {
                         audioStatus.classList.add('online');
                         
-                        // Show connection info if OMI is connected
+                        // Show connection info if device is connected
                         updateConnectionInfo(data);
                     } else {
                         audioStatus.classList.add('offline');
                         hideConnectionInfo();
                     }
                 } else {
+                    console.warn('Backend status response not OK:', response.status);
                     // All offline if backend is not responding
-                    document.getElementById('backend-status').classList.add('offline');
-                    document.getElementById('llm-status').classList.add('offline');
-                    document.getElementById('audio-status').classList.add('offline');
-                    hideConnectionInfo();
+                    setAllStatusOffline();
                 }
             } catch (error) {
+                console.error('Backend status check failed:', error);
                 // All offline if there's an error
-                document.getElementById('backend-status').classList.add('offline');
-                document.getElementById('llm-status').classList.add('offline');
-                document.getElementById('audio-status').classList.add('offline');
-                hideConnectionInfo();
-                addDemoLog('[ERROR] Backend connection failed');
+                setAllStatusOffline();
             }
+        }
+        
+        function setAllStatusOffline() {
+            const backendStatus = document.getElementById('backend-status');
+            const llmStatus = document.getElementById('llm-status');
+            const audioStatus = document.getElementById('audio-status');
+            
+            [backendStatus, llmStatus, audioStatus].forEach(status => {
+                if (status) {
+                    status.classList.remove('online', 'connecting');
+                    status.classList.add('offline');
+                }
+            });
+            
+            hideConnectionInfo();
+        }
+        
+        function setAllStatusConnecting() {
+            const backendStatus = document.getElementById('backend-status');
+            const llmStatus = document.getElementById('llm-status');
+            const audioStatus = document.getElementById('audio-status');
+            
+            [backendStatus, llmStatus, audioStatus].forEach(status => {
+                if (status) {
+                    status.classList.remove('online', 'offline');
+                    status.classList.add('connecting');
+                }
+            });
         }
         
         function updateConnectionInfo(data) {
@@ -308,11 +464,11 @@
         }
 
         function connectWebSocket() {
-            ws = new WebSocket('ws://localhost:8000/api/audio/stream');
+            ws = new WebSocket('ws://localhost:3001'); // Frontend WebSocket proxy
             
             ws.onopen = () => {
-                console.log('Connected to server');
-                addDemoLog('[SYSTEM] Connected to Voice Insight Platform');
+                console.log('Connected to Brutally Honest AI');
+                addDemoLog('[SYSTEM] Connected to Brutally Honest AI Device');
             };
             
             ws.onmessage = (event) => {
@@ -353,6 +509,12 @@
                         addDemoLog('[ERROR] ' + message.data.message);
                         updateRobotStatus('ERROR');
                         resetRecordingButtons();
+                        break;
+                        
+                    case 'status':
+                    case 'status_update':
+                        // Update device status display in real-time
+                        updateDeviceStatusFromWebSocket(message.data);
                         break;
                 }
             };
@@ -486,6 +648,924 @@
             logEntry.innerHTML = `[${timestamp}] ${message}`;
             logElement.appendChild(logEntry);
             logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        async function refreshRecordings() {
+            console.log('🔄 Starting refreshRecordings...');
+            
+            // Show loading state
+            const recordingsList = document.getElementById('recordings-list');
+            if (recordingsList) {
+                recordingsList.innerHTML = '<div class="recordings-empty"><span class="loading-dots">Loading</span></div>';
+            }
+            
+            try {
+                // First check if device is connected
+                console.log('📡 Checking device ports...');
+                const portsResponse = await fetch('/api/scan_ports');
+                
+                if (!portsResponse.ok) {
+                    throw new Error(`Ports API failed: ${portsResponse.status}`);
+                }
+                
+                const portsData = await portsResponse.json();
+                console.log('📡 Ports data:', portsData);
+                
+                // Update device connection status
+                const connectionStatus = document.getElementById('connection-status');
+                const deviceStatus = document.getElementById('device-status');
+                
+                if (portsData.esp32s3_detected) {
+                    console.log('✅ ESP32S3 device detected');
+                    if (connectionStatus) {
+                        connectionStatus.textContent = 'Connected';
+                        connectionStatus.style.color = '#10b981';
+                    }
+                    if (deviceStatus) {
+                        deviceStatus.textContent = 'Online';
+                        deviceStatus.style.color = '#10b981';
+                    }
+                    
+                    // Try to connect and get recordings
+                    try {
+                        console.log('🔌 Connecting to device...');
+                        const connectResponse = await fetch('/api/connect_device', { method: 'POST' });
+                        
+                        if (!connectResponse.ok) {
+                            throw new Error(`Connect API failed: ${connectResponse.status}`);
+                        }
+                        
+                        const connectData = await connectResponse.json();
+                        console.log('🔌 Connect response:', connectData);
+                        
+                        if (connectData.success) {
+                            console.log('📁 Getting recordings...');
+                            const recordingsResponse = await fetch('/api/device/recordings');
+                            
+                            if (!recordingsResponse.ok) {
+                                throw new Error(`Recordings API failed: ${recordingsResponse.status}`);
+                            }
+                            
+                            const recordingsData = await recordingsResponse.json();
+                            console.log('📁 Recordings data:', recordingsData);
+                            
+                            if (recordingsData.success && recordingsData.recordings) {
+                                console.log(`✅ Found ${recordingsData.total_files} recordings`);
+                                updateRecordingsList({
+                                    recordings: recordingsData.recordings,
+                                    total_files: recordingsData.total_files,
+                                    total_size: recordingsData.total_size_mb * 1024 * 1024, // Convert back to bytes
+                                    connection_method: 'usb'
+                                });
+                                
+                                // Update file count
+                                const fileCountEl = document.getElementById('file-count');
+                                if (fileCountEl) {
+                                    fileCountEl.textContent = recordingsData.total_files || '0';
+                                }
+                            } else {
+                                console.log('📁 No recordings found');
+                                document.getElementById('recordings-list').innerHTML = 
+                                    '<div class="recordings-empty">No recordings found on SD card</div>';
+                                const fileCountEl = document.getElementById('file-count');
+                                if (fileCountEl) fileCountEl.textContent = '0';
+                            }
+                        } else {
+                            console.error('❌ Device connection failed:', connectData.message);
+                            document.getElementById('recordings-list').innerHTML = 
+                                '<div class="recordings-empty">Device detected but connection failed</div>';
+                            const fileCountEl = document.getElementById('file-count');
+                            if (fileCountEl) fileCountEl.textContent = '--';
+                        }
+                    } catch (recordingsError) {
+                        console.error('❌ Recordings error:', recordingsError);
+                        document.getElementById('recordings-list').innerHTML = 
+                            '<div class="recordings-empty">Error reading recordings. Try again.</div>';
+                        const fileCountEl = document.getElementById('file-count');
+                        if (fileCountEl) fileCountEl.textContent = '--';
+                    }
+                } else {
+                    console.log('❌ No ESP32S3 device detected');
+                    if (connectionStatus) {
+                        connectionStatus.textContent = 'Disconnected';
+                        connectionStatus.style.color = '#ef4444';
+                    }
+                    if (deviceStatus) {
+                        deviceStatus.textContent = 'Offline';
+                        deviceStatus.style.color = '#ef4444';
+                    }
+                    document.getElementById('recordings-list').innerHTML = 
+                        '<div class="recordings-empty">ESP32S3 device not detected. Please connect your device.</div>';
+                    const fileCountEl = document.getElementById('file-count');
+                    if (fileCountEl) fileCountEl.textContent = '0';
+                }
+            } catch (error) {
+                console.error('❌ Error refreshing recordings:', error);
+                document.getElementById('recordings-list').innerHTML = 
+                    '<div class="recordings-empty">Error connecting to device. Check console for details.</div>';
+                
+                const connectionStatus = document.getElementById('connection-status');
+                const deviceStatus = document.getElementById('device-status');
+                const fileCountEl = document.getElementById('file-count');
+                
+                if (connectionStatus) {
+                    connectionStatus.textContent = 'Error';
+                    connectionStatus.style.color = '#ef4444';
+                }
+                if (deviceStatus) {
+                    deviceStatus.textContent = 'Error';
+                    deviceStatus.style.color = '#ef4444';
+                }
+                if (fileCountEl) {
+                    fileCountEl.textContent = '--';
+                }
+            }
+        }
+
+        function updateRecordingsList(data) {
+            const recordingsList = document.getElementById('recordings-list');
+            const fileCount = document.getElementById('file-count');
+            
+            if (data.recordings && data.recordings.length > 0) {
+                let html = '<div class="recordings-grid">';
+                data.recordings.forEach(recording => {
+                    const size = (recording.size / 1024).toFixed(1);
+                    html += `
+                        <div class="recording-item">
+                            <div class="recording-info">
+                                <div class="recording-name">${recording.name}</div>
+                                <div class="recording-meta">
+                                    <span class="recording-size">${size} KB</span>
+                                    <span class="recording-date">${new Date(recording.date).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <div class="recording-actions">
+                                <button class="btn-mini" onclick="selectRecordingForTranscription('${recording.name}', ${recording.size_mb ? recording.size_mb : (recording.size / 1024 / 1024).toFixed(2)})" title="Select for Transcription">
+                                    Select
+                                </button>
+                                <button class="btn-mini" onclick="downloadRecording('${recording.name}')" title="Download">
+                                    Download
+                                </button>
+                                <button class="btn-mini" onclick="processWithAI('${recording.name}')" title="AI Analysis">
+                                    AI
+                                </button>
+                                <button class="btn-mini" onclick="deleteRecording('${recording.name}')" title="Delete">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                recordingsList.innerHTML = html;
+                fileCount.textContent = data.recordings.length;
+            } else {
+                recordingsList.innerHTML = '<p>No recordings found. Press the button on your device to start recording.</p>';
+                fileCount.textContent = '0';
+            }
+        }
+
+        async function connectBLE() {
+            try {
+                addDemoLog('[BLE] Attempting to connect to BrutallyHonestAI device...');
+                
+                const response = await fetch('/api/ble/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('ble-status').textContent = 'Connected';
+                    document.getElementById('ble-status').style.color = '#10b981';
+                    addDemoLog('[BLE] ✅ Connected to ' + data.device_name);
+                    
+                    // Automatically get device info and recordings
+                    await getBLEInfo();
+                    await getBLERecordings();
+                } else {
+                    document.getElementById('ble-status').textContent = 'Failed';
+                    document.getElementById('ble-status').style.color = '#ef4444';
+                    addDemoLog('[BLE] ❌ Connection failed: ' + data.message);
+                }
+            } catch (error) {
+                document.getElementById('ble-status').textContent = 'Error';
+                document.getElementById('ble-status').style.color = '#ef4444';
+                addDemoLog('[BLE] ❌ Connection error: ' + error.message);
+            }
+        }
+
+        async function getBLEInfo() {
+            try {
+                const response = await fetch('/api/ble/info');
+                const data = await response.json();
+                
+                if (!data.error) {
+                    document.getElementById('battery-level').textContent = data.battery_level + '%';
+                    document.getElementById('battery-level').style.color = data.battery_level > 20 ? '#10b981' : '#ef4444';
+                    document.getElementById('storage-used').textContent = data.storage_used;
+                    document.getElementById('file-count').textContent = data.recording_count;
+                    
+                    addDemoLog(`[BLE] Device info: Battery ${data.battery_level}%, ${data.recording_count} files, ${data.storage_used} used`);
+                } else {
+                    addDemoLog('[BLE] ❌ Failed to get device info: ' + data.details);
+                }
+            } catch (error) {
+                addDemoLog('[BLE] ❌ Info error: ' + error.message);
+            }
+        }
+
+        async function getBLERecordings() {
+            try {
+                const response = await fetch('/api/ble/recordings');
+                const data = await response.json();
+                
+                if (!data.error) {
+                    updateRecordingsList(data);
+                    console.log(`Found ${data.total_files} recordings (${(data.total_size / 1024).toFixed(1)} KB total)`);
+                } else {
+                    console.log('Failed to get recordings: ' + data.error);
+                    const recordingsListEl = document.getElementById('recordings-list');
+                    if (recordingsListEl) {
+                        recordingsListEl.innerHTML = '<div class="recordings-empty">❌ Failed to load recordings</div>';
+                    }
+                }
+            } catch (error) {
+                console.log('Recordings error: ' + error.message);
+                const recordingsListEl = document.getElementById('recordings-list');
+                if (recordingsListEl) {
+                    recordingsListEl.innerHTML = '<div class="recordings-empty">❌ Connection error</div>';
+                }
+            }
+        }
+        
+        function updateDeviceStatusFromWebSocket(data) {
+            console.log('Updating UI from WebSocket:', data);
+            
+            // Update device status from WebSocket messages
+            const deviceStatus = document.getElementById('device-status');
+            const fileCount = document.getElementById('file-count');
+            const connectionStatus = document.getElementById('connection-status');
+            const bleStatus = document.getElementById('ble-status');
+            
+            if (deviceStatus) {
+                deviceStatus.textContent = data.recording ? 'Recording' : 'Ready';
+                deviceStatus.className = 'device-info-value ' + (data.recording ? 'status-recording' : 'status-ready');
+            }
+            
+            if (fileCount) {
+                fileCount.textContent = data.files || '0';
+            }
+            
+            if (connectionStatus) {
+                const connType = data.connection_type ? data.connection_type.toUpperCase() : 'USB';
+                connectionStatus.textContent = connType;
+                connectionStatus.className = 'device-info-value connection-' + (data.connection_type || 'usb');
+            }
+            
+            if (bleStatus) {
+                const isConnected = data.connection_type === 'ble';
+                bleStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+                bleStatus.className = 'device-info-value ' + (isConnected ? 'status-ready' : 'status-error');
+            }
+            
+            // Update summary
+            updateRecordingsSummary(data.files || 0, 0, data.connection_type || 'usb');
+            
+            // Do not overwrite recordings list here; preserve detailed list populated by refreshRecordings()
+            
+            // Update status indicators
+            updateStatusIndicators(data);
+        }
+        
+        async function updateDeviceInfo() {
+            try {
+                const response = await fetch('/api/ble/info');
+                const data = await response.json();
+                
+                if (!data.error) {
+                    // The frontend API returns device info directly, not nested in device_info
+                    const info = data;
+                    
+                    // Update all device info elements with proper CSS classes
+                    const deviceStatus = document.getElementById('device-status');
+                    const fileCount = document.getElementById('file-count');
+                    const connectionStatus = document.getElementById('connection-status');
+                    const batteryLevel = document.getElementById('battery-level');
+                    const storageUsed = document.getElementById('storage-used');
+                    const bleStatus = document.getElementById('ble-status');
+                    
+                    if (deviceStatus) {
+                        deviceStatus.textContent = info.is_recording ? 'Recording' : 'Ready';
+                        deviceStatus.className = 'device-info-value ' + (info.is_recording ? 'status-recording' : 'status-ready');
+                    }
+                    
+                    if (fileCount) fileCount.textContent = info.recording_count || '0';
+                    
+                    if (connectionStatus) {
+                        const connType = info.connection_type ? info.connection_type.toUpperCase() : 'USB';
+                        connectionStatus.textContent = connType;
+                        connectionStatus.className = 'device-info-value connection-' + (info.connection_type || 'usb');
+                    }
+                    
+                    if (batteryLevel) batteryLevel.textContent = info.battery_level || 'N/A';
+                    if (storageUsed) storageUsed.textContent = info.storage_used || 'N/A';
+                    
+                    // Update firmware version
+                    const firmwareVersion = document.getElementById('firmware-version');
+                    if (firmwareVersion) firmwareVersion.textContent = info.firmware_version || 'N/A';
+                    
+                    // Update BLE status
+                    if (bleStatus) {
+                        const isConnected = info.connection_type === 'ble';
+                        bleStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+                        bleStatus.className = 'device-info-value ' + (isConnected ? 'status-ready' : 'status-disconnected');
+                    }
+                    
+                    // Do not overwrite recordings list here; preserve detailed list populated by refreshRecordings()
+                    
+                    // Update summary
+                    updateRecordingsSummary(info.recording_count || 0, 0, info.connection_type || 'usb');
+                    
+                    console.log('Device info updated:', info);
+                } else {
+                    console.log('Device info error:', data.error);
+                    // Set disconnected state with proper CSS classes
+                    const deviceStatus = document.getElementById('device-status');
+                    const connectionStatus = document.getElementById('connection-status');
+                    const bleStatus = document.getElementById('ble-status');
+                    
+                    if (deviceStatus) {
+                        deviceStatus.textContent = 'Disconnected';
+                        deviceStatus.className = 'device-info-value status-disconnected';
+                    }
+                    if (connectionStatus) {
+                        connectionStatus.textContent = 'Disconnected';
+                        connectionStatus.className = 'device-info-value status-disconnected';
+                    }
+                    
+                    // Reset firmware version and BLE status
+                    const firmwareVersion = document.getElementById('firmware-version');
+                    if (firmwareVersion) {
+                        firmwareVersion.textContent = '--';
+                        firmwareVersion.className = 'device-info-value status-disconnected';
+                    }
+                    
+                    const bleStatusEl = document.getElementById('ble-status');
+                    if (bleStatusEl) {
+                        bleStatusEl.textContent = 'Disconnected';
+                        bleStatusEl.className = 'device-info-value status-disconnected';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to update device info:', error);
+                // Set error state
+                const deviceStatus = document.getElementById('device-status');
+                if (deviceStatus) {
+                    deviceStatus.textContent = 'Error';
+                    deviceStatus.className = 'device-info-value status-error';
+                }
+            }
+        }
+        
+        // Download and AI Processing Functions
+        async function downloadRecording(filename) {
+            try {
+                                 console.log(`Downloading ${filename}...`);
+                
+                // Show loading indicator
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = 'Downloading...';
+                button.disabled = true;
+                
+                // Download from the real API endpoint
+                const response = await fetch(`/api/recordings/download/${encodeURIComponent(filename)}`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    console.log(`Downloaded ${filename}`);
+                    button.innerHTML = 'Downloaded';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }, 2000);
+                } else {
+                    const errorData = await response.json();
+                    console.log(`Download failed: ${errorData.error || response.statusText}`);
+                    alert(`Download failed: ${errorData.error || response.statusText}`);
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                alert(`Download error: ${error.message}`);
+                // Reset button
+                if (event.target) {
+                    event.target.innerHTML = 'Download';
+                    event.target.disabled = false;
+                }
+            }
+        }
+        
+        async function deleteRecording(filename) {
+            try {
+                // Confirm deletion
+                if (!confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+                    return;
+                }
+                
+                console.log(`Deleting ${filename}...`);
+                
+                // Show loading indicator
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = 'Deleting...';
+                button.disabled = true;
+                
+                // Delete via API
+                const response = await fetch(`/api/recordings/${encodeURIComponent(filename)}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`Deleted ${filename}`);
+                    button.innerHTML = 'Deleted';
+                    
+                    // Refresh the recordings list
+                    setTimeout(() => {
+                        getBLERecordings();
+                    }, 1000);
+                } else {
+                    console.log(`Delete failed: ${result.error}`);
+                    alert(`Delete failed: ${result.error}`);
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert(`Delete error: ${error.message}`);
+                // Reset button
+                if (event.target) {
+                    event.target.innerHTML = 'Delete';
+                    event.target.disabled = false;
+                }
+            }
+        }
+        
+        async function processWithAI(filename) {
+            try {
+                console.log(`Processing ${filename} with AI...`);
+                
+                // Show AI modal
+                document.getElementById('ai-modal-title').textContent = `AI Analysis - ${filename}`;
+                document.getElementById('ai-modal-body').innerHTML = `
+                    <div class="ai-processing">
+                        <div class="loading-dots">Processing with LLAMA AI</div>
+                        <p>Analyzing "${filename}"...</p>
+                        <p><small>This may take a few moments</small></p>
+                    </div>
+                `;
+                document.getElementById('ai-modal').style.display = 'flex';
+                
+                // Send to AI processing endpoint
+                const response = await fetch('/api/ai/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        filename: filename,
+                        model: 'llama',
+                        task: 'transcribe_and_analyze'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show AI results
+                    document.getElementById('ai-modal-body').innerHTML = `
+                        <div class="ai-result">
+                            <h4>Transcription:</h4>
+                            <p>${result.transcription || 'No transcription available'}</p>
+                            
+                            <h4>AI Analysis:</h4>
+                            <p>${result.analysis || 'No analysis available'}</p>
+                            
+                            <h4>Summary:</h4>
+                            <ul>
+                                <li><strong>Duration:</strong> ${result.duration || 'Unknown'}</li>
+                                <li><strong>Language:</strong> ${result.language || 'Unknown'}</li>
+                                <li><strong>Confidence:</strong> ${result.confidence || 'Unknown'}</li>
+                            </ul>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('ai-modal-body').innerHTML = `
+                        <div class="ai-result">
+                            <p style="color: #ef4444;">AI Processing Failed</p>
+                            <p>${result.error || 'Unknown error occurred'}</p>
+                            <p><small>Make sure LLAMA is running and accessible</small></p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('AI processing error:', error);
+                document.getElementById('ai-modal-body').innerHTML = `
+                    <div class="ai-result">
+                        <p style="color: #ef4444;">Connection Error</p>
+                        <p>${error.message}</p>
+                        <p><small>Check if the AI service is running</small></p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeAIModal() {
+            document.getElementById('ai-modal').style.display = 'none';
+        }
+        
+        function updateRecordingsSummary(files, totalSize, connectionType) {
+            const summaryEl = document.getElementById('recordings-summary');
+            const summaryFilesEl = document.getElementById('summary-files');
+            const summarySizeEl = document.getElementById('summary-size');
+            const summaryConnectionEl = document.getElementById('summary-connection');
+            
+            if (summaryEl && files > 0) {
+                summaryEl.style.display = 'block';
+                if (summaryFilesEl) summaryFilesEl.textContent = files;
+                if (summarySizeEl) summarySizeEl.textContent = (totalSize / (1024 * 1024)).toFixed(1) + ' MB';
+                if (summaryConnectionEl) summaryConnectionEl.textContent = connectionType.toUpperCase();
+            } else if (summaryEl) {
+                summaryEl.style.display = 'none';
+            }
+        }
+        
+        function updateStatusIndicators(data) {
+            // Update Backend status (based on connection)
+            const backendStatus = document.getElementById('backend-status');
+            if (backendStatus) {
+                backendStatus.className = 'status-dot ' + (data.connected ? 'online' : 'offline');
+            }
+            
+            // Update Audio status (based on device connection)
+            const audioStatus = document.getElementById('audio-status');
+            if (audioStatus) {
+                if (data.recording) {
+                    audioStatus.className = 'status-dot processing';
+                } else if (data.connected) {
+                    audioStatus.className = 'status-dot online';
+                } else {
+                    audioStatus.className = 'status-dot offline';
+                }
+            }
+            
+            // Update LLM status (simulated - would be based on actual LLM availability)
+            const llmStatus = document.getElementById('llm-status');
+            if (llmStatus) {
+                // For now, show as connecting/blinking to indicate it's not fully integrated
+                llmStatus.className = 'status-dot connecting';
+            }
+        }
+        
+        function updateRecordingsList(data) {
+            const recordingsListEl = document.getElementById('recordings-list');
+            if (!recordingsListEl) return;
+            
+            if (data.recordings && data.recordings.length > 0) {
+                // Update summary
+                updateRecordingsSummary(data.total_files, data.total_size, data.connection_method || 'usb');
+                
+                // Create minimal recordings list
+                let html = '<div class="recordings-grid">';
+                data.recordings.forEach(recording => {
+                    html += `
+                        <div class="recording-item">
+                            <div class="recording-info">
+                                <div class="recording-name">${recording.name}</div>
+                                <div class="recording-meta">
+                                    <span class="recording-size">${recording.size_mb ? recording.size_mb + ' MB' : (recording.size / 1024).toFixed(1) + ' KB'}</span>
+                                    ${recording.date ? `<span class="recording-date">${recording.date}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="recording-actions">
+                                <button class="btn-mini" onclick="selectRecordingForTranscription('${recording.name}', ${recording.size_mb ? recording.size_mb : (recording.size / 1024 / 1024).toFixed(2)})" title="Select for Transcription">
+                                    Select
+                                </button>
+                                <button class="btn-mini" onclick="downloadRecording('${recording.name}')" title="Download">
+                                    Download
+                                </button>
+                                <button class="btn-mini" onclick="processWithAI('${recording.name}')" title="AI Analysis">
+                                    AI
+                                </button>
+                                <button class="btn-mini" onclick="deleteRecording('${recording.name}')" title="Delete">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                recordingsListEl.innerHTML = html;
+            } else {
+                recordingsListEl.innerHTML = '<div class="recordings-empty">No recordings found</div>';
+                updateRecordingsSummary(0, 0, 'usb');
+            }
+        }
+        
+        async function downloadRecording(filename) {
+            try {
+                console.log('Downloading:', filename);
+                const response = await fetch(`/api/device/recordings/download/${filename}`);
+                if (!response.ok) {
+                    throw new Error(`Failed to download ${filename}: ${response.statusText}`);
+                }
+                
+                // Create download link
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                console.log('Downloaded:', filename);
+            } catch (error) {
+                console.error('Download error:', error);
+                alert(`Failed to download ${filename}: ${error.message}`);
+            }
+        }
+        
+        async function deleteRecording(filename) {
+            if (!confirm(`Are you sure you want to delete ${filename}? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                console.log('Deleting:', filename);
+                const response = await fetch(`/api/device/recordings/${filename}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Deleted:', filename);
+                    // Refresh recordings list
+                    await refreshRecordings();
+                } else {
+                    throw new Error(data.error || 'Delete failed');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert(`Failed to delete ${filename}: ${error.message}`);
+            }
+        }
+        
+        async function processWithAI(filename) {
+            try {
+                console.log('Processing with AI:', filename);
+                
+                // Show processing modal or indicator
+                const modal = document.createElement('div');
+                modal.className = 'ai-modal';
+                modal.innerHTML = `
+                    <div class="ai-modal-content">
+                        <button class="ai-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                                                 <h3>AI Processing: ${filename}</h3>
+                        <div class="ai-processing">
+                            <p>Processing audio with AI...</p>
+                            <div class="loading-dots">Loading</div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                const response = await fetch('/api/ai/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: filename,
+                        model: 'llama',
+                        task: 'transcribe_and_analyze'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Update modal with results
+                const modalContent = modal.querySelector('.ai-modal-content');
+                if (data.success) {
+                    modalContent.innerHTML = `
+                        <button class="ai-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                                                 <h3>AI Analysis: ${filename}</h3>
+                         <div class="ai-result">
+                             <h4>Transcription:</h4>
+                             <p>${data.transcription || 'No transcription available'}</p>
+                             
+                             <h4>Analysis:</h4>
+                             <p>${data.analysis || 'No analysis available'}</p>
+                             
+                             <h4>Summary:</h4>
+                             <p>${data.summary || 'No summary available'}</p>
+                             
+                             <h4>Sentiment:</h4>
+                             <p>${data.sentiment || 'No sentiment analysis available'}</p>
+                             
+                             <h4>Keywords:</h4>
+                             <p>${data.keywords ? data.keywords.join(', ') : 'No keywords found'}</p>
+                             
+                             <h4>Confidence:</h4>
+                             <p>${data.confidence || 'N/A'}</p>
+                        </div>
+                    `;
+                } else {
+                    modalContent.innerHTML = `
+                        <button class="ai-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                                                 <h3>AI Processing Failed</h3>
+                        <div class="ai-result">
+                            <p>Error: ${data.error || 'Unknown error occurred'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('AI processing error:', error);
+                alert(`Failed to process ${filename} with AI: ${error.message}`);
+            }
+        }
+        
+        // Simple fallback function to get recordings directly
+        async function getRecordingsDirectly() {
+            console.log('🔄 Trying direct recordings fetch...');
+            try {
+                const response = await fetch('/api/device/recordings');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📁 Direct recordings data:', data);
+                    
+                    if (data.success && data.recordings) {
+                        updateRecordingsList({
+                            recordings: data.recordings,
+                            total_files: data.total_files,
+                            total_size: data.total_size_mb * 1024 * 1024,
+                            connection_method: 'direct'
+                        });
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Direct recordings fetch failed:', error);
+            }
+            return false;
+        }
+        
+        // Make sure functions are available globally
+        window.refreshRecordings = refreshRecordings;
+        window.getRecordingsDirectly = getRecordingsDirectly;
+        
+        // AI Transcription Functions
+        let selectedRecordingForTranscription = null;
+        
+        function selectRecordingForTranscription(filename, sizeMB) {
+            selectedRecordingForTranscription = {
+                name: filename,
+                size_mb: sizeMB
+            };
+            
+            // Update UI to show selected file
+            const selectedDisplay = document.getElementById('selected-file-display');
+            const selectedName = document.getElementById('selected-file-name');
+            const selectedSize = document.getElementById('selected-file-size');
+            const transcribeBtn = document.getElementById('transcribe-btn');
+            
+            selectedDisplay.style.display = 'block';
+            selectedName.textContent = filename;
+            selectedSize.textContent = `${sizeMB} MB`;
+            
+            transcribeBtn.disabled = false;
+            transcribeBtn.textContent = `Transcribe ${filename}`;
+            
+            // Hide previous results
+            document.getElementById('transcription-results').style.display = 'none';
+            
+            console.log(`Selected recording for transcription: ${filename}`);
+        }
+        
+        async function transcribeSelectedFile() {
+            if (!selectedRecordingForTranscription) {
+                alert('Please select a recording first');
+                return;
+            }
+            
+            const filename = selectedRecordingForTranscription.name;
+            
+            try {
+                console.log(`Starting transcription of ${filename}...`);
+                
+                // Show loading indicator
+                document.getElementById('transcription-loading').style.display = 'block';
+                document.getElementById('transcription-results').style.display = 'none';
+                document.getElementById('transcribe-btn').disabled = true;
+                document.getElementById('transcribe-btn').textContent = 'Transcribing...';
+                
+                // Call the transcription API endpoint
+                const response = await fetch(`/api/ai/process`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        model: 'llama',
+                        task: 'transcribe_and_analyze'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show results - adapt to new API response format
+                    const adaptedData = {
+                        success: true,
+                        filename: data.filename,
+                        transcript: data.transcription,
+                        duration_s: 0, // Not provided by AI endpoint
+                        confidence: parseFloat(data.confidence) / 100 || 0.8, // Convert percentage to decimal
+                        speakers: [], // Not provided by AI endpoint
+                        analysis: data.analysis,
+                        summary: data.summary,
+                        sentiment: data.sentiment,
+                        keywords: data.keywords,
+                        processing_time: data.processing_time
+                    };
+                    displayTranscriptionResults(adaptedData);
+                    console.log(`✅ Transcription completed for ${filename}`);
+                } else {
+                    throw new Error(data.error || 'Transcription failed');
+                }
+                
+            } catch (error) {
+                console.error('Transcription error:', error);
+                alert(`Transcription failed: ${error.message}`);
+                
+                // Show error in results area
+                document.getElementById('transcription-results').style.display = 'block';
+                document.getElementById('transcript-text').innerHTML = `
+                    <div style="color: #ef4444; text-align: center; padding: 20px;">
+                        ❌ Transcription Failed<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+                
+            } finally {
+                // Hide loading indicator
+                document.getElementById('transcription-loading').style.display = 'none';
+                document.getElementById('transcribe-btn').disabled = false;
+                document.getElementById('transcribe-btn').textContent = `Transcribe ${filename}`;
+            }
+        }
+        
+        function displayTranscriptionResults(data) {
+            // Show results section
+            document.getElementById('transcription-results').style.display = 'block';
+            
+            // Update transcript text
+            const transcriptEl = document.getElementById('transcript-text');
+            if (data.transcript && data.transcript.trim()) {
+                transcriptEl.innerHTML = `"${data.transcript}"`;
+            } else {
+                transcriptEl.innerHTML = '<em style="color: #666;">No transcript available</em>';
+            }
+            
+            // Update metadata
+            document.getElementById('transcript-duration').textContent = 
+                data.duration_s ? `${data.duration_s.toFixed(1)}s` : 'Unknown';
+            
+            document.getElementById('transcript-confidence').textContent = 
+                data.confidence ? `${(data.confidence * 100).toFixed(1)}%` : 'N/A';
+            
+            document.getElementById('transcript-speakers').textContent = 
+                data.speakers ? data.speakers.length : '0';
+            
+            document.getElementById('transcript-filename').textContent = 
+                data.filename || selectedRecordingForTranscription.name;
+            
+            // Scroll to results
+            document.getElementById('transcription-results').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
         }
     </script>
 </body>

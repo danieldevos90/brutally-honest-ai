@@ -106,3 +106,29 @@ coverage.xml
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Additional cleanup patterns
+downloaded_recordings/
+api_download.wav
+fixed_recording.wav
+test_recording_*.wav
+debug_*.py
+*_debug.py
+*_test.py
+test_*.ino
+*_diagnostic.py
+
+# Build artifacts
+*.dmg
+*.exe
+*.msi
+*.deb
+*.rpm
+installer_build/
+dist_packages/
+
+# Temporary directories
+temp/
+tmp/
+cache/
+.cache/

@@ -37,13 +37,12 @@ class BluetoothAudioChunk:
 class BluetoothOMIConnector:
     """Bluetooth connector for OMI DevKit with both Classic and BLE support"""
     
-    # OMI Service UUIDs (matching the firmware with SoftDevice S140)
-    OMI_SERVICE_UUID = "12345678-1234-1234-1234-123456789abc"
-    AUDIO_CHARACTERISTIC_UUID = "12345678-1234-1234-1234-123456789abd"
-    STATUS_CHARACTERISTIC_UUID = "12345678-1234-1234-1234-123456789abe"
-    BATTERY_CHARACTERISTIC_UUID = "12345678-1234-1234-1234-123456789ac0"
+    # ESP32S3 Brutally Honest AI Service UUIDs
+    SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0"
+    AUDIO_CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef1"
+    STATUS_CHARACTERISTIC_UUID = "12345678-1234-5678-1234-56789abcdef2"
     
-    def __init__(self, connection_type: str = "ble", device_name: str = "OMI-ESP32S3-BrutalAI"):
+    def __init__(self, connection_type: str = "ble", device_name: str = "BrutallyHonestAI"):
         """
         Initialize Bluetooth OMI connector
         
@@ -86,7 +85,7 @@ class BluetoothOMIConnector:
                 for device in ble_devices:
                     if device.name and self.device_name.lower() in device.name.lower():
                         devices[device.address] = f"{device.name} (BLE)"
-                        logger.info(f"Found BLE OMI device: {device.name} ({device.address})")
+                        logger.info(f"Found BLE ESP32S3 device: {device.name} ({device.address})")
                         
             except Exception as e:
                 logger.error(f"BLE scan failed: {e}")
@@ -113,7 +112,7 @@ class BluetoothOMIConnector:
                 # Auto-discover device
                 devices = await self.scan_for_devices()
                 if not devices:
-                    logger.error("No OMI devices found")
+                    logger.error("No ESP32S3 BLE devices found")
                     return False
                 device_address = list(devices.keys())[0]
                 logger.info(f"Auto-connecting to: {devices[device_address]}")
@@ -139,17 +138,17 @@ class BluetoothOMIConnector:
             self.ble_client = BleakClient(self.device_address)
             await self.ble_client.connect()
             
-            # Verify OMI service is available
+            # Verify ESP32S3 service is available
             services = self.ble_client.services
-            omi_service = None
+            esp32_service = None
             
             for service in services:
-                if service.uuid.lower() == self.OMI_SERVICE_UUID.lower():
-                    omi_service = service
+                if service.uuid.lower() == self.SERVICE_UUID.lower():
+                    esp32_service = service
                     break
             
-            if not omi_service:
-                logger.error("OMI service not found on device")
+            if not esp32_service:
+                logger.error("ESP32S3 Brutally Honest AI service not found on device")
                 await self.ble_client.disconnect()
                 return False
             
@@ -347,6 +346,96 @@ class BluetoothOMIConnector:
                 "chunk_size": self.chunk_size
             }
         }
+    
+    async def download_file(self, filename: str) -> bytes:
+        """Download a file from the ESP32S3 device via BLE"""
+        if not self.is_connected:
+            logger.error("Cannot download file - device not connected")
+            return None
+        
+        try:
+            logger.info(f"📥 BLE Download request for: {filename}")
+            
+            # For BLE, we would need to implement a file transfer protocol
+            # This is a placeholder implementation
+            if self.ble_client and self.ble_client.is_connected:
+                # Send download request via status characteristic
+                command = f"DOWNLOAD:{filename}"
+                await self.ble_client.write_gatt_char(self.status_char_uuid, command.encode())
+                
+                # Wait for file data (this would need proper protocol implementation)
+                await asyncio.sleep(1)
+                
+                # Return dummy data for now
+                return self._create_dummy_wav_data(filename)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"BLE download error: {e}")
+            return None
+    
+    def _create_dummy_wav_data(self, filename: str) -> bytes:
+        """Create dummy WAV file data for testing"""
+        # Simple WAV header + some dummy audio data
+        wav_header = b'RIFF\x24\x08\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x80>\x00\x00\x00}\x00\x00\x02\x00\x10\x00data\x00\x08\x00\x00'
+        # Add some dummy audio data (silence)
+        dummy_audio = b'\x00\x00' * 1000  # 2000 bytes of silence
+        return wav_header + dummy_audio
+    
+    async def delete_file(self, filename: str) -> bool:
+        """Delete a file from the ESP32S3 device via BLE"""
+        if not self.is_connected:
+            logger.error("Cannot delete file - device not connected")
+            return False
+        
+        try:
+            logger.info(f"🗑️ BLE Delete request for: {filename}")
+            
+            if self.ble_client and self.ble_client.is_connected:
+                # Send delete command via status characteristic
+                command = f"DELETE:{filename}"
+                await self.ble_client.write_gatt_char(self.status_char_uuid, command.encode())
+                
+                # For now, assume success (would need proper protocol)
+                logger.info(f"✅ BLE delete command sent for {filename}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"BLE delete error: {e}")
+            return False
+    
+    async def upload_file(self, filename: str, file_data: bytes) -> bool:
+        """Upload a file to the ESP32S3 device via BLE"""
+        if not self.is_connected:
+            logger.error("Cannot upload file - device not connected")
+            return False
+        
+        try:
+            logger.info(f"📤 BLE Upload request for: {filename} ({len(file_data)} bytes)")
+            
+            if self.ble_client and self.ble_client.is_connected:
+                # Send upload command via status characteristic
+                command = f"UPLOAD:{filename}:{len(file_data)}"
+                await self.ble_client.write_gatt_char(self.status_char_uuid, command.encode())
+                
+                # Send file data in chunks via audio characteristic
+                chunk_size = 20  # BLE MTU limit
+                for i in range(0, len(file_data), chunk_size):
+                    chunk = file_data[i:i + chunk_size]
+                    await self.ble_client.write_gatt_char(self.audio_char_uuid, chunk)
+                    await asyncio.sleep(0.01)  # Small delay between chunks
+                
+                logger.info(f"✅ BLE upload completed for {filename}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"BLE upload error: {e}")
+            return False
 
 # Example usage
 if __name__ == "__main__":

@@ -1,294 +1,198 @@
-# Voice Insight & Feedback Platform
+# ESP32S3 PDM Fixed - Brutally Honest AI Firmware
 
-A secure, EU-based platform that leverages OMI DevKit 2, local LLMs, and voice recognition to provide real-time transcription, speaker identification, fact-checking, and personalized feedback.
+## 🎯 **Latest Stable Version**
 
-## 🎯 Features
+This is the **latest and most stable firmware** for the Brutally Honest AI project, featuring working audio recording, LED animations, and comprehensive I2C diagnostics.
 
-- **OMI DevKit 2 Integration**: Direct USB-C connection for high-quality audio capture
-- **Real-time Transcription**: Using Whisper for accurate speech-to-text
-- **Speaker Diarization**: Identify "who spoke when" with pyannote-audio
-- **Local LLM Analysis**: Fact-checking and feedback using Mistral/Phi-3 via Ollama
-- **EU-Compliant**: Runs entirely on EU infrastructure, GDPR-compliant
-- **Vector Search**: Semantic search with Qdrant for company knowledge
-- **WebSocket Streaming**: Real-time audio processing and feedback
+## ✨ **Key Features**
 
-## 🏗️ Architecture
+### 🎤 **Working Microphone System**
+- **PDM Microphone Support** - Properly configured ESP32-I2S library
+- **High-Quality Audio Recording** - 16kHz sample rate, 16-bit depth
+- **Automatic Gain Control** - Optimized audio levels
+- **SD Card Storage** - WAV file format with timestamps
+- **Real-time Audio Processing** - Efficient buffer management
 
-```
-📱 OMI DevKit 2 (USB-C)
-│
-├─ 🎙️ Audio Capture → Real-time streaming
-│
-🔐 FastAPI Backend
-│
-├─ Audio Processing Pipeline
-│   ├─ Whisper Transcription
-│   └─ Speaker Diarization (pyannote-audio)
-│
-├─ Local LLM Analysis
-│   ├─ Ollama (Mistral 7B)
-│   ├─ Fact Checking
-│   └─ Feedback Generation
-│
-├─ Databases
-│   ├─ PostgreSQL (sessions, metadata)
-│   └─ Qdrant (vector search)
-│
-└─ WebSocket API (real-time streaming)
-```
+### 💡 **LED Status Indicators**
+- **Recording Status** - Visual feedback during audio capture
+- **Connection Status** - BLE connection indicators  
+- **System Status** - Boot, ready, and error states
+- **Customizable Animations** - Smooth LED transitions
 
-## 🚀 Quick Start
+### 📡 **Bluetooth Low Energy (BLE)**
+- **Device Discovery** - Advertises as "Brutal Honest Query"
+- **Audio Streaming** - Real-time audio transmission
+- **Status Updates** - Recording state and file count
+- **Connection Management** - Automatic reconnection
 
-### Prerequisites
+### 🔧 **Advanced Diagnostics**
+- **I2C Scanner** - Comprehensive device detection
+- **Hardware Testing** - Multiple pin configurations and speeds
+- **Serial Commands** - Interactive diagnostic interface
+- **Error Reporting** - Detailed troubleshooting information
 
-- Python 3.8+
-- Docker & Docker Compose
-- OMI DevKit 2 connected via USB-C
-- 8GB+ RAM (for local LLM)
+## 🚀 **Quick Start**
 
-### 1. Clone and Setup
+### **Hardware Requirements**
+- **XIAO ESP32S3** microcontroller
+- **XIAO Expansion Board** (optional, for OLED display)
+- **MicroSD Card** (for audio storage)
+- **PDM Microphone** (built-in or external)
 
-```bash
-git clone <your-repo>
-cd brutally-honest-ai
-
-# Run automated setup
-python setup.py --setup
-```
-
-### 2. Configure Environment
-
-```bash
-# Copy environment template
-cp env.example .env
-
-# Edit configuration (required)
-nano .env
-```
-
-**Required Configuration:**
-- `HUGGINGFACE_TOKEN`: Get from https://huggingface.co/settings/tokens
-- Database passwords and connection details
-
-### 3. Start Services
-
-```bash
-# Start all services (PostgreSQL, Qdrant, Ollama)
-chmod +x scripts/start_services.sh
-./scripts/start_services.sh
-```
-
-### 4. Test OMI Connection
-
-```bash
-# Check OMI DevKit connection
-python scripts/test_omi.py --test-connection
-```
-
-### 5. Run the Platform
-
-```bash
-# Start the main application
-python main.py
-```
-
-The platform will be available at: http://localhost:8000
-
-## 🔧 API Endpoints
-
-### Core Endpoints
-
-- `GET /` - Health check
-- `GET /api/status` - System status
-- `POST /api/audio/upload` - Upload audio file for analysis
-- `WebSocket /api/audio/stream` - Real-time audio streaming
-- `GET /api/sessions/{id}` - Get session details
-- `GET /api/sessions` - List recent sessions
-
-### WebSocket Usage
-
-```javascript
-const ws = new WebSocket('ws://localhost:8000/api/audio/stream');
-
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    
-    if (data.type === 'transcription') {
-        console.log('Transcript:', data.data.text);
-    } else if (data.type === 'analysis') {
-        console.log('Fact Check:', data.data.fact_check);
-    }
-};
-```
-
-## 🎙️ OMI DevKit 2 Integration
-
-### USB-C Connection
-
-The platform connects directly to OMI DevKit 2 via USB-C:
-
-1. **Automatic Detection**: Scans for OMI device on startup
-2. **Serial Communication**: Uses standard serial protocol
-3. **Audio Streaming**: Real-time PCM audio at 16kHz
-4. **Device Commands**: Send configuration and control commands
-
-### Supported Commands
-
-- `INFO` - Get device information
-- `AUDIO_CONFIG:16000:1:16` - Configure audio (sample rate:channels:bit depth)
-- `START_AUDIO` - Begin audio streaming
-- `STOP_AUDIO` - Stop audio streaming
-
-## 🧠 Local LLM Setup
-
-### Ollama Models
-
-The platform uses Ollama for local LLM inference:
-
-```bash
-# Pull recommended model
-docker exec brutally-honest-ai-ollama-1 ollama pull mistral:7b
-
-# Alternative models
-docker exec brutally-honest-ai-ollama-1 ollama pull phi3:mini
-docker exec brutally-honest-ai-ollama-1 ollama pull mixtral:8x7b
-```
-
-### Model Requirements
-
-| Model | VRAM | RAM | Performance |
-|-------|------|-----|-------------|
-| Phi-3 Mini | 4GB | 8GB | Fast, CPU-friendly |
-| Mistral 7B | 8GB | 16GB | Balanced |
-| Mixtral 8x7B | 24GB | 32GB | Best quality |
-
-## 📊 Database Schema
-
-### PostgreSQL Tables
-
-- `sessions` - Audio sessions and metadata
-- `speaker_segments` - Speaker diarization results
-- `analysis_results` - Fact-checking and feedback
-- `users` - User management (optional)
-
-### Qdrant Collections
-
-- `voice_embeddings` - Semantic search for transcripts
-
-## 🔒 Security & Compliance
-
-- **EU-Only Processing**: All data stays within EU
-- **No Cloud APIs**: Uses only local models
-- **Encrypted Storage**: AES-256 encryption
-- **GDPR Compliant**: Full data control and deletion
-- **Audit Logging**: Complete access tracking
-
-## 🛠️ Development
-
-### Project Structure
-
-```
-brutally-honest-ai/
-├── main.py                 # FastAPI application
-├── requirements.txt        # Python dependencies
-├── docker-compose.yml      # Service orchestration
-├── src/
-│   ├── audio/
-│   │   ├── omi_connector.py    # OMI DevKit integration
-│   │   └── processor.py        # Audio processing pipeline
-│   ├── llm/
-│   │   └── analyzer.py         # Local LLM analysis
-│   ├── database/
-│   │   └── manager.py          # Database management
-│   └── models/
-│       └── schemas.py          # API schemas
-└── scripts/
-    ├── start_services.sh       # Service startup
-    └── test_omi.py            # OMI testing
-```
-
-### Testing
-
-```bash
-# Test individual components
-python setup.py --test
-
-# Test OMI connection
-python scripts/test_omi.py --test-connection
-
-# List available serial ports
-python scripts/test_omi.py --list-ports
-```
-
-## 🐛 Troubleshooting
-
-### OMI DevKit Not Detected
-
-1. Check USB-C connection
-2. Verify device appears in system:
-   ```bash
-   # Linux/macOS
-   ls /dev/tty*
-   
-   # Check USB devices
-   lsusb | grep -i pico
+### **Installation**
+1. **Install Arduino IDE** with ESP32 support
+2. **Install Required Libraries:**
    ```
-3. Install drivers if needed
-4. Try different USB port/cable
+   - ESP_I2S (included with ESP32 core)
+   - U8g2 (for OLED display)
+   - SD (included with ESP32 core)
+   - BLE (included with ESP32 core)
+   ```
+3. **Upload Firmware:**
+   ```bash
+   arduino-cli compile --fqbn esp32:esp32:XIAO_ESP32S3 esp32s3_pdm_fixed.ino
+   arduino-cli upload --fqbn esp32:esp32:XIAO_ESP32S3 --port /dev/cu.usbmodem101 esp32s3_pdm_fixed.ino
+   ```
 
-### LLM Model Issues
-
-```bash
-# Check Ollama status
-curl http://localhost:11434/api/tags
-
-# Pull model manually
-docker exec -it brutally-honest-ai-ollama-1 ollama pull mistral:7b
-
-# Check model size
-docker exec -it brutally-honest-ai-ollama-1 ollama list
+### **Board Configuration**
+```
+Board: "XIAO_ESP32S3"
+USB CDC On Boot: "Enabled"
+CPU Frequency: "240MHz (WiFi)"
+Flash Mode: "QIO 80MHz"
+Flash Size: "8MB (64Mb)"
+Partition Scheme: "8M with spiffs (3MB APP/1.5MB SPIFFS)"
+PSRAM: "OPI PSRAM"
+Upload Mode: "UART0 / Hardware CDC"
+Upload Speed: "921600"
 ```
 
-### Database Connection Issues
+## 🎮 **Usage**
 
-```bash
-# Check PostgreSQL
-docker-compose exec postgres pg_isready -U postgres
+### **Recording Audio**
+1. **Power on** the device
+2. **Press the button** to start recording
+3. **LED indicates** recording status (solid/blinking)
+4. **Press again** to stop recording
+5. **Files saved** to SD card as `recording_YYYYMMDD_HHMMSS.wav`
 
-# Check Qdrant
-curl http://localhost:6333/health
+### **BLE Connection**
+1. **Enable Bluetooth** on your device
+2. **Scan for "Brutal Honest Query"**
+3. **Connect** to start receiving audio stream
+4. **LED shows** connection status
+
+### **Serial Diagnostics**
+Connect via serial monitor (115200 baud) and use these commands:
+- `scan` or `i2c` - Perform I2C device scan
+- `test` - Test different I2C configurations
+- `help` - Show available commands
+
+## 🔧 **Technical Specifications**
+
+### **Audio System**
+- **Sample Rate:** 16,000 Hz
+- **Bit Depth:** 16-bit
+- **Channels:** Mono
+- **Format:** WAV (PCM)
+- **Buffer Size:** 1024 samples
+- **Microphone:** PDM interface
+
+### **Pin Configuration**
+```cpp
+// Audio
+#define I2S_WS_PIN    42    // PDM Clock
+#define I2S_SD_PIN    41    // PDM Data
+
+// LED
+#define LED_PIN       21    // Status LED
+
+// Button
+#define BUTTON_PIN    1     // Record button
+
+// SD Card (SPI)
+#define SD_CS_PIN     D2    // Chip Select
+// MOSI: D10, MISO: D9, SCK: D8
+
+// I2C (for OLED - if expansion board used)
+#define OLED_SDA      5     // I2C Data
+#define OLED_SCL      4     // I2C Clock
 ```
 
-## 📈 Performance Optimization
+### **Memory Usage**
+- **Program Storage:** ~22% (737KB / 3.3MB)
+- **Dynamic Memory:** ~10% (36KB / 327KB)
+- **PSRAM:** 8MB available for audio buffers
 
-### Hardware Recommendations
+## 🐛 **Troubleshooting**
 
-- **CPU**: 8+ cores for parallel processing
-- **RAM**: 16GB+ (32GB for large models)
-- **GPU**: NVIDIA GPU with 8GB+ VRAM (optional but recommended)
-- **Storage**: SSD for database and model storage
+### **Audio Issues**
+- **No recording:** Check microphone connection and SD card
+- **Poor quality:** Verify sample rate and gain settings
+- **File corruption:** Ensure stable power supply
 
-### Latency Optimization
+### **BLE Issues**
+- **Connection fails:** Reset device and clear Bluetooth cache
+- **Audio dropouts:** Check distance and interference
 
-- Use smaller models (Phi-3 Mini) for faster response
-- Enable GPU acceleration for Whisper
-- Optimize chunk sizes for real-time processing
-- Use connection pooling for databases
+### **Hardware Issues**
+- **OLED not working:** Run I2C diagnostic (`scan` command)
+- **SD card errors:** Format card as FAT32, check connections
+- **LED not working:** Verify LED_PIN connection
 
-## 🤝 Contributing
+### **Serial Commands for Debugging**
+```
+scan    - Scan I2C bus for devices
+test    - Test I2C configurations
+help    - Show available commands
+```
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
+## 📊 **Status Indicators**
 
-## 📄 License
+### **LED Patterns**
+- **Solid ON:** Recording in progress
+- **Slow Blink:** Ready to record
+- **Fast Blink:** BLE connected
+- **Off:** Standby/Error
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### **Serial Output**
+- **💚 Status:** Normal operation messages
+- **🔍 Scan:** I2C diagnostic results  
+- **🎤 Audio:** Recording status updates
+- **📡 BLE:** Connection status
 
-## 🔗 References
+## 🔄 **Recent Updates**
 
-- [OMI DevKit Documentation](https://docs.omi.me/onboarding/omi-devkit-2)
-- [OMI GitHub Issues](https://github.com/BasedHardware/omi/issues)
-- [OMI Getting Started](https://docs.omi.me/doc/get_started/introduction)
+### **v2.0 - PDM Fixed (Latest)**
+- ✅ **Fixed PDM microphone** - Proper ESP32-I2S integration
+- ✅ **Enhanced audio quality** - Optimized buffer management
+- ✅ **Improved LED feedback** - Clear status indicators
+- ✅ **I2C diagnostics** - Comprehensive hardware testing
+- ✅ **Better error handling** - Graceful failure recovery
+- ✅ **Serial commands** - Interactive debugging interface
+
+### **Known Issues**
+- **OLED Display:** May not work on some expansion boards (I2C hardware issue)
+- **Workaround:** Use serial monitor for status instead of OLED
+
+## 📁 **File Structure**
+```
+esp32s3_pdm_fixed/
+├── esp32s3_pdm_fixed.ino    # Main firmware file
+└── README.md                # This documentation
+```
+
+## 🤝 **Contributing**
+
+This firmware is part of the Brutally Honest AI project. For issues or improvements:
+1. Test thoroughly with the diagnostic commands
+2. Document any hardware-specific issues
+3. Include serial output in bug reports
+
+## 📄 **License**
+
+This project is part of the Brutally Honest AI system. See main project documentation for licensing details.
+
+---
+
+**🎯 This is the recommended firmware version for production use with working microphone and LED features!**
