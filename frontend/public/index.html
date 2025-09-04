@@ -96,7 +96,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                             <!-- Analysis -->
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                                <h4 style="margin-bottom: 10px; color: #333;">📊 AI Analysis:</h4>
+                                <h4 style="margin-bottom: 10px; color: #333;">AI Analysis:</h4>
                                 <div id="transcript-analysis" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
                                     <!-- Analysis will appear here -->
                                 </div>
@@ -104,7 +104,7 @@
                             
                             <!-- Summary -->
                             <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                                <h4 style="margin-bottom: 10px; color: #333;">📝 Summary:</h4>
+                                <h4 style="margin-bottom: 10px; color: #333;">Summary:</h4>
                                 <div id="transcript-summary" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
                                     <!-- Summary will appear here -->
                                 </div>
@@ -112,17 +112,17 @@
                         </div>
 
                         <!-- Fact-Checking Section -->
-                        <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <h4 style="margin-bottom: 10px; color: #856404;">🔍 Fact Check:</h4>
-                            <div id="transcript-fact-check" style="font-size: 0.95rem; line-height: 1.5; color: #856404;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 10px; color: #333;">Fact Check:</h4>
+                            <div id="transcript-fact-check" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
                                 <!-- Fact check will appear here -->
                             </div>
                         </div>
 
                         <!-- Brutal Honesty Section -->
-                        <div style="background: #f8d7da; border: 2px solid #dc3545; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <h4 style="margin-bottom: 10px; color: #721c24;">💀 Brutal Honesty Assessment:</h4>
-                            <div id="transcript-brutal-honesty" style="font-size: 0.95rem; line-height: 1.5; color: #721c24; font-weight: 500;">
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 10px; color: #333;">Brutal Honesty Assessment:</h4>
+                            <div id="transcript-brutal-honesty" style="font-size: 0.95rem; line-height: 1.5; color: #555; font-weight: 500;">
                                 <!-- Brutal honesty will appear here -->
                             </div>
                         </div>
@@ -130,17 +130,17 @@
                         <!-- Issues & Corrections -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <!-- Questionable Claims -->
-                            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
-                                <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Questionable Claims:</h4>
-                                <div id="transcript-questionable-claims" style="font-size: 0.9rem; color: #856404;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #666;">
+                                <h4 style="margin-bottom: 10px; color: #333;">Questionable Claims:</h4>
+                                <div id="transcript-questionable-claims" style="font-size: 0.9rem; color: #555;">
                                     <!-- Questionable claims will appear here -->
                                 </div>
                             </div>
                             
                             <!-- Corrections -->
-                            <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8;">
-                                <h4 style="margin-bottom: 10px; color: #0c5460;">✅ Corrections:</h4>
-                                <div id="transcript-corrections" style="font-size: 0.9rem; color: #0c5460;">
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #333;">
+                                <h4 style="margin-bottom: 10px; color: #333;">Corrections:</h4>
+                                <div id="transcript-corrections" style="font-size: 0.9rem; color: #555;">
                                     <!-- Corrections will appear here -->
                                 </div>
                             </div>
@@ -1614,14 +1614,14 @@
                 const score = (data.credibility_score * 100).toFixed(1);
                 credibilityEl.textContent = `${score}%`;
                 
-                // Color code based on credibility
-                if (data.credibility_score >= 0.8) {
-                    credibilityEl.style.color = '#28a745'; // Green for high credibility
-                } else if (data.credibility_score >= 0.5) {
-                    credibilityEl.style.color = '#ffc107'; // Yellow for medium credibility
-                } else {
-                    credibilityEl.style.color = '#dc3545'; // Red for low credibility
-                }
+                                 // Color code based on credibility
+                 if (data.credibility_score >= 0.8) {
+                     credibilityEl.style.color = '#000000'; // Black for high credibility
+                 } else if (data.credibility_score >= 0.5) {
+                     credibilityEl.style.color = '#666666'; // Grey for medium credibility
+                 } else {
+                     credibilityEl.style.color = '#999999'; // Light grey for low credibility
+                 }
             } else {
                 credibilityEl.textContent = 'N/A';
                 credibilityEl.style.color = '#333';
