@@ -329,7 +329,7 @@ html_template = '''<!DOCTYPE html>
         
         .recording-card.selected {
             border-color: #3498db;
-            background: #e3f2fd;
+            background: #f5f5f5;
         }
         
         .recording-name {
@@ -431,7 +431,7 @@ html_template = '''<!DOCTYPE html>
         }
         
         .meta-item {
-            background: #e3f2fd;
+            background: #f5f5f5;
             padding: 15px;
             border-radius: 10px;
             text-align: center;
