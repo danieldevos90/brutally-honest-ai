@@ -167,15 +167,17 @@ Your task is to be BRUTALLY HONEST and fact-check every claim. Please provide:
 
 Be thorough, critical, and don't hold back. If someone makes unsubstantiated claims, call them out. If they're being misleading, expose it. If they're stating facts correctly, acknowledge it.
 
-Respond in JSON format:
+IMPORTANT: You MUST respond with ONLY a valid JSON object. Do not include any other text before or after the JSON. The response must start with {{ and end with }}.
+
+JSON format:
 {{
     "analysis": "detailed content analysis here",
-    "sentiment": "positive/negative/neutral",
+    "sentiment": "positive/negative/neutral", 
     "summary": "brief summary here",
     "keywords": ["keyword1", "keyword2", "keyword3"],
     "fact_check": "comprehensive fact-checking analysis",
     "brutal_honesty": "brutally honest assessment of credibility and accuracy",
-    "credibility_score": 0.0-1.0,
+    "credibility_score": 0.5,
     "questionable_claims": ["claim1", "claim2"],
     "corrections": ["correction1", "correction2"]
 }}
@@ -209,10 +211,21 @@ Respond in JSON format:
             
             # Try to parse JSON response
             try:
+                # First try direct parsing
                 result = json.loads(result_text)
                 logger.info("✅ LLAMA analysis completed successfully")
                 return result
             except json.JSONDecodeError:
+                # Try to extract JSON from the response if it's embedded in other text
+                import re
+                json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
+                if json_match:
+                    try:
+                        result = json.loads(json_match.group())
+                        logger.info("✅ LLAMA analysis completed successfully (extracted JSON)")
+                        return result
+                    except json.JSONDecodeError:
+                        pass
                 # If JSON parsing fails, create structured response
                 logger.warning("LLAMA response not in JSON format, creating structured response")
                 return {

@@ -1187,7 +1187,6 @@ body {
 
 .recording-item {
     background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.3);
     border-radius: 12px;
     padding: 8px 12px;
     display: flex;
@@ -1199,7 +1198,6 @@ body {
 
 .recording-item:hover {
     background: rgba(240, 240, 240, 0.8);
-    border-color: rgba(0, 0, 0, 0.5);
     transform: translateY(-1px);
 }
 

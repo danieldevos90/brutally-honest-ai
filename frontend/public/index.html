@@ -73,7 +73,7 @@
                         </div>
                         
                         <!-- Metadata -->
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
                             <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
                                 <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Duration</div>
                                 <div id="transcript-duration" style="font-weight: 600; color: #333;">-</div>
@@ -83,12 +83,66 @@
                                 <div id="transcript-confidence" style="font-weight: 600; color: #333;">-</div>
                             </div>
                             <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Speakers</div>
-                                <div id="transcript-speakers" style="font-weight: 600; color: #333;">-</div>
+                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Credibility</div>
+                                <div id="transcript-credibility" style="font-weight: 600; color: #333;">-</div>
                             </div>
                             <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
                                 <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">File</div>
                                 <div id="transcript-filename" style="font-weight: 600; color: #333; font-size: 0.9rem;">-</div>
+                            </div>
+                        </div>
+
+                        <!-- AI Analysis Section -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <!-- Analysis -->
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <h4 style="margin-bottom: 10px; color: #333;">📊 AI Analysis:</h4>
+                                <div id="transcript-analysis" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
+                                    <!-- Analysis will appear here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Summary -->
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                                <h4 style="margin-bottom: 10px; color: #333;">📝 Summary:</h4>
+                                <div id="transcript-summary" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
+                                    <!-- Summary will appear here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fact-Checking Section -->
+                        <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 10px; color: #856404;">🔍 Fact Check:</h4>
+                            <div id="transcript-fact-check" style="font-size: 0.95rem; line-height: 1.5; color: #856404;">
+                                <!-- Fact check will appear here -->
+                            </div>
+                        </div>
+
+                        <!-- Brutal Honesty Section -->
+                        <div style="background: #f8d7da; border: 2px solid #dc3545; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="margin-bottom: 10px; color: #721c24;">💀 Brutal Honesty Assessment:</h4>
+                            <div id="transcript-brutal-honesty" style="font-size: 0.95rem; line-height: 1.5; color: #721c24; font-weight: 500;">
+                                <!-- Brutal honesty will appear here -->
+                            </div>
+                        </div>
+
+                        <!-- Issues & Corrections -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <!-- Questionable Claims -->
+                            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                                <h4 style="margin-bottom: 10px; color: #856404;">⚠️ Questionable Claims:</h4>
+                                <div id="transcript-questionable-claims" style="font-size: 0.9rem; color: #856404;">
+                                    <!-- Questionable claims will appear here -->
+                                </div>
+                            </div>
+                            
+                            <!-- Corrections -->
+                            <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8;">
+                                <h4 style="margin-bottom: 10px; color: #0c5460;">✅ Corrections:</h4>
+                                <div id="transcript-corrections" style="font-size: 0.9rem; color: #0c5460;">
+                                    <!-- Corrections will appear here -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1507,6 +1561,11 @@
                         summary: data.summary,
                         sentiment: data.sentiment,
                         keywords: data.keywords,
+                        fact_check: data.fact_check,
+                        brutal_honesty: data.brutal_honesty,
+                        credibility_score: parseFloat(data.credibility_score) / 100 || 0.5,
+                        questionable_claims: data.questionable_claims || [],
+                        corrections: data.corrections || [],
                         processing_time: data.processing_time
                     };
                     displayTranscriptionResults(adaptedData);
@@ -1555,11 +1614,62 @@
             document.getElementById('transcript-confidence').textContent = 
                 data.confidence ? `${(data.confidence * 100).toFixed(1)}%` : 'N/A';
             
-            document.getElementById('transcript-speakers').textContent = 
-                data.speakers ? data.speakers.length : '0';
+            // Update credibility score with color coding
+            const credibilityEl = document.getElementById('transcript-credibility');
+            if (data.credibility_score !== undefined) {
+                const score = (data.credibility_score * 100).toFixed(1);
+                credibilityEl.textContent = `${score}%`;
+                
+                // Color code based on credibility
+                if (data.credibility_score >= 0.8) {
+                    credibilityEl.style.color = '#28a745'; // Green for high credibility
+                } else if (data.credibility_score >= 0.5) {
+                    credibilityEl.style.color = '#ffc107'; // Yellow for medium credibility
+                } else {
+                    credibilityEl.style.color = '#dc3545'; // Red for low credibility
+                }
+            } else {
+                credibilityEl.textContent = 'N/A';
+                credibilityEl.style.color = '#333';
+            }
             
             document.getElementById('transcript-filename').textContent = 
                 data.filename || selectedRecordingForTranscription.name;
+            
+            // Update AI Analysis sections
+            document.getElementById('transcript-analysis').innerHTML = 
+                data.analysis || '<em style="color: #666;">No analysis available</em>';
+            
+            document.getElementById('transcript-summary').innerHTML = 
+                data.summary || '<em style="color: #666;">No summary available</em>';
+            
+            // Update Fact-Checking section
+            document.getElementById('transcript-fact-check').innerHTML = 
+                data.fact_check || '<em style="color: #666;">No fact-checking performed</em>';
+            
+            // Update Brutal Honesty section
+            document.getElementById('transcript-brutal-honesty').innerHTML = 
+                data.brutal_honesty || '<em style="color: #666;">No brutal honesty assessment available</em>';
+            
+            // Update Questionable Claims
+            const claimsEl = document.getElementById('transcript-questionable-claims');
+            if (data.questionable_claims && data.questionable_claims.length > 0) {
+                claimsEl.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' + 
+                    data.questionable_claims.map(claim => `<li>${claim}</li>`).join('') + 
+                    '</ul>';
+            } else {
+                claimsEl.innerHTML = '<em style="color: #666;">No questionable claims identified</em>';
+            }
+            
+            // Update Corrections
+            const correctionsEl = document.getElementById('transcript-corrections');
+            if (data.corrections && data.corrections.length > 0) {
+                correctionsEl.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' + 
+                    data.corrections.map(correction => `<li>${correction}</li>`).join('') + 
+                    '</ul>';
+            } else {
+                correctionsEl.innerHTML = '<em style="color: #666;">No corrections needed</em>';
+            }
             
             // Scroll to results
             document.getElementById('transcription-results').scrollIntoView({ 
