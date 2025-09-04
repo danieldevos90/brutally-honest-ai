@@ -26,6 +26,10 @@ cleanup() {
         echo "🌐 Stopping frontend server (PID: $FRONTEND_PID)"
         kill $FRONTEND_PID 2>/dev/null || true
     fi
+    if [ ! -z "$WHISPER_PRELOAD_PID" ]; then
+        echo "🎤 Stopping Whisper preload (PID: $WHISPER_PRELOAD_PID)"
+        kill $WHISPER_PRELOAD_PID 2>/dev/null || true
+    fi
     echo -e "${GREEN}✅ Cleanup complete${NC}"
     exit 0
 }
@@ -83,16 +87,42 @@ if command -v ollama >/dev/null 2>&1; then
     fi
     
     # Check if model is available
-    if ! ollama list | grep -q "llama2:7b"; then
-        echo -e "${YELLOW}⚠️  LLAMA model not found - pulling llama2:7b${NC}"
-        ollama pull llama2:7b
+    if ! ollama list | grep -q "tinyllama:latest"; then
+        echo -e "${YELLOW}⚠️  TinyLlama model not found - pulling tinyllama:latest${NC}"
+        ollama pull tinyllama:latest
     fi
+    
+    # Pre-warm the model for faster responses
+    echo -e "${BLUE}🔥 Pre-warming TinyLlama model...${NC}"
+    curl -s -X POST http://localhost:11434/api/generate \
+        -d '{"model": "tinyllama:latest", "prompt": "Ready", "stream": false, "keep_alive": "10m", "options": {"num_predict": 1}}' \
+        --max-time 30 > /dev/null 2>&1 &
+    
+    echo -e "${GREEN}✅ TinyLlama model warming in background${NC}"
 elif [ -f "models/llama-2-7b-chat.gguf" ]; then
     echo -e "${GREEN}✅ GGUF model found${NC}"
 else
     echo -e "${YELLOW}⚠️  No LLAMA model found - transcription may fail${NC}"
     echo -e "${BLUE}💡 Run the install script to set up LLAMA: ./install_brutally_honest.sh${NC}"
 fi
+
+# Pre-load Whisper model to avoid first-use download delay
+echo -e "${BLUE}🎤 Pre-loading Whisper model (medium)...${NC}"
+python -c "
+import whisper
+import sys
+try:
+    print('📥 Downloading Whisper medium model (1.42GB)...')
+    model = whisper.load_model('medium')
+    print('✅ Whisper medium model loaded successfully')
+except Exception as e:
+    print(f'⚠️  Whisper model preload failed: {e}')
+    print('💡 Model will be downloaded on first use')
+" &
+WHISPER_PRELOAD_PID=$!
+
+# Show progress while Whisper downloads
+echo -e "${YELLOW}⏳ Whisper model downloading in background...${NC}"
 
 # Start backend in background
 python api_server.py &
@@ -130,6 +160,27 @@ fi
 cd ..
 
 echo -e "${GREEN}✅ Frontend started (PID: $FRONTEND_PID)${NC}"
+
+# Wait for Whisper preload to complete (with timeout)
+if [ ! -z "$WHISPER_PRELOAD_PID" ]; then
+    echo -e "${BLUE}⏳ Waiting for Whisper model preload to complete...${NC}"
+    
+    # Wait up to 120 seconds for Whisper preload
+    TIMEOUT=120
+    ELAPSED=0
+    while kill -0 $WHISPER_PRELOAD_PID 2>/dev/null && [ $ELAPSED -lt $TIMEOUT ]; do
+        sleep 5
+        ELAPSED=$((ELAPSED + 5))
+        echo -e "${YELLOW}⏳ Still downloading Whisper model... (${ELAPSED}s/${TIMEOUT}s)${NC}"
+    done
+    
+    if kill -0 $WHISPER_PRELOAD_PID 2>/dev/null; then
+        echo -e "${YELLOW}⚠️  Whisper preload taking longer than expected - continuing anyway${NC}"
+        kill $WHISPER_PRELOAD_PID 2>/dev/null || true
+    else
+        echo -e "${GREEN}✅ Whisper model preload completed${NC}"
+    fi
+fi
 
 echo ""
 echo -e "${GREEN}🎉 Brutally Honest AI is now running!${NC}"

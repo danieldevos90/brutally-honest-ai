@@ -548,7 +548,7 @@ class ESP32S3Connector:
                 if not start_seen or file_size is None:
                     logger.error(f"Download handshake failed: start={start_seen}, size={file_size}; buf={text_buf.strip()[:200]}")
                     return None
-                logger.info(f"📊 File size: {file_size} bytes")
+                logger.info(f"📊 Expected file size: {file_size} bytes")
 
                 # Consume any immediate text after size and align to RIFF
                 pre_raw = bytearray()
@@ -589,6 +589,7 @@ class ESP32S3Connector:
                         logger.info("✅ DOWNLOAD_END received")
 
                 logger.info(f"✅ File downloaded successfully: {len(file_data)} bytes")
+                logger.info(f"📈 Download efficiency: {len(file_data)/file_size*100:.1f}% of expected size")
                 return bytes(file_data)
 
         except Exception as e:

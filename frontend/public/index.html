@@ -6,7 +6,10 @@
     <title>Brutal Honest AI</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Multi-file functionality -->
+    <script src="multi_file_functions.js"></script>
 </head>
 <body>
     <div class="container">
@@ -43,106 +46,74 @@
                 <h2>AI Transcription</h2>
                 <div class="transcription-section">
                     <p style="text-align: center; margin-bottom: 15px; color: #666;">
-                        Select a recording from below and transcribe it with Whisper AI
+                        Select one or more recordings from below and transcribe them with Whisper AI (Dutch/English auto-detection)
                     </p>
                     
-                    <!-- Selected File Display -->
-                    <div id="selected-file-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px; text-align: center;">
-                        <div style="font-weight: 500; margin-bottom: 5px;">Selected Recording:</div>
-                        <div id="selected-file-name" style="font-size: 1.1rem; color: #333;"></div>
-                        <div id="selected-file-size" style="font-size: 0.9rem; color: #666; margin-top: 5px;"></div>
+                    <!-- Selected Files Display -->
+                    <div id="selected-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="font-weight: 500;">Selected Recordings:</div>
+                            <button onclick="clearSelectedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all selections">
+                                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                        <div id="selected-files-list" style="max-height: 120px; overflow-y: auto;">
+                            <!-- Selected files will appear here -->
+                        </div>
+                        <div id="selected-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;">
+                            <!-- Summary will appear here -->
+                        </div>
                     </div>
                     
-                    <!-- Transcribe Button -->
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFile()" disabled>
-                            Select a recording to transcribe
+                    <!-- Action Buttons -->
+                    <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFiles()" disabled>
+                            Select recordings to transcribe
+                        </button>
+                        <button id="clear-results-btn" class="btn btn-secondary" onclick="clearTranscriptionResults()" style="display: none;">
+                            <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Clear Results
                         </button>
                     </div>
                     
                     <!-- Transcription Results -->
                     <div id="transcription-results" style="display: none;">
-                        <h3 style="margin-bottom: 15px; color: #333;">Transcription Results</h3>
-                        
-                        <!-- Transcript Text -->
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <h4 style="margin-bottom: 10px; color: #333;">Transcript:</h4>
-                            <div id="transcript-text" style="font-size: 1.1rem; line-height: 1.6; color: #333; min-height: 40px;">
-                                <!-- Transcript will appear here -->
-                            </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #333;">Transcription Results</h3>
+                            <button onclick="toggleProcessLogs()" style="background: none; border: none; cursor: pointer; color: #666; margin-left: 8px; padding: 0;" title="Show processing logs">
+                                <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                            </button>
                         </div>
                         
-                        <!-- Metadata -->
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
-                            <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Duration</div>
-                                <div id="transcript-duration" style="font-weight: 600; color: #333;">-</div>
-                            </div>
-                            <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Confidence</div>
-                                <div id="transcript-confidence" style="font-weight: 600; color: #333;">-</div>
-                            </div>
-                            <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">Credibility</div>
-                                <div id="transcript-credibility" style="font-weight: 600; color: #333;">-</div>
-                            </div>
-                            <div style="background: #f5f5f5; padding: 10px; border-radius: 6px; text-align: center;">
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 3px;">File</div>
-                                <div id="transcript-filename" style="font-weight: 600; color: #333; font-size: 0.9rem;">-</div>
-                            </div>
-                        </div>
-
-                        <!-- AI Analysis Section -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                            <!-- Analysis -->
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                                <h4 style="margin-bottom: 10px; color: #333;">AI Analysis:</h4>
-                                <div id="transcript-analysis" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
-                                    <!-- Analysis will appear here -->
+                        <!-- Condensed Results -->
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;">
+                            <div style="margin-bottom: 8px;">
+                                <strong style="color: #333;">Transcript:</strong>
+                                <div id="transcript-text" style="color: #333; margin-top: 4px;">
+                                    <!-- Transcript will appear here -->
                                 </div>
                             </div>
                             
-                            <!-- Summary -->
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                                <h4 style="margin-bottom: 10px; color: #333;">Summary:</h4>
-                                <div id="transcript-summary" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
-                                    <!-- Summary will appear here -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Fact-Checking Section -->
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <h4 style="margin-bottom: 10px; color: #333;">Fact Check:</h4>
-                            <div id="transcript-fact-check" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
-                                <!-- Fact check will appear here -->
-                            </div>
-                        </div>
-
-                        <!-- Brutal Honesty Section -->
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                            <h4 style="margin-bottom: 10px; color: #333;">Brutal Honesty Assessment:</h4>
-                            <div id="transcript-brutal-honesty" style="font-size: 0.95rem; line-height: 1.5; color: #555; font-weight: 500;">
-                                <!-- Brutal honesty will appear here -->
-                            </div>
-                        </div>
-
-                        <!-- Issues & Corrections -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                            <!-- Questionable Claims -->
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #666;">
-                                <h4 style="margin-bottom: 10px; color: #333;">Questionable Claims:</h4>
-                                <div id="transcript-questionable-claims" style="font-size: 0.9rem; color: #555;">
-                                    <!-- Questionable claims will appear here -->
-                                </div>
+                            <div style="margin-bottom: 8px;">
+                                <strong style="color: #333;">Sentiment:</strong>
+                                <span id="transcript-sentiment" style="color: #555; margin-left: 8px;">
+                                    <!-- Sentiment will appear here -->
+                                </span>
                             </div>
                             
-                            <!-- Corrections -->
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 3px solid #333;">
-                                <h4 style="margin-bottom: 10px; color: #333;">Corrections:</h4>
-                                <div id="transcript-corrections" style="font-size: 0.9rem; color: #555;">
-                                    <!-- Corrections will appear here -->
+                            <div>
+                                <strong style="color: #333;">Brutal Honest Reply:</strong>
+                                <div id="transcript-brutal-honesty" style="color: #555; margin-top: 4px; line-height: 1.4;">
+                                    <!-- Brutal honesty will appear here -->
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Expandable Logs Section for Results -->
+                        <div id="results-process-logs" style="display: none; margin-bottom: 15px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #ddd;">
+                            <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #333;">Processing Logs</div>
+                            <div id="results-log-content" style="color: #555; line-height: 1.4;">
+                                <!-- Logs will appear here -->
                             </div>
                         </div>
                     </div>
@@ -152,7 +123,20 @@
                         <div style="margin-bottom: 10px;">
                             <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #333; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                         </div>
-                        <div style="color: #666;">Transcribing with Whisper AI...</div>
+                        <div style="display: flex; align-items: center; justify-content: center; margin-top: 10px;">
+                            <span style="color: #666; margin-right: 8px;">Untangling the spaghetti of words you just threw at me...</span>
+                            <button onclick="toggleProcessLogs()" style="background: none; border: none; cursor: pointer; color: #666; padding: 0;" title="Show processing logs">
+                                <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Expandable Logs Section -->
+                        <div id="process-logs" style="display: none; margin-top: 15px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #ddd;">
+                            <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #333;">Processing Logs</div>
+                            <div id="log-content" style="color: #555; line-height: 1.4;">
+                                <!-- Logs will appear here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -854,8 +838,8 @@
                                 </div>
                             </div>
                             <div class="recording-actions">
-                                <button class="btn-mini" onclick="selectRecordingForTranscription('${recording.name}', ${recording.size_mb ? recording.size_mb : (recording.size / 1024 / 1024).toFixed(2)})" title="Select for Transcription">
-                                    Select
+                                <button class="btn-mini recording-select-btn" id="select-${recording.name}" onclick="toggleRecordingSelection('${recording.name}', ${recording.size_mb ? recording.size_mb : (recording.size / 1024 / 1024).toFixed(2)})" title="Toggle Selection">
+                                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                                 </button>
                                 <button class="btn-mini" onclick="downloadRecording('${recording.name}')" title="Download">
                                     Download
@@ -1310,8 +1294,8 @@
                                 </div>
                             </div>
                             <div class="recording-actions">
-                                <button class="btn-mini" onclick="selectRecordingForTranscription('${recording.name}', ${recording.size_mb ? recording.size_mb : (recording.size / 1024 / 1024).toFixed(2)})" title="Select for Transcription">
-                                    Select
+                                <button class="btn-mini recording-select-btn" id="select-${recording.name}" onclick="toggleRecordingSelection('${recording.name}', ${recording.size_mb ? recording.size_mb : (recording.size / 1024 / 1024).toFixed(2)})" title="Toggle Selection">
+                                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
                                 </button>
                                 <button class="btn-mini" onclick="downloadRecording('${recording.name}')" title="Download">
                                     Download
@@ -1521,13 +1505,20 @@
             try {
                 console.log(`Starting transcription of ${filename}...`);
                 
-                // Show loading indicator
+                // Show loading indicator and reset logs
                 document.getElementById('transcription-loading').style.display = 'block';
                 document.getElementById('transcription-results').style.display = 'none';
                 document.getElementById('transcribe-btn').disabled = true;
                 document.getElementById('transcribe-btn').textContent = 'Transcribing...';
                 
+                // Initialize logs
+                clearProcessLogs();
+                addProcessLog(`<i data-lucide="play" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Starting transcription of ${filename}`);
+                addProcessLog(`<i data-lucide="file" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>File size: ${selectedRecordingForTranscription.size_mb} MB`);
+                addProcessLog(`<i data-lucide="mic" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Initializing Whisper AI...`);
+                
                 // Call the transcription API endpoint
+                addProcessLog(`<i data-lucide="send" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Sending request to AI processor...`);
                 const response = await fetch(`/api/ai/process`, {
                     method: 'POST',
                     headers: {
@@ -1540,9 +1531,15 @@
                     })
                 });
                 
+                addProcessLog(`<i data-lucide="download" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Received response from server`);
                 const data = await response.json();
                 
                 if (data.success) {
+                    addProcessLog(`<i data-lucide="check-circle" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Transcription completed successfully!`);
+                    addProcessLog(`<i data-lucide="clock" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Processing time: ${data.processing_time}`);
+                    addProcessLog(`<i data-lucide="target" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Confidence: ${data.confidence}`);
+                    addProcessLog(`<i data-lucide="brain" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>LLAMA analysis completed`);
+                    
                     // Show results - adapt to new API response format
                     const adaptedData = {
                         success: true,
@@ -1565,11 +1562,15 @@
                     displayTranscriptionResults(adaptedData);
                     console.log(`✅ Transcription completed for ${filename}`);
                 } else {
+                    addProcessLog(`<i data-lucide="x-circle" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Transcription failed: ${data.error}`);
                     throw new Error(data.error || 'Transcription failed');
                 }
                 
             } catch (error) {
                 console.error('Transcription error:', error);
+                addProcessLog(`<i data-lucide="x-circle" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Error: ${error.message}`);
+                addProcessLog(`<i data-lucide="wrench" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Check your audio file and try again`);
+                
                 alert(`Transcription failed: ${error.message}`);
                 
                 // Show error in results area
@@ -1589,6 +1590,45 @@
             }
         }
         
+        // Log management functions
+        function toggleProcessLogs() {
+            // Toggle processing logs during transcription
+            const processingLogsDiv = document.getElementById('process-logs');
+            if (processingLogsDiv && processingLogsDiv.style.display !== 'none') {
+                if (processingLogsDiv.style.display === 'none') {
+                    processingLogsDiv.style.display = 'block';
+                } else {
+                    processingLogsDiv.style.display = 'none';
+                }
+                return;
+            }
+            
+            // Toggle results logs after transcription
+            const resultsLogsDiv = document.getElementById('results-process-logs');
+            if (resultsLogsDiv) {
+                if (resultsLogsDiv.style.display === 'none') {
+                    resultsLogsDiv.style.display = 'block';
+                } else {
+                    resultsLogsDiv.style.display = 'none';
+                }
+            }
+        }
+        
+        
+        function clearProcessLogs() {
+            const logContent = document.getElementById('log-content');
+            if (logContent) logContent.innerHTML = '';
+            
+            const resultsLogContent = document.getElementById('results-log-content');
+            if (resultsLogContent) resultsLogContent.innerHTML = '';
+            
+            const processLogs = document.getElementById('process-logs');
+            if (processLogs) processLogs.style.display = 'none';
+            
+            const resultsLogs = document.getElementById('results-process-logs');
+            if (resultsLogs) resultsLogs.style.display = 'none';
+        }
+        
         function displayTranscriptionResults(data) {
             // Show results section
             document.getElementById('transcription-results').style.display = 'block';
@@ -1601,75 +1641,53 @@
                 transcriptEl.innerHTML = '<em style="color: #666;">No transcript available</em>';
             }
             
-            // Update metadata
-            document.getElementById('transcript-duration').textContent = 
-                data.duration_s ? `${data.duration_s.toFixed(1)}s` : 'Unknown';
-            
-            document.getElementById('transcript-confidence').textContent = 
-                data.confidence ? `${(data.confidence * 100).toFixed(1)}%` : 'N/A';
-            
-            // Update credibility score with color coding
-            const credibilityEl = document.getElementById('transcript-credibility');
-            if (data.credibility_score !== undefined) {
-                const score = (data.credibility_score * 100).toFixed(1);
-                credibilityEl.textContent = `${score}%`;
-                
-                                 // Color code based on credibility
-                 if (data.credibility_score >= 0.8) {
-                     credibilityEl.style.color = '#000000'; // Black for high credibility
-                 } else if (data.credibility_score >= 0.5) {
-                     credibilityEl.style.color = '#666666'; // Grey for medium credibility
-                 } else {
-                     credibilityEl.style.color = '#999999'; // Light grey for low credibility
-                 }
-            } else {
-                credibilityEl.textContent = 'N/A';
-                credibilityEl.style.color = '#333';
-            }
-            
-            document.getElementById('transcript-filename').textContent = 
-                data.filename || selectedRecordingForTranscription.name;
-            
-            // Update AI Analysis sections
-            document.getElementById('transcript-analysis').innerHTML = 
-                data.analysis || '<em style="color: #666;">No analysis available</em>';
-            
-            document.getElementById('transcript-summary').innerHTML = 
-                data.summary || '<em style="color: #666;">No summary available</em>';
-            
-            // Update Fact-Checking section
-            document.getElementById('transcript-fact-check').innerHTML = 
-                data.fact_check || '<em style="color: #666;">No fact-checking performed</em>';
+            // Update sentiment
+            document.getElementById('transcript-sentiment').innerHTML = 
+                data.sentiment || '<em style="color: #666;">No sentiment analysis available</em>';
             
             // Update Brutal Honesty section
             document.getElementById('transcript-brutal-honesty').innerHTML = 
                 data.brutal_honesty || '<em style="color: #666;">No brutal honesty assessment available</em>';
-            
-            // Update Questionable Claims
-            const claimsEl = document.getElementById('transcript-questionable-claims');
-            if (data.questionable_claims && data.questionable_claims.length > 0) {
-                claimsEl.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' + 
-                    data.questionable_claims.map(claim => `<li>${claim}</li>`).join('') + 
-                    '</ul>';
-            } else {
-                claimsEl.innerHTML = '<em style="color: #666;">No questionable claims identified</em>';
-            }
-            
-            // Update Corrections
-            const correctionsEl = document.getElementById('transcript-corrections');
-            if (data.corrections && data.corrections.length > 0) {
-                correctionsEl.innerHTML = '<ul style="margin: 0; padding-left: 20px;">' + 
-                    data.corrections.map(correction => `<li>${correction}</li>`).join('') + 
-                    '</ul>';
-            } else {
-                correctionsEl.innerHTML = '<em style="color: #666;">No corrections needed</em>';
-            }
             
             // Scroll to results
             document.getElementById('transcription-results').scrollIntoView({ 
                 behavior: 'smooth', 
                 block: 'start' 
             });
+        }
+        
+        // Initialize Lucide icons when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+        
+        // Re-initialize Lucide icons after adding new content
+        function addProcessLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `<div style="margin-bottom: 4px;"><span style="color: #999;">[${timestamp}]</span> ${message}</div>`;
+            
+            // Add to processing logs
+            const logContent = document.getElementById('log-content');
+            if (logContent) {
+                logContent.innerHTML += logEntry;
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+            
+            // Also add to results logs for later viewing
+            const resultsLogContent = document.getElementById('results-log-content');
+            if (resultsLogContent) {
+                resultsLogContent.innerHTML += logEntry;
+                resultsLogContent.scrollTop = resultsLogContent.scrollHeight;
+            }
+            
+            // Re-initialize Lucide icons for new content
+            lucide.createIcons();
+            
+            // Auto-show logs if there's an error
+            if (message.includes('x-circle')) {
+                const processLogs = document.getElementById('process-logs');
+                if (processLogs) processLogs.style.display = 'block';
+            }
         }
     </script>
 </body>
