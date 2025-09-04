@@ -219,8 +219,8 @@ class VoiceInsightApp {
             // OMI DevKit 2 section with icon and dropdown-style info
             const omiPort = data.ports.find(port => port.description && port.description.includes('XIAO'));
             if (omiPort) {
-                output += `<br><div style="background: #f0f8ff; padding: 15px; border-radius: 10px; border-left: 4px solid #00ff41;">`;
-                output += `<p><strong>🎙️ OMI DevKit 2 Detected</strong></p>`;
+                output += `<br><div style="background: #f5f5f5; padding: 15px; border-radius: 10px; border-left: 4px solid #666666;">`;
+                output += `<p><strong>OMI DevKit 2 Detected</strong></p>`;
                 output += `<div style="margin-left: 20px;">`;
                 output += `<p><strong>Device:</strong> ${omiPort.device}</p>`;
                 output += `<p><strong>Description:</strong> ${omiPort.description}</p>`;

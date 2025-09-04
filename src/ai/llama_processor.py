@@ -16,13 +16,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AIProcessingResult:
-    """Result from AI processing"""
+    """Result from AI processing with fact-checking"""
     success: bool
     transcription: Optional[str] = None
     analysis: Optional[str] = None
     summary: Optional[str] = None
     sentiment: Optional[str] = None
     keywords: Optional[list] = None
+    fact_check: Optional[str] = None
+    brutal_honesty: Optional[str] = None
+    credibility_score: Optional[float] = None
+    questionable_claims: Optional[list] = None
+    corrections: Optional[list] = None
     confidence: Optional[float] = None
     processing_time: Optional[float] = None
     error: Optional[str] = None
@@ -127,34 +132,52 @@ class LLAMAProcessor:
             return f"Transcription failed: {str(e)}"
     
     async def analyze_with_llama(self, transcription: str, filename: str) -> Dict[str, Any]:
-        """Analyze transcription using LLAMA"""
+        """Analyze transcription using LLAMA with fact-checking"""
         if not self.llama_available:
             return {
                 "analysis": "LLAMA analysis not available - model not loaded",
                 "sentiment": "neutral",
                 "summary": "Analysis unavailable",
-                "keywords": []
+                "keywords": [],
+                "fact_check": "Fact-checking unavailable",
+                "brutal_honesty": "Analysis system not available",
+                "credibility_score": 0.5,
+                "questionable_claims": [],
+                "corrections": []
             }
         
         try:
-            # Create analysis prompt
+            # Create enhanced analysis prompt with fact-checking
             prompt = f"""
-Analyze this audio transcription and provide insights:
+You are a brutally honest AI fact-checker and analyst. Analyze this audio transcription and provide comprehensive insights with fact-checking:
 
 Transcription: "{transcription}"
 
-Please provide:
-1. A brief analysis of the content and context
-2. The overall sentiment (positive, negative, or neutral)
-3. A concise summary (1-2 sentences)
-4. Key topics or keywords mentioned
+Your task is to be BRUTALLY HONEST and fact-check every claim. Please provide:
+
+1. **Content Analysis**: Brief analysis of the content and context
+2. **Sentiment**: Overall emotional tone (positive, negative, neutral)
+3. **Summary**: Concise 1-2 sentence summary
+4. **Keywords**: Key topics mentioned
+5. **Fact Check**: Rigorous fact-checking of all claims made
+6. **Brutal Honesty**: Your brutally honest assessment of the speaker's credibility and accuracy
+7. **Credibility Score**: Rate from 0.0 to 1.0 based on factual accuracy
+8. **Questionable Claims**: List any dubious or unverified statements
+9. **Corrections**: Provide corrections for any false or misleading information
+
+Be thorough, critical, and don't hold back. If someone makes unsubstantiated claims, call them out. If they're being misleading, expose it. If they're stating facts correctly, acknowledge it.
 
 Respond in JSON format:
 {{
-    "analysis": "detailed analysis here",
+    "analysis": "detailed content analysis here",
     "sentiment": "positive/negative/neutral",
     "summary": "brief summary here",
-    "keywords": ["keyword1", "keyword2", "keyword3"]
+    "keywords": ["keyword1", "keyword2", "keyword3"],
+    "fact_check": "comprehensive fact-checking analysis",
+    "brutal_honesty": "brutally honest assessment of credibility and accuracy",
+    "credibility_score": 0.0-1.0,
+    "questionable_claims": ["claim1", "claim2"],
+    "corrections": ["correction1", "correction2"]
 }}
 """
             
@@ -196,7 +219,12 @@ Respond in JSON format:
                     "analysis": result_text,
                     "sentiment": "neutral",
                     "summary": result_text[:100] + "..." if len(result_text) > 100 else result_text,
-                    "keywords": []
+                    "keywords": [],
+                    "fact_check": "Unable to parse fact-check results from LLAMA response",
+                    "brutal_honesty": result_text[:200] + "..." if len(result_text) > 200 else result_text,
+                    "credibility_score": 0.5,
+                    "questionable_claims": [],
+                    "corrections": []
                 }
                 
         except Exception as e:
@@ -205,7 +233,12 @@ Respond in JSON format:
                 "analysis": f"Analysis failed: {str(e)}",
                 "sentiment": "neutral",
                 "summary": "Analysis unavailable",
-                "keywords": []
+                "keywords": [],
+                "fact_check": f"Fact-checking failed: {str(e)}",
+                "brutal_honesty": "Unable to provide brutal honesty assessment due to system error",
+                "credibility_score": 0.0,
+                "questionable_claims": [],
+                "corrections": []
             }
     
     async def process_audio(self, audio_data: bytes, filename: str) -> AIProcessingResult:
@@ -244,6 +277,11 @@ Respond in JSON format:
                 summary=analysis_result.get("summary", "No summary available"),
                 sentiment=analysis_result.get("sentiment", "neutral"),
                 keywords=analysis_result.get("keywords", []),
+                fact_check=analysis_result.get("fact_check", "No fact-checking performed"),
+                brutal_honesty=analysis_result.get("brutal_honesty", "No brutal honesty assessment available"),
+                credibility_score=analysis_result.get("credibility_score", 0.5),
+                questionable_claims=analysis_result.get("questionable_claims", []),
+                corrections=analysis_result.get("corrections", []),
                 confidence=confidence,
                 processing_time=processing_time
             )
