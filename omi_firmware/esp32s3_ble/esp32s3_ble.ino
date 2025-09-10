@@ -1,5 +1,5 @@
 /*
- * XIAO ESP32S3 Sense - Enhanced Brutal Honest AI Firmware
+ * XIAO ESP32S3 Sense - Enhanced Brutally Honest AI Firmware
  * Features: Button-controlled recording, Display control, SD storage, WiFi sync, Whisper transcription
  */
 
@@ -131,7 +131,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     
-    Serial.println("Starting XIAO ESP32S3 Sense - Enhanced Brutal Honest AI");
+    Serial.println("Starting XIAO ESP32S3 Sense - Enhanced Brutally Honest AI");
     Serial.println("=== HARDWARE DEBUG INFORMATION ===");
     
     // Initialize hardware pins with debugging
@@ -626,7 +626,7 @@ void updateDisplay() {
     display.setFont(u8g2_font_ncenB08_tr);
     
     // Title - Show "Brutal Honest Query"
-    display.drawStr(0, 12, "Brutal Honest AI");
+    display.drawStr(0, 12, "Brutally Honest AI");
     
     // Status line
     String status = "";

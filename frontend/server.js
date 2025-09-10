@@ -24,7 +24,71 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Serve the documents page
+app.get('/documents', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'documents.html'));
+});
+
 // API proxy endpoints for Brutally Honest AI
+
+// Device management endpoints
+app.get('/api/devices/status', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/devices/status`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Devices status proxy error:', error);
+        res.status(500).json({ error: 'Failed to get devices status' });
+    }
+});
+
+app.post('/api/devices/connect/:deviceId', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const deviceId = decodeURIComponent(req.params.deviceId);
+        const response = await fetch(`${API_BASE}/devices/connect/${encodeURIComponent(deviceId)}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Device connect proxy error:', error);
+        res.status(500).json({ error: 'Failed to connect device' });
+    }
+});
+
+app.post('/api/devices/disconnect/:deviceId', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const deviceId = decodeURIComponent(req.params.deviceId);
+        const response = await fetch(`${API_BASE}/devices/disconnect/${encodeURIComponent(deviceId)}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Device disconnect proxy error:', error);
+        res.status(500).json({ error: 'Failed to disconnect device' });
+    }
+});
+
+app.post('/api/devices/select/:deviceId', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const deviceId = decodeURIComponent(req.params.deviceId);
+        const response = await fetch(`${API_BASE}/devices/select/${encodeURIComponent(deviceId)}`, {
+            method: 'POST'
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Device select proxy error:', error);
+        res.status(500).json({ error: 'Failed to select device' });
+    }
+});
+
 app.get('/api/status', async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
@@ -373,6 +437,119 @@ app.post('/api/audio/upload', upload.single('audio'), async (req, res) => {
         res.json(data);
     } catch (error) {
         res.status(500).json({ error: 'Failed to process audio', details: error.message });
+    }
+});
+
+// Document management endpoints
+app.post('/documents/upload', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No file uploaded' });
+        }
+
+        const fetch = (await import('node-fetch')).default;
+        const FormData = (await import('form-data')).default;
+        const fs = require('fs');
+
+        // Create form data for API server
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(req.file.path), {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+
+        const response = await fetch(`${API_BASE}/documents/upload`, {
+            method: 'POST',
+            body: formData,
+            headers: formData.getHeaders()
+        });
+
+        const data = await response.json();
+
+        // Clean up uploaded file
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error cleaning up file:', err);
+        });
+
+        res.json(data);
+    } catch (error) {
+        console.error('Document upload proxy error:', error);
+        res.status(500).json({ success: false, error: 'Document upload failed' });
+    }
+});
+
+app.get('/documents/search', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const query = req.query.query;
+        const limit = req.query.limit || 5;
+        
+        const response = await fetch(`${API_BASE}/documents/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Document search proxy error:', error);
+        res.status(500).json({ success: false, error: 'Document search failed' });
+    }
+});
+
+app.post('/documents/query', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/documents/query`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Document query proxy error:', error);
+        res.status(500).json({ success: false, error: 'Document query failed' });
+    }
+});
+
+app.get('/documents/stats', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/documents/stats`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Document stats proxy error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get document stats' });
+    }
+});
+
+app.delete('/documents/:documentId', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const documentId = req.params.documentId;
+        const response = await fetch(`${API_BASE}/documents/${documentId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Document delete proxy error:', error);
+        res.status(500).json({ success: false, error: 'Document deletion failed' });
+    }
+});
+
+// Enhanced AI processing with document validation
+app.post('/api/ai/process_with_validation', async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/ai/process_with_validation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Enhanced AI processing proxy error:', error);
+        res.status(500).json({ success: false, error: 'Enhanced AI processing failed' });
     }
 });
 

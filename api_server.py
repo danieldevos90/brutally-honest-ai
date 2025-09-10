@@ -21,8 +21,12 @@ import json
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from audio.unified_connector import UnifiedESP32S3Connector, ConnectionType
+from audio.multi_device_manager import get_device_manager, MultiDeviceManager
 from models.schemas import RecordingInfo
 from ai.llama_processor import get_processor
+from ai.enhanced_processor import get_enhanced_processor
+from documents.processor import get_document_processor, DocumentInfo
+from documents.vector_store import get_vector_store
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -44,35 +48,75 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Global connector instance
+# Global connector instance (legacy - kept for backward compatibility)
 connector: Optional[UnifiedESP32S3Connector] = None
 
+# Global device manager
+device_manager: Optional[MultiDeviceManager] = None
+
 async def get_connector() -> UnifiedESP32S3Connector:
-    """Get or create the unified connector"""
+    """Get or create the unified connector (legacy method)"""
     global connector
     if connector is None:
+        # Try to get active device from device manager first
+        manager = get_device_manager()
+        active_connector = manager.get_active_connector()
+        if active_connector:
+            connector = active_connector
+            return connector
+        
+        # Fallback to old behavior
         connector = UnifiedESP32S3Connector(preferred_connection=ConnectionType.USB)
         await connector.initialize()
     return connector
 
+def get_device_manager_instance() -> MultiDeviceManager:
+    """Get or create the device manager"""
+    global device_manager
+    if device_manager is None:
+        device_manager = get_device_manager()
+    return device_manager
+
 @app.on_event("startup")
 async def startup_event():
-    """Initialize the connector on startup"""
+    """Initialize the device manager on startup"""
     logger.info("🚀 Starting Brutally Honest AI API Server...")
     try:
-        await get_connector()
-        logger.info("✅ Connector initialized successfully")
+        # Initialize device manager
+        manager = get_device_manager_instance()
+        logger.info("✅ Device manager initialized successfully")
+        
+        # Auto-scan for devices
+        devices = await manager.scan_for_devices()
+        logger.info(f"📱 Found {len(devices)} ESP32S3 devices")
+        
+        # Auto-connect to first available device (legacy behavior)
+        if devices:
+            first_device = devices[0]
+            if first_device.confidence > 70:
+                logger.info(f"🔌 Auto-connecting to {first_device.description}...")
+                await manager.connect_device(first_device.device_id)
+        
     except Exception as e:
-        logger.error(f"❌ Failed to initialize connector: {e}")
+        logger.error(f"❌ Failed to initialize device manager: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
     logger.info("🛑 Shutting down API server...")
-    global connector
-    if connector:
-        await connector.disconnect()
-        logger.info("✅ Connector disconnected")
+    try:
+        # Disconnect all devices
+        manager = get_device_manager_instance()
+        await manager.disconnect_all()
+        logger.info("✅ All devices disconnected")
+        
+        # Legacy connector cleanup
+        global connector
+        if connector:
+            await connector.disconnect()
+            logger.info("✅ Legacy connector disconnected")
+    except Exception as e:
+        logger.error(f"❌ Shutdown error: {e}")
 
 @app.get("/")
 async def root():
@@ -123,9 +167,118 @@ async def get_status():
         logger.error(f"Failed to get status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get device status: {str(e)}")
 
+@app.get("/devices/status")
+async def get_devices_status():
+    """Get status of all detected ESP32S3 devices"""
+    try:
+        manager = get_device_manager_instance()
+        devices = await manager.scan_for_devices()
+        
+        # Refresh status for connected devices
+        await manager.refresh_device_status()
+        
+        devices_list = manager.get_devices_list()
+        
+        return {
+            "success": True,
+            "devices": devices_list,
+            "count": len(devices_list),
+            "active_device": manager.active_device_id,
+            "scan_timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Failed to get devices status: {e}")
+        return {
+            "success": False,
+            "devices": [],
+            "count": 0,
+            "active_device": None,
+            "error": str(e)
+        }
+
+@app.post("/devices/connect/{device_id:path}")
+async def connect_to_device(device_id: str):
+    """Connect to a specific device"""
+    try:
+        # URL decode the device ID
+        from urllib.parse import unquote
+        device_id = unquote(device_id)
+        
+        manager = get_device_manager_instance()
+        success = await manager.connect_device(device_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Connected to device {device_id}",
+                "active_device": device_id
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to connect to device {device_id}"
+            }
+    except Exception as e:
+        logger.error(f"Failed to connect to device {device_id}: {e}")
+        return {
+            "success": False,
+            "message": f"Connection error: {str(e)}"
+        }
+
+@app.post("/devices/disconnect/{device_id:path}")
+async def disconnect_from_device(device_id: str):
+    """Disconnect from a specific device"""
+    try:
+        # URL decode the device ID
+        from urllib.parse import unquote
+        device_id = unquote(device_id)
+        
+        manager = get_device_manager_instance()
+        success = await manager.disconnect_device(device_id)
+        
+        return {
+            "success": success,
+            "message": f"Disconnected from device {device_id}" if success else f"Failed to disconnect from device {device_id}"
+        }
+    except Exception as e:
+        logger.error(f"Failed to disconnect from device {device_id}: {e}")
+        return {
+            "success": False,
+            "message": f"Disconnect error: {str(e)}"
+        }
+
+@app.post("/devices/select/{device_id:path}")
+async def select_device(device_id: str):
+    """Select a device as the active device"""
+    try:
+        # URL decode the device ID
+        from urllib.parse import unquote
+        device_id = unquote(device_id)
+        
+        manager = get_device_manager_instance()
+        success = manager.select_device(device_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Selected device {device_id} as active",
+                "active_device": device_id
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to select device {device_id} (not connected?)"
+            }
+    except Exception as e:
+        logger.error(f"Failed to select device {device_id}: {e}")
+        return {
+            "success": False,
+            "message": f"Selection error: {str(e)}"
+        }
+
 @app.get("/scan_ports")
 async def scan_ports():
-    """Scan for available serial ports with detailed ESP32S3 detection"""
+    """Scan for available serial ports with detailed ESP32S3 detection (legacy endpoint)"""
     try:
         from src.audio.omi_connector import ESP32S3Connector
         
@@ -521,6 +674,309 @@ async def switch_connection(connection_data: Dict[str, Any]):
         return {
             "success": False,
             "error": f"Failed to switch connection: {str(e)}"
+        }
+
+# Document Management Endpoints
+
+@app.post("/documents/upload")
+async def upload_document(file: UploadFile = File(...)):
+    """Upload and process a document (txt, pdf, doc, docx)"""
+    try:
+        logger.info(f"📄 Document upload request: {file.filename}")
+        
+        # Validate file type
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        file_ext = Path(file.filename).suffix.lower()
+        supported_formats = {'.txt', '.pdf', '.doc', '.docx'}
+        
+        if file_ext not in supported_formats:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unsupported file format: {file_ext}. Supported: {', '.join(supported_formats)}"
+            )
+        
+        # Read file data
+        file_data = await file.read()
+        
+        if len(file_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        if len(file_data) > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+        
+        # Process document
+        processor = await get_document_processor()
+        doc_info = await processor.process_document(file_data, file.filename)
+        
+        # Store in vector database
+        vector_store = await get_vector_store()
+        success = await vector_store.store_document(doc_info)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Document {file.filename} uploaded and processed successfully",
+                "document": {
+                    "id": doc_info.id,
+                    "filename": doc_info.filename,
+                    "file_type": doc_info.file_type,
+                    "file_size": doc_info.file_size,
+                    "text_length": doc_info.text_length,
+                    "upload_time": doc_info.upload_time.isoformat(),
+                    "content_preview": doc_info.content[:200] + "..." if len(doc_info.content) > 200 else doc_info.content
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to store document in vector database")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Document upload failed: {str(e)}")
+
+@app.get("/documents/search")
+async def search_documents(query: str, limit: int = 5):
+    """Search documents using vector similarity"""
+    try:
+        if not query or not query.strip():
+            raise HTTPException(status_code=400, detail="Query parameter is required")
+        
+        logger.info(f"🔍 Document search: {query}")
+        
+        vector_store = await get_vector_store()
+        results = await vector_store.search_documents(query.strip(), limit=limit)
+        
+        return {
+            "success": True,
+            "query": query,
+            "results": [
+                {
+                    "document_id": result.document_id,
+                    "chunk_id": result.chunk_id,
+                    "content": result.content,
+                    "score": result.score,
+                    "metadata": result.metadata
+                }
+                for result in results
+            ],
+            "total_results": len(results)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+@app.post("/documents/query")
+async def query_documents_with_llama(request_data: Dict[str, Any]):
+    """Query documents and get LLAMA AI response based on retrieved context"""
+    try:
+        query = request_data.get("query", "").strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        logger.info(f"🤖 Document query with LLAMA: {query}")
+        
+        # Search for relevant documents
+        vector_store = await get_vector_store()
+        search_results = await vector_store.search_documents(query, limit=5)
+        
+        if not search_results:
+            return {
+                "success": True,
+                "query": query,
+                "response": "I couldn't find any relevant documents to answer your question. Please upload some documents first.",
+                "sources": []
+            }
+        
+        # Prepare context from search results
+        context_parts = []
+        sources = []
+        
+        for result in search_results:
+            context_parts.append(f"Document: {result.metadata.get('filename', 'Unknown')}\nContent: {result.content}")
+            sources.append({
+                "filename": result.metadata.get('filename', 'Unknown'),
+                "score": result.score,
+                "content_preview": result.content[:100] + "..." if len(result.content) > 100 else result.content
+            })
+        
+        context = "\n\n".join(context_parts)
+        
+        # Generate LLAMA response
+        processor = await get_processor()
+        
+        # Create a prompt for document-based Q&A
+        prompt = f"""Based on the following documents, please answer the user's question. Be brutally honest and factual.
+
+Documents:
+{context}
+
+User Question: {query}
+
+Please provide a comprehensive answer based on the document content. If the documents don't contain enough information to answer the question, say so clearly."""
+        
+        # Use LLAMA to generate response
+        try:
+            if hasattr(processor, 'llama') and processor.llama:
+                if processor.llama_type == "ollama":
+                    # Use Ollama
+                    import requests
+                    ollama_response = requests.post(
+                        "http://localhost:11434/api/generate",
+                        json={
+                            "model": "llama2",
+                            "prompt": prompt,
+                            "stream": False
+                        },
+                        timeout=30
+                    )
+                    
+                    if ollama_response.status_code == 200:
+                        response_text = ollama_response.json().get("response", "No response generated")
+                    else:
+                        response_text = "Error: Could not generate response from LLAMA model"
+                        
+                else:
+                    # Use llama-cpp-python
+                    response = processor.llama(prompt, max_tokens=500, temperature=0.7)
+                    response_text = response["choices"][0]["text"].strip()
+            else:
+                response_text = "LLAMA model not available. Here are the relevant document excerpts I found:\n\n" + context[:1000]
+        
+        except Exception as llama_error:
+            logger.warning(f"LLAMA processing failed: {llama_error}")
+            response_text = f"I found relevant information in your documents, but couldn't process it with AI. Here's what I found:\n\n{context[:1000]}"
+        
+        return {
+            "success": True,
+            "query": query,
+            "response": response_text,
+            "sources": sources,
+            "context_used": len(context_parts)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document query error: {e}")
+        raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+@app.get("/documents/stats")
+async def get_document_stats():
+    """Get statistics about stored documents"""
+    try:
+        vector_store = await get_vector_store()
+        stats = await vector_store.get_collection_stats()
+        
+        return {
+            "success": True,
+            "stats": stats
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get document stats: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.delete("/documents/{document_id}")
+async def delete_document(document_id: str):
+    """Delete a document and all its chunks"""
+    try:
+        logger.info(f"🗑️ Delete document request: {document_id}")
+        
+        vector_store = await get_vector_store()
+        success = await vector_store.delete_document(document_id)
+        
+        if success:
+            return {
+                "success": True,
+                "message": f"Document {document_id} deleted successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to delete document {document_id}"
+            }
+            
+    except Exception as e:
+        logger.error(f"Document deletion error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@app.post("/ai/process_with_validation")
+async def process_with_document_validation(request_data: Dict[str, Any]):
+    """Process audio file with LLAMA AI and validate against uploaded documents"""
+    try:
+        filename = request_data.get("filename", "")
+        model = request_data.get("model", "llama")
+        
+        logger.info(f"🤖📚 Enhanced AI processing with document validation: {filename}")
+        
+        # Get the audio file data
+        conn = await get_connector()
+        audio_data = await conn.download_file(filename)
+        
+        if not audio_data:
+            return {
+                "success": False,
+                "error": f"Could not retrieve audio file: {filename}"
+            }
+        
+        # Process with enhanced LLAMA processor (includes document validation)
+        enhanced_processor = await get_enhanced_processor()
+        result = await enhanced_processor.process_audio_with_validation(audio_data, filename)
+        
+        if result.success:
+            return {
+                "success": True,
+                "filename": filename,
+                "transcription": result.transcription,
+                "analysis": result.analysis,
+                "summary": result.summary,
+                "sentiment": result.sentiment,
+                "keywords": result.keywords,
+                "fact_check": result.fact_check,
+                "brutal_honesty": result.brutal_honesty,
+                "credibility_score": f"{result.credibility_score * 100:.1f}%" if result.credibility_score else "N/A",
+                "questionable_claims": result.questionable_claims,
+                "corrections": result.corrections,
+                "confidence": f"{result.confidence * 100:.1f}%" if result.confidence else "N/A",
+                "processing_time": f"{result.processing_time:.2f}s" if result.processing_time else "N/A",
+                
+                # Enhanced validation fields
+                "document_validation": result.document_validation,
+                "validation_score": f"{result.validation_score * 100:.1f}%" if result.validation_score else "N/A",
+                "fact_check_sources": result.fact_check_sources,
+                "contradictions": result.contradictions,
+                "supporting_evidence": result.supporting_evidence,
+                
+                "model_used": model,
+                "validation_enabled": True
+            }
+        else:
+            return {
+                "success": False,
+                "error": result.error,
+                "filename": filename,
+                "model_used": model,
+                "validation_enabled": True
+            }
+            
+    except Exception as e:
+        logger.error(f"Enhanced AI processing error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "validation_enabled": False
         }
 
 @app.websocket("/ws")

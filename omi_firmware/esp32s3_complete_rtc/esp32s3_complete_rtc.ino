@@ -720,7 +720,7 @@ void updateDisplay() {
     static bool titleSet = false;
     if (!titleSet || stateChanged) {
         u8x8.setCursor(0, 0);
-        u8x8.print("Brutal Honest AI");
+        u8x8.print("Brutally Honest AI");
         titleSet = true;
     }
     

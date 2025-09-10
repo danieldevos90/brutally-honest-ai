@@ -7,6 +7,11 @@ set -e
 
 echo "🚀 Starting Brutally Honest AI Application..."
 echo "=================================================="
+echo -e "${BLUE}🆕 NEW: Document Knowledge Base Feature${NC}"
+echo -e "${BLUE}   📄 Upload TXT, PDF, DOC, DOCX files${NC}"
+echo -e "${BLUE}   🔍 AI-powered document search & Q&A${NC}"
+echo -e "${BLUE}   🧠 Vector database with LLAMA integration${NC}"
+echo "=================================================="
 
 # Colors for output
 RED='\033[0;31m'
@@ -39,9 +44,57 @@ trap cleanup SIGINT SIGTERM
 
 # Check if virtual environment exists
 if [ ! -d "venv" ]; then
-    echo -e "${RED}❌ Virtual environment not found. Please run: python -m venv venv${NC}"
-    exit 1
+    echo -e "${YELLOW}📦 Creating virtual environment...${NC}"
+    python -m venv venv
+    echo -e "${GREEN}✅ Virtual environment created${NC}"
 fi
+
+# Activate virtual environment
+echo -e "${BLUE}🐍 Activating virtual environment...${NC}"
+source venv/bin/activate
+
+# Check and install Python dependencies
+echo -e "${BLUE}📦 Checking Python dependencies...${NC}"
+MISSING_DEPS=0
+
+# Check core dependencies
+if ! pip list | grep -q "fastapi"; then
+    echo -e "${YELLOW}⚠️  FastAPI not found${NC}"
+    MISSING_DEPS=1
+fi
+
+if ! pip list | grep -q "qdrant-client"; then
+    echo -e "${YELLOW}⚠️  Qdrant client not found${NC}"
+    MISSING_DEPS=1
+fi
+
+if ! pip list | grep -q "sentence-transformers"; then
+    echo -e "${YELLOW}⚠️  Sentence transformers not found${NC}"
+    MISSING_DEPS=1
+fi
+
+# Check document processing dependencies
+if ! pip list | grep -q "PyPDF2\|pdfplumber"; then
+    echo -e "${YELLOW}⚠️  PDF processing libraries not found${NC}"
+    MISSING_DEPS=1
+fi
+
+if ! pip list | grep -q "python-docx\|docx2txt"; then
+    echo -e "${YELLOW}⚠️  DOC/DOCX processing libraries not found${NC}"
+    MISSING_DEPS=1
+fi
+
+if [ $MISSING_DEPS -eq 1 ]; then
+    echo -e "${YELLOW}📦 Installing missing Python dependencies...${NC}"
+    pip install -r requirements.txt
+    echo -e "${GREEN}✅ Python dependencies installed${NC}"
+else
+    echo -e "${GREEN}✅ All Python dependencies are installed${NC}"
+fi
+
+# Upgrade pip if needed
+echo -e "${BLUE}🔧 Ensuring pip is up to date...${NC}"
+pip install --upgrade pip > /dev/null 2>&1
 
 # Check if node_modules exists in frontend
 if [ ! -d "frontend/node_modules" ]; then
@@ -72,9 +125,96 @@ fi
 
 echo -e "${GREEN}✅ Ports cleared${NC}"
 
-# Activate virtual environment and start backend
-echo -e "${BLUE}🔌 Starting backend API server...${NC}"
-source venv/bin/activate
+# Test document processing feature
+echo -e "${BLUE}🧪 Testing document processing feature...${NC}"
+python -c "
+import sys
+sys.path.insert(0, 'src')
+
+# Test document processor
+try:
+    from documents.processor import DocumentProcessor
+    print('✅ Document processor module loaded')
+except ImportError as e:
+    print(f'❌ Document processor failed: {e}')
+    sys.exit(1)
+
+# Test vector store
+try:
+    from documents.vector_store import VectorStore
+    print('✅ Vector store module loaded')
+except ImportError as e:
+    print(f'❌ Vector store failed: {e}')
+    sys.exit(1)
+
+# Test sentence transformers
+try:
+    from sentence_transformers import SentenceTransformer
+    print('✅ Sentence transformers available')
+except ImportError as e:
+    print(f'❌ Sentence transformers failed: {e}')
+    sys.exit(1)
+
+# Test qdrant client
+try:
+    from qdrant_client import QdrantClient
+    print('✅ Qdrant client available')
+except ImportError as e:
+    print(f'❌ Qdrant client failed: {e}')
+    sys.exit(1)
+
+# Test document processing libraries
+pdf_support = False
+doc_support = False
+
+try:
+    import PyPDF2
+    pdf_support = True
+    print('✅ PyPDF2 available for PDF processing')
+except ImportError:
+    try:
+        import pdfplumber
+        pdf_support = True
+        print('✅ pdfplumber available for PDF processing')
+    except ImportError:
+        print('⚠️  No PDF processing library found')
+
+try:
+    import docx2txt
+    doc_support = True
+    print('✅ docx2txt available for DOC/DOCX processing')
+except ImportError:
+    try:
+        from docx import Document
+        doc_support = True
+        print('✅ python-docx available for DOCX processing')
+    except ImportError:
+        print('⚠️  No DOC/DOCX processing library found')
+
+if pdf_support and doc_support:
+    print('🎉 All document processing features are ready!')
+else:
+    print('⚠️  Some document formats may not be supported')
+
+print('✅ Document processing feature initialization complete')
+"
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ Document processing feature ready${NC}"
+    
+    # Run a quick integration test
+    echo -e "${BLUE}🧪 Running document processing integration test...${NC}"
+    if python test_documents.py > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Document processing integration test passed${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Document processing integration test had issues${NC}"
+        echo -e "${BLUE}💡 Feature should still work, but check logs if you encounter problems${NC}"
+    fi
+else
+    echo -e "${RED}❌ Document processing feature failed initialization${NC}"
+    echo -e "${YELLOW}💡 Try running: pip install -r requirements.txt${NC}"
+    exit 1
+fi
 
 # Check if LLAMA model is available
 echo -e "${BLUE}🦙 Checking LLAMA model availability...${NC}"
@@ -187,8 +327,14 @@ echo -e "${GREEN}🎉 Brutally Honest AI is now running!${NC}"
 echo "=================================================="
 echo -e "${BLUE}📡 Backend API:${NC} http://localhost:8000"
 echo -e "${BLUE}🌐 Frontend Web:${NC} http://localhost:3001"
+echo -e "${BLUE}📄 Document KB:${NC} http://localhost:3001/documents.html"
 echo -e "${BLUE}📚 API Docs:${NC} http://localhost:8000/docs"
 echo -e "${BLUE}🔌 WebSocket:${NC} ws://localhost:8000/ws"
+echo ""
+echo -e "${GREEN}🆕 NEW FEATURES:${NC}"
+echo -e "${BLUE}   📄 Document Upload:${NC} Upload TXT, PDF, DOC, DOCX files"
+echo -e "${BLUE}   🔍 AI-Powered Search:${NC} Ask questions about your documents"
+echo -e "${BLUE}   🧠 Vector Database:${NC} Semantic search with LLAMA integration"
 echo ""
 echo -e "${YELLOW}💡 Press Ctrl+C to stop both services${NC}"
 echo ""

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Brutal Honest AI - Interactive Installer
+# Brutally Honest AI - Interactive Installer
 # ========================================
 # Automated setup for ESP32S3 Bluetooth voice analysis system
 
@@ -25,7 +25,7 @@ print_banner() {
     echo "██████╔╝██║  ██║╚██████╔╝   ██║   ██║  ██║███████╗   ██║  ██║██║"
     echo "╚═════╝ ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝╚══════╝   ╚═╝  ╚═╝╚═╝"
     echo -e "${NC}"
-    echo -e "${CYAN}🤖 Brutal Honest AI - ESP32S3 Voice Analysis System${NC}"
+    echo -e "${CYAN}🤖 Brutally Honest AI - ESP32S3 Voice Analysis System${NC}"
     echo -e "${YELLOW}Interactive Installation & Setup${NC}"
     echo ""
 }
@@ -384,7 +384,7 @@ create_startup_scripts() {
     # Backend startup script
     cat > start_backend.sh << 'EOF'
 #!/bin/bash
-echo "🚀 Starting Brutal Honest AI Backend..."
+echo "🚀 Starting Brutally Honest AI Backend..."
 source venv/bin/activate
 python main_enhanced.py
 EOF
@@ -393,7 +393,7 @@ EOF
     # Frontend startup script
     cat > start_frontend.sh << 'EOF'
 #!/bin/bash
-echo "🌐 Starting Brutal Honest AI Frontend..."
+echo "🌐 Starting Brutally Honest AI Frontend..."
 cd frontend
 npm start
 EOF
@@ -402,7 +402,7 @@ EOF
     # Combined startup script
     cat > start_all.sh << 'EOF'
 #!/bin/bash
-echo "🎉 Starting Brutal Honest AI System..."
+echo "🎉 Starting Brutally Honest AI System..."
 echo "======================================"
 
 # Start backend in background
@@ -472,7 +472,7 @@ EOF
 main() {
     print_banner
     
-    echo -e "${CYAN}Welcome to the Brutal Honest AI installer!${NC}"
+    echo -e "${CYAN}Welcome to the Brutally Honest AI installer!${NC}"
     echo "This script will set up your ESP32S3 voice analysis system."
     echo ""
     
@@ -529,7 +529,7 @@ main() {
     echo "🎉 INSTALLATION COMPLETE!"
     echo "========================="
     echo -e "${NC}"
-    echo -e "${CYAN}Your Brutal Honest AI system is ready!${NC}"
+    echo -e "${CYAN}Your Brutally Honest AI system is ready!${NC}"
     echo ""
     echo -e "${YELLOW}Quick Start:${NC}"
     echo "1. Run: ./start_all.sh"
@@ -548,7 +548,7 @@ main() {
     
     if ask_yes_no "Start the system now?"; then
         echo ""
-        log_info "Starting Brutal Honest AI system..."
+        log_info "Starting Brutally Honest AI system..."
         ./start_all.sh
     else
         echo ""

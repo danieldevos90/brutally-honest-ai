@@ -3,19 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brutal Honest AI</title>
+    <title>Brutally Honest AI</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <!-- Multi-file functionality -->
     <script src="multi_file_functions.js"></script>
+    <!-- Device management functionality -->
+    <script src="devices_manager.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>Brutal Honest AI</h1>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                <h1 style="margin: 0;">Brutally Honest AI</h1>
+                <a href="documents.html" style="text-decoration: none; color: #666; padding: 8px; border-radius: 8px; transition: all 0.2s ease;" 
+                   title="Document Knowledge Base"
+                   onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'" 
+                   onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'">
+                    <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
+                </a>
+            </div>
             
             <!-- Connection Info Panel -->
             <div class="connection-info" id="connection-info" style="display: none;">
@@ -65,6 +75,18 @@
                         </div>
                     </div>
                     
+                    <!-- Document Validation Toggle -->
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
+                            <input type="checkbox" id="enable-document-validation" style="margin: 0;">
+                            <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
+                            Validate transcription against uploaded documents
+                        </label>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                            Uses your document knowledge base to fact-check transcribed content
+                        </div>
+                    </div>
+                    
                     <!-- Action Buttons -->
                     <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                         <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFiles()" disabled>
@@ -107,6 +129,47 @@
                                     <!-- Brutal honesty will appear here -->
                                 </div>
                             </div>
+                            
+                            <!-- Document Validation Results -->
+                            <div id="document-validation-section" style="display: none; border-top: 1px solid #e0e0e0; padding-top: 12px; margin-top: 12px;">
+                                <strong style="color: #333;">📚 Document Validation:</strong>
+                                <div id="document-validation-summary" style="color: #555; margin-top: 4px; line-height: 1.4;">
+                                    <!-- Document validation summary will appear here -->
+                                </div>
+                                
+                                <!-- Validation Score -->
+                                <div id="validation-score-section" style="margin-top: 8px; display: none;">
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Validation Score:</div>
+                                    <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
+                                        <div id="validation-score-bar" style="background: #10b981; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <div id="validation-score-text" style="font-size: 12px; color: #666; margin-top: 2px;">0%</div>
+                                </div>
+                                
+                                <!-- Supporting Evidence -->
+                                <div id="supporting-evidence-section" style="display: none; margin-top: 8px;">
+                                    <div style="font-size: 12px; font-weight: 500; color: #10b981; margin-bottom: 4px;">✅ Supporting Evidence:</div>
+                                    <div id="supporting-evidence-list" style="font-size: 11px; color: #666;">
+                                        <!-- Supporting evidence will appear here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Contradictions -->
+                                <div id="contradictions-section" style="display: none; margin-top: 8px;">
+                                    <div style="font-size: 12px; font-weight: 500; color: #ef4444; margin-bottom: 4px;">⚠️ Contradictions Found:</div>
+                                    <div id="contradictions-list" style="font-size: 11px; color: #666;">
+                                        <!-- Contradictions will appear here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Fact Check Sources -->
+                                <div id="fact-check-sources-section" style="display: none; margin-top: 8px;">
+                                    <div style="font-size: 12px; font-weight: 500; color: #666; margin-bottom: 4px;">📄 Sources Checked:</div>
+                                    <div id="fact-check-sources-list" style="font-size: 11px; color: #666;">
+                                        <!-- Fact check sources will appear here -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Expandable Logs Section for Results -->
@@ -141,9 +204,61 @@
                 </div>
             </div>
 
+            <!-- Device Selection Section -->
+            <div class="section" id="device-selection-section">
+                <h2>Select ESP32S3 Device</h2>
+                <div class="device-selection">
+                    <p style="text-align: center; margin-bottom: 20px; color: #666;">
+                        Choose which ESP32S3 device to monitor and manage
+                    </p>
+                    
+                    <!-- Device Selection Controls -->
+                    <div class="device-selection-controls" style="text-align: center; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="scanForDevices()" id="scan-devices-btn">
+                            <i data-lucide="search" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Scan for Devices
+                        </button>
+                        <button class="btn btn-secondary" onclick="refreshDeviceSelection()" id="refresh-devices-btn">
+                            <i data-lucide="refresh-cw" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            Refresh
+                        </button>
+                    </div>
+                    
+                    <!-- Detected Devices List -->
+                    <div class="devices-container">
+                        <div id="devices-list" class="devices-list">
+                            <div class="devices-empty">
+                                <i data-lucide="search" style="width: 48px; height: 48px; margin-bottom: 15px; color: #ccc;"></i>
+                                <p>Click "Scan for Devices" to detect ESP32S3 devices</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selected Device Info -->
+                    <div id="selected-device-info" class="selected-device-info" style="display: none;">
+                        <div class="selected-device-header">
+                            <i data-lucide="check-circle" style="width: 20px; height: 20px; margin-right: 8px; color: #10B981;"></i>
+                            <span>Selected Device:</span>
+                            <span id="selected-device-name" style="font-weight: 600; color: #10B981;"></span>
+                        </div>
+                        <div class="selected-device-details">
+                            <span id="selected-device-type"></span> • 
+                            <span id="selected-device-port"></span> • 
+                            <span id="selected-device-status"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Device Status Section -->
-            <div class="section">
-                <h2>ESP32S3 Device Status</h2>
+            <div class="section" id="device-status-section" style="display: none;">
+                <div class="device-status-header">
+                    <h2>ESP32S3 Device Status</h2>
+                    <button class="btn btn-secondary btn-small" onclick="changeSelectedDevice()" style="margin-left: auto;">
+                        <i data-lucide="settings" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                        Change Device
+                    </button>
+                </div>
                 <div class="device-status">
                     <div class="device-info">
                         <h3>Recordings on SD Card</h3>
@@ -267,6 +382,7 @@
 
     <script>
         let ws = null;
+        let systemLogEnabled = false;
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -278,21 +394,74 @@
             
             checkBackendStatus();
             connectWebSocket();
-            refreshRecordings();
-            updateDeviceInfo(); // Initial device info load
+            
+            // Start with device selection workflow
+            initializeDeviceSelection();
             
             // Update status bar every 10 seconds
             setInterval(checkBackendStatus, 10000);
             
             // Update connection info every 5 seconds
             setInterval(updateDetailedConnectionInfo, 5000);
-            
-            // Refresh recordings every 30 seconds
-            setInterval(refreshRecordings, 30000);
-            
-            // Update device info every 10 seconds
-            setInterval(updateDeviceInfo, 10000);
         });
+
+        // Initialize device selection workflow
+        function initializeDeviceSelection() {
+            // Ensure device selection section is visible and device status is hidden
+            const deviceSelectionSection = document.getElementById('device-selection-section');
+            const deviceStatusSection = document.getElementById('device-status-section');
+            
+            if (deviceSelectionSection) {
+                deviceSelectionSection.style.display = 'block';
+            }
+            
+            if (deviceStatusSection) {
+                deviceStatusSection.style.display = 'none';
+            }
+            
+            // Auto-scan for devices after a short delay
+            setTimeout(() => {
+                if (typeof scanForDevices === 'function') {
+                    scanForDevices();
+                } else {
+                    console.warn('scanForDevices function not available yet');
+                    // Try again after another delay
+                    setTimeout(() => {
+                        if (typeof scanForDevices === 'function') {
+                            scanForDevices();
+                        } else {
+                            console.error('scanForDevices function still not available');
+                        }
+                    }, 2000);
+                }
+            }, 1000);
+        }
+
+        // Fallback function in case devices_manager.js doesn't load
+        function ensureDeviceFunctions() {
+            if (typeof scanForDevices !== 'function') {
+                window.scanForDevices = async function() {
+                    console.warn('Device manager not loaded, showing fallback message');
+                    const devicesList = document.getElementById('devices-list');
+                    if (devicesList) {
+                        devicesList.innerHTML = '<div class="devices-empty"><p>Device manager not loaded. Please refresh the page.</p></div>';
+                    }
+                };
+            }
+            
+            if (typeof refreshDeviceSelection !== 'function') {
+                window.refreshDeviceSelection = window.scanForDevices;
+            }
+            
+            if (typeof changeSelectedDevice !== 'function') {
+                window.changeSelectedDevice = function() {
+                    console.warn('Device manager not loaded');
+                };
+            }
+        }
+
+        // Ensure device functions are available
+        setTimeout(ensureDeviceFunctions, 500);
 
         async function checkBackendStatus() {
             try {
@@ -377,17 +546,19 @@
             
             // Update connection type and icon
             const connectionType = document.getElementById('connection-type');
-            const connectionIcon = document.querySelector('.connection-item i[data-lucide]');
+            const connectionIcon = document.querySelector('#connection-info .connection-item:first-child i[data-lucide]');
             
-            if (data.connection_type === 'bluetooth' || (data.omi_device && data.omi_device.includes('BLE'))) {
-                connectionType.textContent = 'Bluetooth';
-                connectionIcon.setAttribute('data-lucide', 'bluetooth');
-            } else if (data.connection_type === 'usb' || data.omi_device) {
-                connectionType.textContent = 'USB';
-                connectionIcon.setAttribute('data-lucide', 'usb');
-            } else {
-                connectionType.textContent = 'Unknown';
-                connectionIcon.setAttribute('data-lucide', 'help-circle');
+            if (connectionType) {
+                if (data.connection_type === 'bluetooth' || (data.omi_device && data.omi_device.includes('BLE'))) {
+                    connectionType.textContent = 'Bluetooth';
+                    if (connectionIcon) connectionIcon.setAttribute('data-lucide', 'bluetooth');
+                } else if (data.connection_type === 'usb' || data.omi_device) {
+                    connectionType.textContent = 'USB';
+                    if (connectionIcon) connectionIcon.setAttribute('data-lucide', 'usb');
+                } else {
+                    connectionType.textContent = 'Unknown';
+                    if (connectionIcon) connectionIcon.setAttribute('data-lucide', 'help-circle');
+                }
             }
             
             // Refresh icons after changing attributes
@@ -445,19 +616,23 @@
         function updateSignalIndicator(strength) {
             const signalTextEl = document.getElementById('signal-text');
             
-            // Update signal bars
+            // Update signal bars (only if they exist)
             for (let i = 1; i <= 4; i++) {
                 const bar = document.getElementById(`signal-bar-${i}`);
-                if (i <= strength) {
-                    bar.classList.add('active');
-                } else {
-                    bar.classList.remove('active');
+                if (bar) {
+                    if (i <= strength) {
+                        bar.classList.add('active');
+                    } else {
+                        bar.classList.remove('active');
+                    }
                 }
             }
             
             // Update signal text
-            const signalTexts = ['None', 'Weak', 'Fair', 'Good', 'Strong'];
-            signalTextEl.textContent = signalTexts[strength] || 'Unknown';
+            if (signalTextEl) {
+                const signalTexts = ['None', 'Weak', 'Fair', 'Good', 'Strong'];
+                signalTextEl.textContent = signalTexts[strength] || 'Unknown';
+            }
         }
         
         async function updateDetailedConnectionInfo() {
@@ -469,14 +644,16 @@
                     if (data.connected) {
                         // Update connection type and icon
                         const connectionType = document.getElementById('connection-type');
-                        const connectionIcon = document.querySelector('.connection-item i[data-lucide]');
+                        const connectionIcon = document.querySelector('#connection-info .connection-item:first-child i[data-lucide]');
                         
-                        if (data.connection_type === 'bluetooth') {
-                            connectionType.textContent = 'Bluetooth';
-                            connectionIcon.setAttribute('data-lucide', 'bluetooth');
-                        } else {
-                            connectionType.textContent = 'USB';
-                            connectionIcon.setAttribute('data-lucide', 'usb');
+                        if (connectionType) {
+                            if (data.connection_type === 'bluetooth') {
+                                connectionType.textContent = 'Bluetooth';
+                                if (connectionIcon) connectionIcon.setAttribute('data-lucide', 'bluetooth');
+                            } else {
+                                connectionType.textContent = 'USB';
+                                if (connectionIcon) connectionIcon.setAttribute('data-lucide', 'usb');
+                            }
                         }
                         
                         // Refresh icons
@@ -509,11 +686,19 @@
                 addDemoLog('[SYSTEM] Connected to Brutally Honest AI Device');
             };
             
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                console.log('Received:', message);
-                
-                switch(message.type) {
+            ws.onmessage = async (event) => {
+                try {
+                    let messageData = event.data;
+                    
+                    // Handle Blob data
+                    if (messageData instanceof Blob) {
+                        messageData = await messageData.text();
+                    }
+                    
+                    const message = JSON.parse(messageData);
+                    console.log('Received:', message);
+                    
+                    switch(message.type) {
                     case 'connection':
                         addDemoLog('[CONNECT] ' + message.data);
                         break;
@@ -554,6 +739,22 @@
                         // Update device status display in real-time
                         updateDeviceStatusFromWebSocket(message.data);
                         break;
+                }
+                } catch (error) {
+                    console.error('WebSocket message parse error:', error);
+                    console.log('Raw message data:', event.data);
+                    // Try to handle non-JSON messages
+                    if (typeof event.data === 'string') {
+                        addDemoLog('[RAW] ' + event.data);
+                    } else if (event.data instanceof Blob) {
+                        // Handle Blob data that couldn't be parsed
+                        try {
+                            const text = await event.data.text();
+                            addDemoLog('[BLOB] ' + text);
+                        } catch (blobError) {
+                            console.error('Failed to read Blob data:', blobError);
+                        }
+                    }
                 }
             };
             
@@ -690,6 +891,13 @@
 
         async function refreshRecordings() {
             console.log('🔄 Starting refreshRecordings...');
+            
+            // Check if device status section is visible (device selected)
+            const deviceStatusSection = document.getElementById('device-status-section');
+            if (!deviceStatusSection || deviceStatusSection.style.display === 'none') {
+                console.log('No device selected, skipping recordings refresh');
+                return;
+            }
             
             // Show loading state
             const recordingsList = document.getElementById('recordings-list');
@@ -974,6 +1182,13 @@
         }
         
         async function updateDeviceInfo() {
+            // Check if device status section is visible (device selected)
+            const deviceStatusSection = document.getElementById('device-status-section');
+            if (!deviceStatusSection || deviceStatusSection.style.display === 'none') {
+                console.log('No device selected, skipping device info update');
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/ble/info');
                 const data = await response.json();
@@ -1517,9 +1732,17 @@
                 addProcessLog(`<i data-lucide="file" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>File size: ${selectedRecordingForTranscription.size_mb} MB`);
                 addProcessLog(`<i data-lucide="mic" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Initializing Whisper AI...`);
                 
+                // Check if document validation is enabled
+                const enableValidation = document.getElementById('enable-document-validation').checked;
+                const apiEndpoint = enableValidation ? '/api/ai/process_with_validation' : '/api/ai/process';
+                
+                if (enableValidation) {
+                    addProcessLog(`<i data-lucide="file-check" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Document validation enabled - will fact-check against uploaded documents`);
+                }
+                
                 // Call the transcription API endpoint
                 addProcessLog(`<i data-lucide="send" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Sending request to AI processor...`);
-                const response = await fetch(`/api/ai/process`, {
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1648,6 +1871,80 @@
             // Update Brutal Honesty section
             document.getElementById('transcript-brutal-honesty').innerHTML = 
                 data.brutal_honesty || '<em style="color: #666;">No brutal honesty assessment available</em>';
+            
+            // Handle document validation results
+            const validationSection = document.getElementById('document-validation-section');
+            if (data.validation_enabled && data.document_validation) {
+                validationSection.style.display = 'block';
+                
+                // Update validation summary
+                document.getElementById('document-validation-summary').innerHTML = data.document_validation;
+                
+                // Update validation score
+                if (data.validation_score && data.validation_score !== 'N/A') {
+                    const scoreSection = document.getElementById('validation-score-section');
+                    const scoreBar = document.getElementById('validation-score-bar');
+                    const scoreText = document.getElementById('validation-score-text');
+                    
+                    scoreSection.style.display = 'block';
+                    const scoreValue = parseFloat(data.validation_score.replace('%', ''));
+                    scoreBar.style.width = scoreValue + '%';
+                    scoreText.textContent = data.validation_score;
+                    
+                    // Color code the score bar
+                    if (scoreValue >= 80) {
+                        scoreBar.style.background = '#10b981'; // Green
+                    } else if (scoreValue >= 50) {
+                        scoreBar.style.background = '#f59e0b'; // Yellow
+                    } else {
+                        scoreBar.style.background = '#ef4444'; // Red
+                    }
+                }
+                
+                // Update supporting evidence
+                if (data.supporting_evidence && data.supporting_evidence.length > 0) {
+                    const evidenceSection = document.getElementById('supporting-evidence-section');
+                    const evidenceList = document.getElementById('supporting-evidence-list');
+                    
+                    evidenceSection.style.display = 'block';
+                    evidenceList.innerHTML = data.supporting_evidence.map(evidence => 
+                        `<div style="margin-bottom: 4px;">• ${evidence}</div>`
+                    ).join('');
+                }
+                
+                // Update contradictions
+                if (data.contradictions && data.contradictions.length > 0) {
+                    const contradictionsSection = document.getElementById('contradictions-section');
+                    const contradictionsList = document.getElementById('contradictions-list');
+                    
+                    contradictionsSection.style.display = 'block';
+                    contradictionsList.innerHTML = data.contradictions.map(contradiction => 
+                        `<div style="margin-bottom: 4px;">• ${contradiction}</div>`
+                    ).join('');
+                }
+                
+                // Update fact check sources
+                if (data.fact_check_sources && data.fact_check_sources.length > 0) {
+                    const sourcesSection = document.getElementById('fact-check-sources-section');
+                    const sourcesList = document.getElementById('fact-check-sources-list');
+                    
+                    sourcesSection.style.display = 'block';
+                    
+                    // Group sources by filename to avoid duplicates
+                    const uniqueSources = {};
+                    data.fact_check_sources.forEach(source => {
+                        if (!uniqueSources[source.filename]) {
+                            uniqueSources[source.filename] = source;
+                        }
+                    });
+                    
+                    sourcesList.innerHTML = Object.values(uniqueSources).map(source => 
+                        `<div style="margin-bottom: 4px;">📄 ${source.filename} (${(source.relevance_score * 100).toFixed(0)}% relevance)</div>`
+                    ).join('');
+                }
+            } else {
+                validationSection.style.display = 'none';
+            }
             
             // Scroll to results
             document.getElementById('transcription-results').scrollIntoView({ 

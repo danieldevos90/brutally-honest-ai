@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Knowledge Base - Brutally Honest AI</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                <a href="index.html" style="text-decoration: none; color: #666; padding: 8px; border-radius: 8px; transition: all 0.2s ease;" 
+                   onmouseover="this.style.backgroundColor='#f0f0f0'" onmouseout="this.style.backgroundColor='transparent'">
+                    <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+                </a>
+                <h1>Document Knowledge Base</h1>
+            </div>
+            <p style="text-align: center; color: #666; margin-bottom: 0;">Upload documents to build your knowledge base</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+
+            <!-- Document Upload Section -->
+            <div class="section">
+                <h2>Upload Documents</h2>
+                <div class="upload-section">
+                    <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+                        <div class="upload-content">
+                            <i data-lucide="upload" style="width: 48px; height: 48px; margin-bottom: 15px; color: #666;"></i>
+                            <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 8px;">Add documents to knowledge base</div>
+                            <div class="upload-subtitle">TXT, PDF, DOC, DOCX • Text will be extracted and indexed</div>
+                        </div>
+                    </div>
+                    <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;">
+                    
+                    <!-- Upload Progress -->
+                    <div id="upload-progress" style="display: none; margin-top: 15px;">
+                        <div style="background: #f5f5f5; border-radius: 10px; padding: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span id="upload-status">Uploading...</span>
+                                <span id="upload-percentage">0%</span>
+                            </div>
+                            <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
+                                <div id="progress-bar" style="background: #000; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Status -->
+            <div class="section" id="upload-status-section" style="display: none;">
+                <h2>Upload Status</h2>
+                <div id="upload-status-list" style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+                    <!-- Upload status items will appear here -->
+                </div>
+            </div>
+
+            <!-- Simple Stats -->
+            <div class="section">
+                <h2>Status</h2>
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 18px; margin-bottom: 10px;">
+                        <span id="total-documents">0</span> documents uploaded
+                    </div>
+                    <div style="font-size: 14px; color: #666;">
+                        Status: <span id="db-status">Ready</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        
+        .upload-area:hover {
+            border-color: #333;
+            background: #f5f5f5;
+        }
+        
+        .upload-area.dragover {
+            border-color: #000;
+            background: #f0f0f0;
+        }
+        
+        .stat-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #000;
+        }
+        
+        .source-item {
+            background: #f0f0f0;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        
+        .source-filename {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .source-preview {
+            color: #666;
+            margin-top: 2px;
+        }
+    </style>
+
+    <script>
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            setupFileUpload();
+            updateStats();
+        });
+
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+
+            // Drag and drop handlers
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            });
+
+            // File input handler
+            fileInput.addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
+        }
+
+        async function handleFiles(files) {
+            if (files.length === 0) return;
+
+            const supportedTypes = ['.txt', '.pdf', '.doc', '.docx'];
+            const maxSize = 10 * 1024 * 1024; // 10MB
+
+            for (let file of files) {
+                // Check file type
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                if (!supportedTypes.includes(extension)) {
+                    alert(`Unsupported file type: ${file.name}. Supported types: ${supportedTypes.join(', ')}`);
+                    continue;
+                }
+
+                // Check file size
+                if (file.size > maxSize) {
+                    alert(`File too large: ${file.name}. Maximum size is 10MB.`);
+                    continue;
+                }
+
+                await uploadFile(file);
+            }
+        }
+
+        async function uploadFile(file) {
+            const progressDiv = document.getElementById('upload-progress');
+            const statusSpan = document.getElementById('upload-status');
+            const percentageSpan = document.getElementById('upload-percentage');
+            const progressBar = document.getElementById('progress-bar');
+            const statusSection = document.getElementById('upload-status-section');
+            const statusList = document.getElementById('upload-status-list');
+
+            try {
+                // Show progress
+                progressDiv.style.display = 'block';
+                statusSpan.textContent = `Uploading ${file.name}...`;
+                percentageSpan.textContent = '0%';
+                progressBar.style.width = '0%';
+
+                // Create form data
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Upload with progress tracking
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percentage = Math.round((e.loaded / e.total) * 100);
+                        percentageSpan.textContent = `${percentage}%`;
+                        progressBar.style.width = `${percentage}%`;
+                    }
+                });
+
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            statusSpan.textContent = `✅ ${file.name} processed successfully`;
+                            percentageSpan.textContent = '100%';
+                            progressBar.style.width = '100%';
+                            
+                            // Show upload status
+                            statusSection.style.display = 'block';
+                            const statusItem = document.createElement('div');
+                            statusItem.style.cssText = 'margin-bottom: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #10b981;';
+                            statusItem.innerHTML = `
+                                <div style="font-weight: 500; color: #333;">${file.name}</div>
+                                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                    ${response.document.text_length} characters • ${(response.document.file_size / 1024).toFixed(1)} KB • Processed and indexed
+                                </div>
+                            `;
+                            statusList.appendChild(statusItem);
+                            
+                            // Hide progress after delay
+                            setTimeout(() => {
+                                progressDiv.style.display = 'none';
+                            }, 2000);
+                            
+                            // Update stats
+                            updateStats();
+                        } else {
+                            throw new Error(response.message || 'Upload failed');
+                        }
+                    } else {
+                        throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
+                    }
+                });
+
+                xhr.addEventListener('error', function() {
+                    throw new Error('Network error during upload');
+                });
+
+                xhr.open('POST', '/documents/upload');
+                xhr.send(formData);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                statusSpan.textContent = `❌ Upload failed: ${error.message}`;
+                progressBar.style.backgroundColor = '#ef4444';
+                
+                setTimeout(() => {
+                    progressDiv.style.display = 'none';
+                    progressBar.style.backgroundColor = '#000';
+                }, 3000);
+            }
+        }
+
+        // Simple stats tracking
+        let uploadedDocuments = 0;
+
+        function updateStats() {
+            // Count uploaded documents from status list
+            const statusList = document.getElementById('upload-status-list');
+            const uploadedCount = statusList ? statusList.children.length : uploadedDocuments;
+            
+            document.getElementById('total-documents').textContent = uploadedCount;
+            document.getElementById('db-status').textContent = uploadedCount > 0 ? 'Active' : 'Ready';
+        }
+    </script>
+</body>
+</html>

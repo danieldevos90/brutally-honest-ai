@@ -77,7 +77,7 @@ Phone/Computer connects to download files
 
 ```
 ┌─────────────────┐
-│ Brutal Honest AI│  <- Always shown
+│ Brutally Honest AI│  <- Always shown
 │                 │
 │ RECORDING       │  <- Current status
 │ Press to stop   │  <- Instructions
@@ -183,7 +183,7 @@ Navigate to: http://localhost:5555
 - ✅ LED animations
 - ✅ Buzzer feedback
 - ✅ Real-time transcription (Whisper)
-- ✅ Brutal honest AI analysis
+- ✅ Brutally honest AI analysis
 - ✅ Web interface for management
 - ✅ Multi-connection support
 - ✅ Auto-reconnect on USB
