@@ -719,18 +719,26 @@ function showNotification(message, type = 'info') {
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
     
-    // Style the notification
+    // Remove any existing notifications first
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
+    
+    // Style the notification - using CSS classes for better control
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: 0;
+        left: 0;
+        right: 0;
         padding: 12px 20px;
-        border-radius: 6px;
         color: white;
         font-weight: 500;
         z-index: 10000;
-        max-width: 400px;
-        word-wrap: break-word;
+        text-align: center;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin: 0;
+        border-radius: 0;
+        animation: slideDown 0.3s ease-out;
     `;
     
     // Set background color based on type

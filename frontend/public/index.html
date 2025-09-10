@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brutally Honest AI</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="logo.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="logo.svg">
+    <link rel="apple-touch-icon" href="logo.svg">
+    <link rel="manifest" href="manifest.json">
+    
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
@@ -17,18 +25,30 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
-                <h1 style="margin: 0;">Brutally Honest AI</h1>
-                <a href="documents.html" style="text-decoration: none; color: #666; padding: 8px; border-radius: 8px; transition: all 0.2s ease;" 
-                   title="Document Knowledge Base"
-                   onmouseover="this.style.backgroundColor='#f0f0f0'; this.style.color='#000'" 
-                   onmouseout="this.style.backgroundColor='transparent'; this.style.color='#666'">
-                    <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
-                </a>
+            <div class="logo-title">
+                <img src="logo.svg" alt="Brutally Honest AI Logo" class="logo">
+                <h1>Brutally Honest AI</h1>
             </div>
             
-            <!-- Connection Info Panel -->
-            <div class="connection-info" id="connection-info" style="display: none;">
+            <!-- Navigation Menu -->
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-link active">
+                    <i data-lucide="home" class="nav-icon"></i>
+                    Home
+                </a>
+                <a href="documents.html" class="nav-link">
+                    <i data-lucide="file-text" class="nav-icon"></i>
+                    Documents
+                </a>
+                <a href="#" class="nav-link" onclick="showDocumentation()">
+                    <i data-lucide="book-open" class="nav-icon"></i>
+                    Documentation
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Connection Info Panel -->
+        <div class="connection-info" id="connection-info" style="display: none;">
                 <div class="connection-item">
                     <i data-lucide="bluetooth" class="connection-icon"></i>
                     <span class="connection-label">Connection:</span>
@@ -1985,6 +2005,84 @@
                 const processLogs = document.getElementById('process-logs');
                 if (processLogs) processLogs.style.display = 'block';
             }
+        }
+
+        // Documentation modal function
+        function showDocumentation() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                max-width: 600px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                position: relative;
+            `;
+            
+            content.innerHTML = `
+                <button onclick="this.closest('.modal').remove()" style="
+                    position: absolute;
+                    top: 15px;
+                    right: 20px;
+                    background: none;
+                    border: none;
+                    font-size: 24px;
+                    cursor: pointer;
+                    color: #666;
+                ">&times;</button>
+                
+                <h2 style="margin-top: 0; color: #000; font-family: 'Open Sans', sans-serif;">Documentation</h2>
+                
+                <div style="font-family: 'Open Sans', sans-serif; line-height: 1.6; color: #333;">
+                    <h3>🎤 Audio Processing</h3>
+                    <p>Upload WAV files or connect Bluetooth devices for real-time transcription and AI analysis.</p>
+                    
+                    <h3>📄 Document Knowledge Base</h3>
+                    <p>Upload TXT, PDF, DOC, DOCX files to build a searchable knowledge base. Enable document validation to fact-check transcriptions against your uploaded content.</p>
+                    
+                    <h3>🤖 AI Features</h3>
+                    <ul>
+                        <li><strong>Transcription:</strong> Convert audio to text using Whisper AI</li>
+                        <li><strong>Brutal Honesty:</strong> Get unfiltered AI analysis of conversations</li>
+                        <li><strong>Document Validation:</strong> Cross-reference claims with your knowledge base</li>
+                    </ul>
+                    
+                    <h3>🔗 API Endpoints</h3>
+                    <ul>
+                        <li><code>POST /api/ai/process</code> - Process audio files</li>
+                        <li><code>POST /documents/upload</code> - Upload documents</li>
+                        <li><code>GET /documents/stats</code> - Get knowledge base stats</li>
+                    </ul>
+                    
+                    <h3>📱 Device Support</h3>
+                    <p>Connect Bluetooth devices, USB microphones, or upload audio files directly.</p>
+                </div>
+            `;
+            
+            modal.className = 'modal';
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Close on background click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
         }
     </script>
 </body>
