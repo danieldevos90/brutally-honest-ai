@@ -69,7 +69,17 @@ class MultiDeviceManager:
             for device in self.devices.values():
                 device.last_seen = current_time
             
-            logger.info(f"✅ Found {len(self.devices)} ESP32S3 devices")
+            # Count connected vs detected devices
+            connected_count = sum(1 for d in self.devices.values() if d.connected)
+            detected_count = len(self.devices)
+            
+            if detected_count > 0:
+                if connected_count > 0:
+                    logger.info(f"✅ Found {detected_count} ESP32S3 device(s), {connected_count} connected")
+                else:
+                    logger.info(f"🔍 Found {detected_count} ESP32S3 device(s), none connected")
+            else:
+                logger.info("🔍 No ESP32S3 devices found")
             return list(self.devices.values())
     
     async def _scan_usb_devices(self) -> List[DeviceInfo]:
@@ -81,6 +91,11 @@ class MultiDeviceManager:
             ports = ESP32S3Connector.get_all_serial_ports()
             
             for port_info in ports:
+                # Only include devices that are likely ESP32S3 devices
+                # Skip low-confidence generic ports like debug-console, Bluetooth-Incoming-Port
+                if not port_info['is_esp32s3'] or port_info['confidence'] < 50:
+                    continue
+                
                 device_id = f"usb_{port_info['device']}"
                 
                 # Check if this device is already connected
@@ -91,7 +106,7 @@ class MultiDeviceManager:
                     usb_devices.append(existing_device)
                     continue
                 
-                # Create new device info
+                # Create new device info for high-confidence ESP32S3 devices only
                 device = DeviceInfo(
                     device_id=device_id,
                     device_type="USB",
@@ -102,7 +117,7 @@ class MultiDeviceManager:
                 )
                 
                 # Try to get basic status without full connection
-                if port_info['is_esp32s3'] and port_info['confidence'] > 70:
+                if port_info['confidence'] > 70:
                     try:
                         # Quick status check
                         temp_connector = UnifiedESP32S3Connector(preferred_connection=ConnectionType.USB)

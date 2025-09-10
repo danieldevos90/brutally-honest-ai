@@ -10,7 +10,10 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from .llama_processor import LLAMAProcessor, AIProcessingResult
-from ..documents.vector_store import get_vector_store
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from src.documents.vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 

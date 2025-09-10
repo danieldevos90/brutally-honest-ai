@@ -55,10 +55,13 @@ async function scanForDevices() {
             detectedDevices = result.devices;
             renderDevicesList();
             
+            // Only show notification for connected/active devices
+            const connectedDevices = detectedDevices.filter(device => device.connected || device.is_active);
+            
             if (detectedDevices.length === 0) {
                 showNotification('No ESP32S3 devices found. Make sure devices are connected via USB or BLE.', 'info');
-            } else {
-                showNotification(`Found ${detectedDevices.length} ESP32S3 device(s)!`, 'success');
+            } else if (connectedDevices.length > 0) {
+                showNotification(`Found ${connectedDevices.length} Brutally Honest AI device(s) connected!`, 'success');
             }
         } else {
             devicesList.innerHTML = '<div class="empty-state">Failed to scan for devices. Check your connection.</div>';
@@ -237,10 +240,13 @@ async function scanForDevicesInModal() {
             detectedDevices = data.devices;
             renderModalDevicesList();
             
+            // Only show notification for connected/active devices
+            const connectedDevices = detectedDevices.filter(device => device.connected || device.is_active);
+            
             if (detectedDevices.length === 0) {
                 showNotification('No ESP32S3 devices found. Please connect your device via USB and try scanning again.', 'info');
-            } else {
-                showNotification(`Found ${detectedDevices.length} ESP32S3 device(s)`, 'success');
+            } else if (connectedDevices.length > 0) {
+                showNotification(`Found ${connectedDevices.length} Brutally Honest AI device(s) ready to use!`, 'success');
             }
         } else {
             throw new Error(data.error || 'Failed to scan devices');
