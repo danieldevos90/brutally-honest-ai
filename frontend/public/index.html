@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brutally Honest AI</title>
+    <title>Brutally Honest - AI Voice Validation</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="logo.svg">
@@ -13,6 +13,7 @@
     <link rel="manifest" href="manifest.json">
     
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -20,25 +21,37 @@
     <script src="multi_file_functions.js"></script>
     <!-- Device management functionality -->
     <script src="devices_manager.js"></script>
+    <!-- Dynamic portal functionality -->
+    <script src="dynamic-portal.js"></script>
+    <!-- Notification system -->
+    <script src="notifications.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <div class="header">
             <div class="logo-title">
-                <img src="logo.svg" alt="Brutally Honest AI Logo" class="logo">
-                <h1>Brutally Honest AI</h1>
+                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
+                <h1>Brutally Honest</h1>
             </div>
             
             <!-- Navigation Menu -->
             <nav class="nav-menu">
-                <a href="index.html" class="nav-link active">
+                <a href="/" class="nav-link active">
                     <i data-lucide="home" class="nav-icon"></i>
                     Home
                 </a>
-                <a href="documents.html" class="nav-link">
+                <a href="/documents" class="nav-link">
                     <i data-lucide="file-text" class="nav-icon"></i>
                     Documents
+                </a>
+                <a href="/profiles" class="nav-link">
+                    <i data-lucide="users" class="nav-icon"></i>
+                    Profiles
+                </a>
+                <a href="/validation" class="nav-link">
+                    <i data-lucide="check-circle" class="nav-icon"></i>
+                    Validation
                 </a>
                 <a href="#" class="nav-link" onclick="showDocumentation()">
                     <i data-lucide="book-open" class="nav-icon"></i>

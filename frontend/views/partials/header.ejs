@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Brutally Honest</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo.svg">
+    <link rel="apple-touch-icon" href="/logo.svg">
+    <link rel="manifest" href="/manifest.json">
+    
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/dynamic-portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Multi-file functionality -->
+    <script src="/multi_file_functions.js"></script>
+    <!-- Device management functionality -->
+    <script src="/devices_manager.js"></script>
+    <!-- Dynamic portal functionality -->
+    <script src="/dynamic-portal.js"></script>
+    <!-- Notification system -->
+    <script src="/notifications.js"></script>
+    <% if (typeof extraScripts !== 'undefined') { %>
+        <% extraScripts.forEach(script => { %>
+            <script src="/<%= script %>"></script>
+        <% }); %>
+    <% } %>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Logo and Navigation -->
+        <div class="header">
+            <div class="logo-title">
+                <img src="/logo.svg" alt="Brutally Honest Logo" class="logo">
+                <h1>Brutally Honest</h1>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="nav-menu">
+                <a href="/" class="nav-link <%= page === 'home' ? 'active' : '' %>">
+                    <i data-lucide="home" class="nav-icon"></i>
+                    Home
+                </a>
+                <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>">
+                    <i data-lucide="file-text" class="nav-icon"></i>
+                    Documents
+                </a>
+                <a href="/profiles" class="nav-link <%= page === 'profiles' ? 'active' : '' %>">
+                    <i data-lucide="users" class="nav-icon"></i>
+                    Profiles
+                </a>
+                <a href="/validation" class="nav-link <%= page === 'validation' ? 'active' : '' %>">
+                    <i data-lucide="check-circle" class="nav-icon"></i>
+                    Validation
+                </a>
+                <a href="#" class="nav-link" onclick="showDocumentation()">
+                    <i data-lucide="book-open" class="nav-icon"></i>
+                    Documentation
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Connection Info Panel (if device is connected) -->
+        <div class="connection-info" id="connection-info" style="display: none;">
+            <div class="connection-item">
+                <i data-lucide="bluetooth" class="connection-icon"></i>
+                <span class="connection-label">Connection:</span>
+                <span class="connection-value" id="connection-type">Bluetooth</span>
+            </div>
+            <div class="connection-item">
+                <i data-lucide="battery" class="connection-icon"></i>
+                <span class="connection-label">Battery:</span>
+                <span class="battery-text" id="battery-text">100%</span>
+            </div>
+            <div class="connection-item">
+                <i data-lucide="signal" class="connection-icon"></i>
+                <span class="connection-label">Signal:</span>
+                <span class="signal-text" id="signal-text">Strong</span>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="main-content">
+

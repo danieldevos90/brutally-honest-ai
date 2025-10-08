@@ -1,0 +1,132 @@
+/* Minimal Dynamic Enhancements for Brutally Honest AI */
+
+/* Subtle status indicators */
+.status-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    margin-left: 6px;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.status-dot.inactive {
+    background: #ef4444;
+}
+
+.status-dot.warning {
+    background: #f59e0b;
+}
+
+/* Minimal button feedback */
+.button-pressed {
+    transform: scale(0.98);
+    opacity: 0.8;
+}
+
+/* Subtle drag feedback */
+.drag-active {
+    background: rgba(59, 130, 246, 0.05) !important;
+    border-color: #3b82f6 !important;
+    transform: scale(1.01);
+}
+
+/* Smooth transitions for existing elements */
+button, .btn {
+    transition: all 0.2s ease;
+}
+
+button:hover, .btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Minimal loading states */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Subtle pulse for active elements */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Minimal progress indicator */
+.progress-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: #3b82f6;
+    z-index: 9999;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* Subtle animations for existing content */
+.section {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Stagger animations for multiple sections */
+.section:nth-child(1) { animation-delay: 0.1s; }
+.section:nth-child(2) { animation-delay: 0.2s; }
+.section:nth-child(3) { animation-delay: 0.3s; }
+.section:nth-child(4) { animation-delay: 0.4s; }
+
+/* Minimal responsive adjustments */
+@media (max-width: 768px) {
+    .status-dot {
+        width: 4px;
+        height: 4px;
+    }
+    
+    button:hover, .btn:hover {
+        transform: none; /* Disable hover effects on mobile */
+    }
+}
+
+/* Dark mode compatibility */
+@media (prefers-color-scheme: dark) {
+    .loading::after {
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    }
+    
+    .drag-active {
+        background: rgba(59, 130, 246, 0.1) !important;
+    }
+}

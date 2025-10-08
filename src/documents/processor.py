@@ -27,6 +27,17 @@ class DocumentInfo:
     file_size: int
     text_length: int
     hash: str
+    tags: List[str] = None
+    context: str = None
+    category: str = None
+    related_documents: List[str] = None
+    
+    def __post_init__(self):
+        """Initialize optional fields"""
+        if self.tags is None:
+            self.tags = []
+        if self.related_documents is None:
+            self.related_documents = []
 
 class DocumentProcessor:
     """Document processor for extracting text from various formats"""

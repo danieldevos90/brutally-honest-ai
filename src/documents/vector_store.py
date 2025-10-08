@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import hashlib
+import uuid
 
 from .processor import DocumentInfo
 
@@ -174,8 +175,8 @@ class VectorStore:
             # Process each chunk
             points = []
             for i, chunk_text in enumerate(chunks):
-                # Generate chunk ID
-                chunk_id = f"{doc_info.id}_chunk_{i}"
+                # Generate chunk ID as a proper UUID
+                chunk_id = str(uuid.uuid4())
                 
                 # Generate embedding
                 embedding = self._generate_embedding(chunk_text)
@@ -188,7 +189,11 @@ class VectorStore:
                     "file_type": doc_info.file_type,
                     "upload_time": doc_info.upload_time.isoformat(),
                     "content_preview": chunk_text[:100] + "..." if len(chunk_text) > 100 else chunk_text,
-                    "chunk_length": len(chunk_text)
+                    "chunk_length": len(chunk_text),
+                    "tags": doc_info.tags if doc_info.tags else [],
+                    "context": doc_info.context,
+                    "category": doc_info.category,
+                    "related_documents": doc_info.related_documents if doc_info.related_documents else []
                 }
                 
                 # Create point for Qdrant

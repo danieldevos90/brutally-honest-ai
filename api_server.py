@@ -8,7 +8,7 @@ import asyncio
 import sys
 import time
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
@@ -679,8 +679,14 @@ async def switch_connection(connection_data: Dict[str, Any]):
 # Document Management Endpoints
 
 @app.post("/documents/upload")
-async def upload_document(file: UploadFile = File(...)):
-    """Upload and process a document (txt, pdf, doc, docx)"""
+async def upload_document(
+    file: UploadFile = File(...),
+    tags: Optional[str] = Form(None),
+    context: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    related_documents: Optional[str] = Form(None)
+):
+    """Upload and process a document (txt, pdf, doc, docx) with optional metadata"""
     try:
         logger.info(f"📄 Document upload request: {file.filename}")
         
@@ -710,6 +716,16 @@ async def upload_document(file: UploadFile = File(...)):
         processor = await get_document_processor()
         doc_info = await processor.process_document(file_data, file.filename)
         
+        # Add tags and metadata
+        if tags:
+            doc_info.tags = [t.strip() for t in tags.split(',') if t.strip()]
+        if context:
+            doc_info.context = context
+        if category:
+            doc_info.category = category
+        if related_documents:
+            doc_info.related_documents = [d.strip() for d in related_documents.split(',') if d.strip()]
+        
         # Store in vector database
         vector_store = await get_vector_store()
         success = await vector_store.store_document(doc_info)
@@ -725,6 +741,10 @@ async def upload_document(file: UploadFile = File(...)):
                     "file_size": doc_info.file_size,
                     "text_length": doc_info.text_length,
                     "upload_time": doc_info.upload_time.isoformat(),
+                    "tags": doc_info.tags,
+                    "context": doc_info.context,
+                    "category": doc_info.category,
+                    "related_documents": doc_info.related_documents,
                     "content_preview": doc_info.content[:200] + "..." if len(doc_info.content) > 200 else doc_info.content
                 }
             }
@@ -736,6 +756,25 @@ async def upload_document(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Document upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Document upload failed: {str(e)}")
+
+@app.get("/documents/list")
+async def list_documents(tags: Optional[str] = None, category: Optional[str] = None):
+    """List all documents with optional filtering by tags or category"""
+    try:
+        vector_store = await get_vector_store()
+        stats = await vector_store.get_collection_stats()
+        
+        # For now, return basic stats
+        # In a production system, you'd implement proper document listing with filtering
+        return {
+            "success": True,
+            "total_documents": stats.get("total_chunks", 0),
+            "message": "Document listing available. Use /documents/search to query specific documents."
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to list documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
 
 @app.get("/documents/search")
 async def search_documents(query: str, limit: int = 5):
@@ -911,6 +950,405 @@ async def delete_document(document_id: str):
             "success": False,
             "error": str(e)
         }
+
+# Profile Management Endpoints
+
+@app.post("/profiles/clients")
+async def create_client_profile_endpoint(
+    name: str,
+    type: str,
+    description: str,
+    tags: Optional[str] = None
+):
+    """Create a new client profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        tag_list = [t.strip() for t in tags.split(',')] if tags else []
+        
+        profile = await manager.create_client_profile(
+            name=name,
+            type=type,
+            description=description,
+            tags=tag_list
+        )
+        
+        return {
+            "success": True,
+            "message": f"Client profile '{name}' created successfully",
+            "profile": profile.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to create client profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/profiles/clients")
+async def list_client_profiles_endpoint():
+    """List all client profiles"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        profiles = await manager.list_client_profiles()
+        
+        return {
+            "success": True,
+            "profiles": [p.to_dict() for p in profiles],
+            "count": len(profiles)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list client profiles: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/profiles/clients/{profile_id}")
+async def get_client_profile_endpoint(profile_id: str):
+    """Get a specific client profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        profile = await manager.get_client_profile(profile_id)
+        
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        return {
+            "success": True,
+            "profile": profile.to_dict()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get client profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/profiles/clients/{profile_id}/facts")
+async def add_fact_to_client_endpoint(
+    profile_id: str,
+    statement: str,
+    source_id: str,
+    confidence: float = 1.0
+):
+    """Add a fact to a client profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        fact = await manager.add_fact(
+            profile_id=profile_id,
+            profile_type="client",
+            statement=statement,
+            source_id=source_id,
+            confidence=confidence
+        )
+        
+        return {
+            "success": True,
+            "message": "Fact added successfully",
+            "fact": fact.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to add fact: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/profiles/clients/{profile_id}")
+async def delete_client_profile_endpoint(profile_id: str):
+    """Delete a client profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        success = await manager.delete_client_profile(profile_id)
+        
+        if success:
+            return {"success": True, "message": "Profile deleted successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Profile not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Brand Profile Endpoints
+
+@app.post("/profiles/brands")
+async def create_brand_profile_endpoint(
+    name: str,
+    description: str,
+    values: Optional[str] = None,
+    tags: Optional[str] = None
+):
+    """Create a new brand profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        value_list = [v.strip() for v in values.split(',')] if values else []
+        tag_list = [t.strip() for t in tags.split(',')] if tags else []
+        
+        profile = await manager.create_brand_profile(
+            name=name,
+            description=description,
+            values=value_list,
+            tags=tag_list
+        )
+        
+        return {
+            "success": True,
+            "message": f"Brand profile '{name}' created successfully",
+            "profile": profile.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to create brand profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/profiles/brands")
+async def list_brand_profiles_endpoint():
+    """List all brand profiles"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        profiles = await manager.list_brand_profiles()
+        
+        return {
+            "success": True,
+            "profiles": [p.to_dict() for p in profiles],
+            "count": len(profiles)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list brand profiles: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/profiles/brands/{profile_id}")
+async def get_brand_profile_endpoint(profile_id: str):
+    """Get a specific brand profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        profile = await manager.get_brand_profile(profile_id)
+        
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        return {
+            "success": True,
+            "profile": profile.to_dict()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get brand profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/profiles/brands/{profile_id}/facts")
+async def add_fact_to_brand_endpoint(
+    profile_id: str,
+    statement: str,
+    source_id: str,
+    confidence: float = 1.0
+):
+    """Add a fact to a brand profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        fact = await manager.add_fact(
+            profile_id=profile_id,
+            profile_type="brand",
+            statement=statement,
+            source_id=source_id,
+            confidence=confidence
+        )
+        
+        return {
+            "success": True,
+            "message": "Fact added successfully",
+            "fact": fact.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to add fact: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Person Profile Endpoints
+
+@app.post("/profiles/persons")
+async def create_person_profile_endpoint(
+    name: str,
+    role: Optional[str] = None,
+    company: Optional[str] = None,
+    bio: Optional[str] = None,
+    tags: Optional[str] = None
+):
+    """Create a new person profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        tag_list = [t.strip() for t in tags.split(',')] if tags else []
+        
+        profile = await manager.create_person_profile(
+            name=name,
+            role=role,
+            company=company,
+            bio=bio,
+            tags=tag_list
+        )
+        
+        return {
+            "success": True,
+            "message": f"Person profile '{name}' created successfully",
+            "profile": profile.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to create person profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/profiles/persons")
+async def list_person_profiles_endpoint():
+    """List all person profiles"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        profiles = await manager.list_person_profiles()
+        
+        return {
+            "success": True,
+            "profiles": [p.to_dict() for p in profiles],
+            "count": len(profiles)
+        }
+    except Exception as e:
+        logger.error(f"Failed to list person profiles: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/profiles/persons/{profile_id}")
+async def get_person_profile_endpoint(profile_id: str):
+    """Get a specific person profile"""
+    try:
+        from profiles.profile_manager import get_profile_manager
+        
+        manager = await get_profile_manager()
+        profile = await manager.get_person_profile(profile_id)
+        
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        return {
+            "success": True,
+            "profile": profile.to_dict()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get person profile: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Validation Endpoints
+
+@app.post("/validation/extract-claims")
+async def extract_claims_endpoint(
+    transcription: str,
+    transcription_id: str
+):
+    """Extract claims from a transcription"""
+    try:
+        from validation.claim_extractor import get_claim_extractor
+        
+        extractor = await get_claim_extractor()
+        claims = await extractor.extract_claims(transcription, transcription_id)
+        
+        return {
+            "success": True,
+            "claims": [c.to_dict() for c in claims],
+            "count": len(claims)
+        }
+    except Exception as e:
+        logger.error(f"Failed to extract claims: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/validation/validate-claim")
+async def validate_claim_endpoint(claim_data: Dict[str, Any]):
+    """Validate a single claim against knowledge base"""
+    try:
+        from validation.validator import get_validator
+        from documents.schemas import Claim, ClaimType
+        
+        # Reconstruct claim from data
+        claim = Claim(
+            id=claim_data.get("id", ""),
+            text=claim_data.get("text", ""),
+            type=ClaimType(claim_data.get("type", "statement")),
+            transcription_id=claim_data.get("transcription_id", ""),
+            timestamp=claim_data.get("timestamp", 0.0),
+            confidence=claim_data.get("confidence", 1.0)
+        )
+        
+        validator = await get_validator()
+        result = await validator.validate_claim(claim)
+        
+        return {
+            "success": True,
+            "validation": result.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to validate claim: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/validation/validate-transcription")
+async def validate_transcription_endpoint(
+    transcription: str,
+    transcription_id: str,
+    extract_claims: bool = True
+):
+    """Extract claims and validate a complete transcription"""
+    try:
+        from validation.claim_extractor import get_claim_extractor
+        from validation.validator import get_validator
+        
+        logger.info(f"🔍 Validating transcription: {transcription_id}")
+        
+        # Extract claims
+        if extract_claims:
+            extractor = await get_claim_extractor()
+            claims = await extractor.extract_claims(transcription, transcription_id)
+        else:
+            claims = []
+        
+        # Validate transcription
+        validator = await get_validator()
+        report = await validator.validate_transcription(
+            transcription_id=transcription_id,
+            transcription_text=transcription,
+            claims=claims
+        )
+        
+        return {
+            "success": True,
+            "report": report.to_dict()
+        }
+    except Exception as e:
+        logger.error(f"Failed to validate transcription: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/validation/report/{transcription_id}")
+async def get_validation_report_endpoint(transcription_id: str):
+    """Get validation report for a transcription"""
+    try:
+        # In a production system, you'd load this from a database
+        # For now, return a message
+        return {
+            "success": False,
+            "message": "Validation reports are generated on-demand. Use POST /validation/validate-transcription"
+        }
+    except Exception as e:
+        logger.error(f"Failed to get validation report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# AI Processing Endpoints
 
 @app.post("/ai/process_with_validation")
 async def process_with_document_validation(request_data: Dict[str, Any]):

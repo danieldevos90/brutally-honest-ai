@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Knowledge Base - Brutally Honest AI</title>
+    <title>Document Knowledge Base - Brutally Honest</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="logo.svg">
@@ -13,31 +13,41 @@
     <link rel="manifest" href="manifest.json">
     
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Dynamic portal functionality -->
+    <script src="dynamic-portal.js"></script>
+    <!-- Notification system -->
+    <script src="notifications.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <div class="logo-title-section">
-                <div class="logo-title">
-                    <img src="logo.svg" alt="Brutally Honest AI Logo" class="logo">
-                    <h1>Document Knowledge Base</h1>
-                </div>
-                <p style="color: #666; margin: 5px 0 0 0; font-size: 0.9rem;">Upload documents to build your knowledge base</p>
+            <div class="logo-title">
+                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
+                <h1>Brutally Honest</h1>
             </div>
             
             <!-- Navigation Menu -->
             <nav class="nav-menu">
-                <a href="index.html" class="nav-link">
+                <a href="/" class="nav-link">
                     <i data-lucide="home" class="nav-icon"></i>
                     Home
                 </a>
-                <a href="documents.html" class="nav-link active">
+                <a href="/documents" class="nav-link active">
                     <i data-lucide="file-text" class="nav-icon"></i>
                     Documents
+                </a>
+                <a href="/profiles" class="nav-link">
+                    <i data-lucide="users" class="nav-icon"></i>
+                    Profiles
+                </a>
+                <a href="/validation" class="nav-link">
+                    <i data-lucide="check-circle" class="nav-icon"></i>
+                    Validation
                 </a>
                 <a href="#" class="nav-link" onclick="showDocumentation()">
                     <i data-lucide="book-open" class="nav-icon"></i>
@@ -61,6 +71,50 @@
                         </div>
                     </div>
                     <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;">
+                    
+                    <!-- Enhanced Metadata Form -->
+                    <div id="metadata-form" style="display: none; margin-top: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+                        <h3 style="margin: 0 0 15px 0;">Add Document Metadata</h3>
+                        <div style="display: grid; gap: 15px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Tags (comma-separated)</label>
+                                <input type="text" id="doc-tags" placeholder="e.g., policy, brand, official, 2025" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                                <small style="color: #666;">Use tags to organize and filter documents</small>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Category</label>
+                                <select id="doc-category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                                    <option value="">Select category...</option>
+                                    <option value="policy">Policy</option>
+                                    <option value="contract">Contract</option>
+                                    <option value="guideline">Guideline</option>
+                                    <option value="manual">Manual</option>
+                                    <option value="report">Report</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Context Description</label>
+                                <textarea id="doc-context" rows="3" placeholder="Describe what this document is about and why it's important..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Link to Profiles (optional)</label>
+                                <select id="doc-profiles" multiple style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; min-height: 80px;">
+                                    <!-- Will be populated with profiles -->
+                                </select>
+                                <small style="color: #666;">Hold Ctrl/Cmd to select multiple profiles</small>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="uploadWithMetadata()" class="btn-primary" style="flex: 1;">
+                                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                                    Upload Document
+                                </button>
+                                <button onclick="cancelUpload()" style="flex: 1; padding: 10px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer;">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Upload Progress -->
                     <div id="upload-progress" style="display: none; margin-top: 15px;">

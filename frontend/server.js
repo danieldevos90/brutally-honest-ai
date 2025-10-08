@@ -5,7 +5,7 @@ const multer = require('multer');
 const WebSocket = require('ws');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const API_BASE = 'http://localhost:8000'; // API server port
 
 // Middleware
@@ -19,6 +19,10 @@ const upload = multer({
     limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
 
+// ============================================
+// PAGE ROUTES (Node.js Server-Side Rendering)
+// ============================================
+
 // Serve the main page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -29,7 +33,19 @@ app.get('/documents', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'documents.html'));
 });
 
-// API proxy endpoints for Brutally Honest AI
+// Serve the profiles page
+app.get('/profiles', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'profiles.html'));
+});
+
+// Serve the validation page
+app.get('/validation', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'validation.html'));
+});
+
+// ============================================
+// API PROXY ENDPOINTS
+// ============================================
 
 // Device management endpoints
 app.get('/api/devices/status', async (req, res) => {
@@ -554,7 +570,7 @@ app.post('/api/ai/process_with_validation', async (req, res) => {
 });
 
 // WebSocket proxy for real-time streaming
-const wss = new WebSocket.Server({ port: 3001 });
+const wss = new WebSocket.Server({ port: 3002 });
 
 wss.on('connection', (ws) => {
     console.log('Frontend WebSocket client connected');
@@ -731,7 +747,13 @@ app.post('/api/ai/process', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Voice Insight Frontend running on http://localhost:${PORT}`);
-    console.log(`WebSocket server running on ws://localhost:3001`);
-    console.log(`Connecting to Brutally Honest AI API server at ${API_BASE}`);
+    console.log(`\n🎉 Brutally Honest Frontend (Node.js) running on http://localhost:${PORT}`);
+    console.log(`📡 WebSocket server running on ws://localhost:3002`);
+    console.log(`🔗 Connected to API server at ${API_BASE}`);
+    console.log(`\n📄 Available Routes:`);
+    console.log(`   • http://localhost:${PORT}/ (Home)`);
+    console.log(`   • http://localhost:${PORT}/documents (Knowledge Base)`);
+    console.log(`   • http://localhost:${PORT}/profiles (Profile Management)`);
+    console.log(`   • http://localhost:${PORT}/validation (Fact Validation)`);
+    console.log(`\n✨ All pages served via Node.js with consistent branding\n`);
 });
