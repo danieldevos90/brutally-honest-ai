@@ -3,9 +3,13 @@ const path = require('path');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const { Resend } = require('resend');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Security and performance middleware
 app.use(helmet({
@@ -41,12 +45,60 @@ app.get('/', (req, res) => {
 
 // Contact form submission
 app.post('/api/contact', async (req, res) => {
-  const { name, email, company, phone, message, requestCallback } = req.body;
-  
-  // TODO: Implement email sending or CRM integration
-  console.log('Contact form submission:', { name, email, company, phone, message, requestCallback });
-  
-  res.json({ success: true, message: 'Thank you for your interest. We\'ll be in touch soon!' });
+  try {
+    const { name, email, company, phone, message, requestCallback } = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !message) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Name, email, and message are required.' 
+      });
+    }
+    
+    // Send email via Resend
+    const emailContent = `
+New Contact Form Submission - Brutally Honest
+
+Name: ${name}
+Email: ${email}
+Company: ${company || 'Not provided'}
+Phone: ${phone || 'Not provided'}
+Callback Requested: ${requestCallback ? 'Yes' : 'No'}
+
+Message:
+${message}
+    `.trim();
+    
+    const { data, error } = await resend.emails.send({
+      from: 'Brutally Honest <no-reply@brutallyhonest.io>',
+      to: ['hello@brutallyhonest.io'],
+      subject: `New Contact: ${name} ${company ? `from ${company}` : ''}`,
+      text: emailContent,
+      html: emailContent.replace(/\n/g, '<br>'),
+    });
+    
+    if (error) {
+      console.error('Resend error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to send message. Please try again.' 
+      });
+    }
+    
+    console.log('Email sent successfully:', data);
+    res.json({ 
+      success: true, 
+      message: 'Thank you for your interest. We\'ll be in touch soon!' 
+    });
+    
+  } catch (error) {
+    console.error('Contact form error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Something went wrong. Please try again later.' 
+    });
+  }
 });
 
 // Health check for deployment
