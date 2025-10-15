@@ -2,32 +2,22 @@
    Landing Page Specific Styles
    ============================================ */
 
-/* Header/Navigation */
+/* Header/Navigation - Linear Style */
 .header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(63, 62, 57, 0.1);
+  background-color: rgba(13, 13, 13, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 1000;
   transition: all var(--transition-base);
 }
 
 .header.scrolled {
-  background-color: rgba(45, 44, 44, 0.95);
-  border-bottom: var(--border-width) solid var(--border-color);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-}
-
-.header.scrolled .logo,
-.header.scrolled .nav-links a {
-  color: var(--color-text-primary);
-}
-
-.header.scrolled .logo-icon {
-  background: var(--color-primary);
+  background-color: rgba(13, 13, 13, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nav {
@@ -41,25 +31,30 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: #2D2C2C;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text-primary);
   text-decoration: none;
   transition: color var(--transition-base);
+  letter-spacing: -0.01em;
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--color-primary);
-  border-radius: var(--radius-base);
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 700;
-  font-size: var(--text-lg);
+  font-weight: 600;
+  font-size: 14px;
   transition: background var(--transition-base);
+}
+
+.logo:hover .logo-icon {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .nav-links {
@@ -69,24 +64,28 @@
 }
 
 .nav-links a {
-  color: #5a5954;
+  color: var(--color-text-secondary);
   font-weight: 500;
+  font-size: 15px;
   font-family: var(--font-primary);
   transition: color var(--transition-fast);
+  letter-spacing: -0.01em;
 }
 
 .nav-links a:hover {
-  color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
-/* Hero Section */
+/* Hero Section - Linear Style */
 .hero {
   min-height: 100vh;
   display: flex;
   align-items: center;
-  padding-top: 80px;
-  background: #ffffff;
+  padding-top: 120px;
+  padding-bottom: 80px;
+  background: var(--color-bg-primary);
   position: relative;
+  overflow: hidden;
 }
 
 .hero::before {
@@ -96,13 +95,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(229, 103, 66, 0.05) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 0%, rgba(94, 106, 210, 0.08) 0%, transparent 50%);
   pointer-events: none;
 }
 
 .hero-content {
   text-align: center;
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
@@ -110,40 +109,43 @@
 
 .hero-badge {
   display: inline-block;
-  padding: var(--space-2) var(--space-4);
-  background-color: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-base);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  padding: 6px 14px;
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
   font-family: var(--font-primary);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: var(--space-6);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-8);
 }
 
 .hero h1 {
   font-family: var(--font-display);
-  font-size: var(--text-6xl);
-  font-weight: 700;
+  font-size: 72px;
+  font-weight: 600;
   margin-bottom: var(--space-6);
-  color: #2D2C2C;
-  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  letter-spacing: -0.03em;
   line-height: 1.1;
 }
 
 .hero h1 .accent {
-  color: var(--color-accent);
-  display: block;
-  margin-top: var(--space-2);
+  color: var(--color-text-primary);
+  display: inline;
 }
 
 .hero-subtitle {
-  font-size: var(--text-xl);
-  color: #5a5954;
-  margin-bottom: var(--space-8);
+  font-size: 20px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-12);
   line-height: 1.6;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: 400;
 }
 
 .hero-cta {
@@ -153,31 +155,36 @@
   flex-wrap: wrap;
 }
 
-/* About Section */
+/* About Section - Linear Style */
 .about-section {
   background-color: var(--color-bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .about-content {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
 .about-content h2 {
   font-family: var(--font-display);
-  font-size: var(--text-4xl);
-  font-weight: 700;
+  font-size: 48px;
+  font-weight: 600;
   text-align: center;
   margin-bottom: var(--space-6);
   letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
 .about-definition {
-  font-size: var(--text-xl);
+  font-size: 18px;
   text-align: center;
   margin-bottom: var(--space-16);
   line-height: 1.6;
-  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .about-grid {
@@ -188,67 +195,73 @@
 }
 
 .about-block {
-  padding: var(--space-8) var(--space-10);
-  border: var(--border-width) solid var(--border-color);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg-primary);
+  padding: 40px 48px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.02);
   transition: all var(--transition-base);
   width: 100%;
 }
 
 .about-block:hover {
-  background-color: var(--color-bg-secondary);
-  border-color: var(--color-accent);
-  box-shadow: var(--shadow-md);
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .about-block h3 {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: 20px;
   font-weight: 600;
-  margin-bottom: var(--space-3);
-  color: var(--color-accent);
+  margin-bottom: var(--space-4);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .about-block p {
   line-height: 1.6;
   margin-bottom: 0;
+  color: var(--color-text-secondary);
+  font-size: 16px;
 }
 
 .about-statement {
   text-align: center;
-  padding: var(--space-12);
-  background: linear-gradient(135deg, var(--color-bg-secondary) 0%, var(--color-bg-tertiary) 100%);
-  border: var(--border-width) solid var(--color-accent);
-  border-radius: var(--radius-xl);
+  padding: 48px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
 }
 
 .about-statement h3 {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 600;
   margin-bottom: var(--space-4);
-  color: var(--color-accent);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .about-statement p {
-  font-size: var(--text-lg);
+  font-size: 17px;
   line-height: 1.7;
   margin-bottom: var(--space-4);
+  color: var(--color-text-secondary);
 }
 
 .about-tagline {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   margin-bottom: 0;
   margin-top: var(--space-8);
   color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
-/* Features Section */
+/* Features Section - Linear Style */
 .features {
   background-color: var(--color-bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .section-header {
@@ -257,84 +270,104 @@
   margin: 0 auto var(--space-16);
 }
 
+.section-header h2 {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+}
+
+.section-header p {
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
 .section-badge {
   display: inline-block;
-  padding: var(--space-2) var(--space-4);
-  background-color: transparent;
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
-  border-radius: var(--radius-base);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  padding: 6px 14px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
   font-family: var(--font-primary);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   margin-bottom: var(--space-4);
+  color: var(--color-text-secondary);
 }
 
 .features-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-8);
+  gap: 24px;
 }
 
 .feature-card {
-  background-color: var(--color-bg-primary);
-  padding: var(--space-8);
-  border-radius: var(--radius-xl);
-  border: var(--border-width) solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.02);
+  padding: 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all var(--transition-base);
 }
 
 .feature-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-4px);
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
 }
 
 .feature-icon {
-  width: 56px;
-  height: 56px;
-  background: var(--color-primary);
-  border-radius: var(--radius-lg);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-2xl);
+  font-size: 24px;
   margin-bottom: var(--space-4);
 }
 
 .feature-card h3 {
   margin-bottom: var(--space-3);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .feature-card p {
   color: var(--color-text-secondary);
   margin-bottom: 0;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-/* Use Cases Section */
+/* Use Cases Section - Linear Style */
 .use-cases {
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .use-cases-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
 }
 
 .use-case-card {
-  background-color: var(--color-bg-primary);
-  padding: var(--space-6);
-  border-radius: var(--radius-lg);
-  border: var(--border-width) solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.02);
+  padding: 32px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all var(--transition-base);
 }
 
 .use-case-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-lg);
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
   transform: translateY(-2px);
 }
 
@@ -342,23 +375,27 @@
   font-family: var(--font-display);
   font-weight: 600;
   margin-bottom: var(--space-3);
-  font-size: var(--text-lg);
-  color: var(--color-accent);
+  font-size: 18px;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .use-case-card p {
   line-height: 1.6;
+  color: var(--color-text-secondary);
+  font-size: 15px;
 }
 
-/* How It Works Section */
+/* How It Works Section - Linear Style */
 .how-it-works {
   background-color: var(--color-bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-8);
+  gap: 32px;
   position: relative;
 }
 
@@ -368,32 +405,39 @@
 }
 
 .step-number {
-  width: 60px;
-  height: 60px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: var(--radius-full);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-2xl);
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   margin: 0 auto var(--space-4);
-  box-shadow: var(--shadow-md);
 }
 
 .step h3 {
   margin-bottom: var(--space-3);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .step p {
   color: var(--color-text-secondary);
   margin-bottom: 0;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
-/* CTA Section */
+/* CTA Section - Linear Style */
 .cta-section {
-  background: linear-gradient(135deg, var(--color-accent-hover) 0%, var(--color-accent) 100%);
+  background: var(--color-bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary);
   text-align: center;
   position: relative;
@@ -407,7 +451,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 30% 50%, rgba(244, 241, 238, 0.1) 0%, transparent 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(94, 106, 210, 0.06) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -417,10 +461,13 @@
   margin-bottom: var(--space-4);
   position: relative;
   z-index: 1;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .cta-section p {
-  font-size: var(--text-xl);
+  font-size: 18px;
   color: var(--color-text-secondary);
   margin-bottom: var(--space-8);
   position: relative;
@@ -428,23 +475,14 @@
 }
 
 .cta-section .btn-primary {
-  background-color: var(--color-bg-primary);
-  color: var(--color-accent);
-  border-color: var(--color-bg-primary);
   position: relative;
   z-index: 1;
 }
 
-.cta-section .btn-primary:hover {
-  background-color: var(--color-text-primary);
-  color: var(--color-bg-primary);
-  border-color: var(--color-text-primary);
-  transform: translateY(-2px);
-}
-
-/* Contact Form */
+/* Contact Form - Linear Style */
 .contact-section {
-  background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-primary);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .contact-container {
@@ -484,12 +522,12 @@
   }
 }
 
-/* Footer */
+/* Footer - Linear Style */
 .footer {
-  background-color: var(--color-bg-tertiary);
+  background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   padding: var(--space-12) 0 var(--space-6);
-  border-top: 2px solid var(--color-accent);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .footer-minimal {
@@ -498,20 +536,22 @@
   align-items: center;
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-8);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .footer-left h4 {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
   margin-bottom: var(--space-2);
-  color: var(--color-accent);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .footer-left p {
   color: var(--color-text-secondary);
   margin: 0;
+  font-size: 15px;
 }
 
 .footer-right {
@@ -521,22 +561,21 @@
 
 .footer-right a {
   color: var(--color-text-secondary);
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--font-primary);
-  text-transform: uppercase;
-  font-size: var(--text-sm);
-  letter-spacing: 0.05em;
+  font-size: 15px;
+  letter-spacing: -0.01em;
   transition: color var(--transition-fast);
 }
 
 .footer-right a:hover {
-  color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .footer-bottom {
   text-align: center;
   color: var(--color-text-tertiary);
-  font-size: var(--text-sm);
+  font-size: 14px;
 }
 
 .footer-bottom p {
@@ -546,7 +585,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .hero h1 {
-    font-size: var(--text-4xl);
+    font-size: 48px;
   }
   
   .hero-subtitle {
