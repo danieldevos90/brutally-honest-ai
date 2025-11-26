@@ -5,10 +5,22 @@ const multer = require('multer');
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const fs = require('fs');
+const expressLayouts = require('express-ejs-layouts');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const API_BASE = 'http://localhost:8000';
+
+// ============================================
+// VIEW ENGINE SETUP (EJS)
+// ============================================
+
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
+app.set('layout extractScripts', true);
+app.set('layout extractStyles', true);
 
 // ============================================
 // USER MANAGEMENT SYSTEM
@@ -17,7 +29,6 @@ const API_BASE = 'http://localhost:8000';
 const USERS_FILE = path.join(__dirname, 'users.json');
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 
-// Load users from file
 function loadUsers() {
     try {
         if (fs.existsSync(USERS_FILE)) {
@@ -26,7 +37,6 @@ function loadUsers() {
     } catch (e) {
         console.error('Error loading users:', e);
     }
-    // Default admin user
     return {
         'admin': {
             id: 'admin',
@@ -55,7 +65,6 @@ function generateSessionToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-// Session management
 const sessions = new Map();
 
 function loadSessions() {
@@ -85,11 +94,9 @@ function saveSessions() {
     }
 }
 
-// Initialize users
 let users = loadUsers();
 loadSessions();
 
-// Cookie parser middleware
 function cookieParser(req, res, next) {
     req.cookies = {};
     const cookieHeader = req.headers.cookie;
@@ -102,7 +109,6 @@ function cookieParser(req, res, next) {
     next();
 }
 
-// Auth middleware
 function requireAuth(req, res, next) {
     const sessionToken = req.cookies?.session || req.headers['x-session-token'];
     
@@ -132,7 +138,9 @@ app.use(cookieParser);
 
 // Serve public assets without auth
 app.use('/logo.svg', express.static(path.join(__dirname, 'public', 'logo.svg')));
-app.use('/login.html', express.static(path.join(__dirname, 'public', 'login.html')));
+app.use('/styles.css', express.static(path.join(__dirname, 'public', 'styles.css')));
+app.use('/dynamic-portal.css', express.static(path.join(__dirname, 'public', 'dynamic-portal.css')));
+app.use('/manifest.json', express.static(path.join(__dirname, 'public', 'manifest.json')));
 
 // Multer for file uploads
 const upload = multer({ 
@@ -152,14 +160,13 @@ app.get('/login', (req, res) => {
             return res.redirect('/');
         }
     }
-    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+    res.render('login', { layout: false });
 });
 
 app.post('/api/auth/login', (req, res) => {
     const { email, password, username } = req.body;
     const loginId = email || username;
     
-    // Find user by email or username
     let user = null;
     for (const [id, u] of Object.entries(users)) {
         if (u.email === loginId || id === loginId) {
@@ -267,7 +274,6 @@ app.post('/api/users', requireAuth, (req, res) => {
         return res.status(400).json({ error: 'Email and password required' });
     }
     
-    // Check if email exists
     for (const u of Object.values(users)) {
         if (u.email === email) {
             return res.status(400).json({ error: 'Email already exists' });
@@ -321,7 +327,6 @@ app.delete('/api/users/:userId', requireAuth, (req, res) => {
 app.put('/api/users/:userId', requireAuth, (req, res) => {
     const { userId } = req.params;
     
-    // Users can only update themselves unless admin
     if (req.user.role !== 'admin' && req.user.id !== userId) {
         return res.status(403).json({ error: 'Access denied' });
     }
@@ -350,33 +355,68 @@ app.put('/api/users/:userId', requireAuth, (req, res) => {
     });
 });
 
-// Settings page
-app.get('/settings', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'settings.html'));
-});
-
 // ============================================
-// PROTECTED PAGE ROUTES
+// PROTECTED PAGE ROUTES (EJS Rendered)
 // ============================================
 
 app.get('/', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.render('pages/home', {
+        title: 'Home',
+        page: 'home',
+        showInfoBtn: true,
+        extraScripts: ['multi_file_functions.js', 'file_upload_transcription.js', 'devices_manager.js', 'shared.js'],
+        extraStyles: []
+    });
 });
 
 app.get('/documents', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'documents.html'));
+    res.render('pages/documents', {
+        title: 'Documents',
+        page: 'documents',
+        showInfoBtn: true,
+        extraScripts: ['shared.js'],
+        extraStyles: []
+    });
 });
 
 app.get('/profiles', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'profiles.html'));
+    res.render('pages/profiles', {
+        title: 'Profiles',
+        page: 'profiles',
+        showInfoBtn: true,
+        extraScripts: ['shared.js'],
+        extraStyles: []
+    });
 });
 
 app.get('/validation', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'validation.html'));
+    res.render('pages/validation', {
+        title: 'Validation',
+        page: 'validation',
+        showInfoBtn: true,
+        extraScripts: ['shared.js'],
+        extraStyles: []
+    });
 });
 
 app.get('/documentation', requireAuth, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'documentation.html'));
+    res.render('pages/documentation', {
+        title: 'Documentation',
+        page: 'documentation',
+        showInfoBtn: false,
+        extraScripts: ['shared.js'],
+        extraStyles: []
+    });
+});
+
+app.get('/settings', requireAuth, (req, res) => {
+    res.render('pages/settings', {
+        title: 'Settings',
+        page: 'settings',
+        showInfoBtn: false,
+        extraScripts: ['shared.js'],
+        extraStyles: []
+    });
 });
 
 // Serve static assets (protected)
@@ -904,10 +944,56 @@ app.post('/api/ai/process', requireAuth, async (req, res) => {
     }
 });
 
+// Direct file transcription endpoint (no device required)
+app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No audio file provided' });
+        }
+        
+        const FormData = (await import('form-data')).default;
+        const fetch = (await import('node-fetch')).default;
+        
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(req.file.path), {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+        
+        const validateDocs = req.body.validate_documents === 'true' || req.body.validate_documents === true;
+        formData.append('validate_documents', validateDocs.toString());
+        
+        console.log(`📤 Proxying file transcription: ${req.file.originalname} (${req.file.size} bytes)`);
+        
+        const response = await fetch(`${API_BASE}/ai/transcribe-file`, {
+            method: 'POST',
+            body: formData,
+            headers: formData.getHeaders()
+        });
+        
+        const data = await response.json();
+        
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error cleaning up file:', err);
+        });
+        
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('File transcription proxy error:', error);
+        
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, () => {});
+        }
+        
+        res.status(500).json({ success: false, error: 'File transcription failed: ' + error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`\n🎉 Brutally Honest Frontend running on http://localhost:${PORT}`);
     console.log(`📡 WebSocket server on ws://localhost:3002`);
     console.log(`🔐 Multi-user authentication: ENABLED`);
+    console.log(`📄 EJS Templates: ENABLED`);
     console.log(`\n👤 Default Admin Account:`);
     console.log(`   Email: admin@brutallyhonest.io`);
     console.log(`   Password: brutallyhonest2024`);

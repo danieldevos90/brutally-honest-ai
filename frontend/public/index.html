@@ -19,6 +19,8 @@
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <!-- Multi-file functionality -->
     <script src="multi_file_functions.js"></script>
+    <!-- File upload transcription (no device required) -->
+    <script src="file_upload_transcription.js"></script>
     <!-- Device management functionality -->
     <script src="devices_manager.js"></script>
     <!-- Dynamic portal functionality -->
@@ -111,50 +113,121 @@
             <div class="section">
                 <h2>AI Transcription</h2>
                 <div class="transcription-section">
-                    <p style="text-align: center; margin-bottom: 15px; color: #666;">
-                        Select one or more recordings from below and transcribe them with Whisper AI (Dutch/English auto-detection)
-                    </p>
                     
-                    <!-- Selected Files Display -->
-                    <div id="selected-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <div style="font-weight: 500;">Selected Recordings:</div>
-                            <button onclick="clearSelectedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all selections">
-                                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                    <!-- Transcription Source Tabs -->
+                    <div style="display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid #e5e5e5;">
+                        <button id="tab-device" class="transcription-tab active" onclick="switchTranscriptionTab('device')">
+                            <i data-lucide="hard-drive" style="width: 16px; height: 16px;"></i>
+                            Device Recordings
+                        </button>
+                        <button id="tab-upload" class="transcription-tab" onclick="switchTranscriptionTab('upload')">
+                            <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                            Upload File
+                        </button>
+                    </div>
+                    
+                    <!-- Tab Content: Device Recordings -->
+                    <div id="tab-content-device">
+                        <p style="text-align: center; margin-bottom: 15px; color: #666;">
+                            Select one or more recordings from below and transcribe them with Whisper AI (Dutch/English auto-detection)
+                        </p>
+                    
+                        <!-- Selected Files Display (Device mode) -->
+                        <div id="selected-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="font-weight: 500;">Selected Recordings:</div>
+                                <button onclick="clearSelectedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all selections">
+                                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
+                            <div id="selected-files-list" style="max-height: 120px; overflow-y: auto;">
+                                <!-- Selected files will appear here -->
+                            </div>
+                            <div id="selected-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;">
+                                <!-- Summary will appear here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Document Validation Toggle -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="enable-document-validation" style="margin: 0;">
+                                <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
+                                Validate transcription against uploaded documents
+                            </label>
+                            <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                                Uses your document knowledge base to fact-check transcribed content
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                            <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFiles()" disabled>
+                                Select recordings to transcribe
+                            </button>
+                            <button id="clear-results-btn" class="btn btn-secondary" onclick="clearTranscriptionResults()" style="display: none;">
+                                <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                                Clear Results
                             </button>
                         </div>
-                        <div id="selected-files-list" style="max-height: 120px; overflow-y: auto;">
-                            <!-- Selected files will appear here -->
+                    </div>
+                    
+                    <!-- Tab Content: File Upload -->
+                    <div id="tab-content-upload" style="display: none;">
+                        <p style="text-align: center; margin-bottom: 15px; color: #666;">
+                            Upload audio files directly from your computer for transcription - no device required
+                        </p>
+                        
+                        <!-- File Upload Area -->
+                        <div id="file-upload-area" class="file-upload-dropzone" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('file-upload-input').click()">
+                            <input type="file" id="file-upload-input" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" multiple style="display: none;" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
+                            <div class="upload-content">
+                                <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: #999; margin-bottom: 12px;"></i>
+                                <p style="font-weight: 500; margin-bottom: 4px;">Drag & drop audio files here</p>
+                                <p style="color: #999; font-size: 13px; margin-bottom: 12px;">or click anywhere to browse</p>
+                                <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-upload-input').click()" style="font-size: 13px;">
+                                    <i data-lucide="folder-open" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                                    Browse Files
+                                </button>
+                                <p style="color: #bbb; font-size: 11px; margin-top: 12px;">Supports WAV, MP3, M4A, OGG, FLAC (max 100MB)</p>
+                            </div>
                         </div>
-                        <div id="selected-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;">
-                            <!-- Summary will appear here -->
+                        
+                        <!-- Uploaded Files List -->
+                        <div id="uploaded-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-top: 15px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="font-weight: 500;">Files to Transcribe:</div>
+                                <button onclick="clearUploadedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all files">
+                                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
+                            <div id="uploaded-files-list" style="max-height: 150px; overflow-y: auto;">
+                                <!-- Uploaded files will appear here -->
+                            </div>
+                            <div id="uploaded-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;">
+                                <!-- Summary will appear here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Document Validation Toggle for Upload -->
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
+                                <input type="checkbox" id="upload-enable-document-validation" style="margin: 0;">
+                                <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
+                                Validate against uploaded documents
+                            </label>
+                        </div>
+                        
+                        <!-- Transcribe Button for Upload -->
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <button id="upload-transcribe-btn" class="btn btn-primary" onclick="transcribeUploadedFiles()" disabled>
+                                <i data-lucide="wand-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                                Select files to transcribe
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Document Validation Toggle -->
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
-                            <input type="checkbox" id="enable-document-validation" style="margin: 0;">
-                            <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
-                            Validate transcription against uploaded documents
-                        </label>
-                        <div style="font-size: 12px; color: #999; margin-top: 4px;">
-                            Uses your document knowledge base to fact-check transcribed content
-                        </div>
-                    </div>
-                    
-                    <!-- Action Buttons -->
-                    <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                        <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFiles()" disabled>
-                            Select recordings to transcribe
-                        </button>
-                        <button id="clear-results-btn" class="btn btn-secondary" onclick="clearTranscriptionResults()" style="display: none;">
-                            <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                            Clear Results
-                        </button>
-                    </div>
-                    
-                    <!-- Transcription Results -->
+                    <!-- Transcription Results (shared between tabs) -->
                     <div id="transcription-results" style="display: none;">
                         <div style="display: flex; align-items: center; margin-bottom: 15px;">
                             <h3 style="margin: 0; color: #333;">Transcription Results</h3>

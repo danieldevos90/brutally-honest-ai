@@ -1,0 +1,296 @@
+<!-- Document Upload Section -->
+<div class="section">
+    <h2>Upload Documents</h2>
+    <div class="upload-section">
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+            <div class="upload-content">
+                <i data-lucide="upload" style="width: 48px; height: 48px; margin-bottom: 15px; color: #666;"></i>
+                <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 8px;">Add documents to knowledge base</div>
+                <div class="upload-subtitle">TXT, PDF, DOC, DOCX • Text will be extracted and indexed</div>
+            </div>
+        </div>
+        <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;">
+        
+        <!-- Enhanced Metadata Form -->
+        <div id="metadata-form" style="display: none; margin-top: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0;">Add Document Metadata</h3>
+            <div style="display: grid; gap: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Tags (comma-separated)</label>
+                    <input type="text" id="doc-tags" placeholder="e.g., policy, brand, official, 2025" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <small style="color: #666;">Use tags to organize and filter documents</small>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Category</label>
+                    <select id="doc-category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="">Select category...</option>
+                        <option value="policy">Policy</option>
+                        <option value="contract">Contract</option>
+                        <option value="guideline">Guideline</option>
+                        <option value="manual">Manual</option>
+                        <option value="report">Report</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Context Description</label>
+                    <textarea id="doc-context" rows="3" placeholder="Describe what this document is about and why it's important..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="uploadWithMetadata()" class="btn-primary" style="flex: 1;">
+                        <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                        Upload Document
+                    </button>
+                    <button onclick="cancelUpload()" style="flex: 1; padding: 10px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Upload Progress -->
+        <div id="upload-progress" style="display: none; margin-top: 15px;">
+            <div style="background: #f5f5f5; border-radius: 10px; padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span id="upload-status">Uploading...</span>
+                    <span id="upload-percentage">0%</span>
+                </div>
+                <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
+                    <div id="progress-bar" style="background: #000; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Status -->
+<div class="section" id="upload-status-section" style="display: none;">
+    <h2>Upload Status</h2>
+    <div id="upload-status-list" style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+        <!-- Upload status items will appear here -->
+    </div>
+</div>
+
+<!-- Simple Stats -->
+<div class="section">
+    <h2>Status</h2>
+    <div style="text-align: center; padding: 20px;">
+        <div style="font-size: 18px; margin-bottom: 10px;">
+            <span id="total-documents">0</span> documents uploaded
+        </div>
+        <div style="font-size: 14px; color: #666;">
+            Status: <span id="db-status">Ready</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .upload-area {
+        border: 2px dashed #ddd;
+        border-radius: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+    
+    .upload-area:hover {
+        border-color: #333;
+        background: #f5f5f5;
+    }
+    
+    .upload-area.dragover {
+        border-color: #000;
+        background: #f0f0f0;
+    }
+    
+    .btn-primary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: #000;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #333;
+    }
+</style>
+
+<script>
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        setupFileUpload();
+        updateStats();
+    });
+
+    function setupFileUpload() {
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            handleFiles(e.target.files);
+        });
+    }
+
+    async function handleFiles(files) {
+        if (files.length === 0) return;
+
+        const supportedTypes = ['.txt', '.pdf', '.doc', '.docx'];
+        const maxSize = 10 * 1024 * 1024;
+
+        for (let file of files) {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            if (!supportedTypes.includes(extension)) {
+                alert(`Unsupported file type: ${file.name}. Supported types: ${supportedTypes.join(', ')}`);
+                continue;
+            }
+
+            if (file.size > maxSize) {
+                alert(`File too large: ${file.name}. Maximum size is 10MB.`);
+                continue;
+            }
+
+            await uploadFile(file);
+        }
+    }
+
+    async function uploadFile(file) {
+        const progressDiv = document.getElementById('upload-progress');
+        const statusSpan = document.getElementById('upload-status');
+        const percentageSpan = document.getElementById('upload-percentage');
+        const progressBar = document.getElementById('progress-bar');
+        const statusSection = document.getElementById('upload-status-section');
+        const statusList = document.getElementById('upload-status-list');
+
+        try {
+            progressDiv.style.display = 'block';
+            statusSpan.textContent = `Uploading ${file.name}...`;
+            percentageSpan.textContent = '0%';
+            progressBar.style.width = '0%';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    const percentage = Math.round((e.loaded / e.total) * 100);
+                    percentageSpan.textContent = `${percentage}%`;
+                    progressBar.style.width = `${percentage}%`;
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        statusSpan.textContent = `✅ ${file.name} processed successfully`;
+                        percentageSpan.textContent = '100%';
+                        progressBar.style.width = '100%';
+                        
+                        statusSection.style.display = 'block';
+                        const statusItem = document.createElement('div');
+                        statusItem.style.cssText = 'margin-bottom: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #10b981;';
+                        statusItem.innerHTML = `
+                            <div style="font-weight: 500; color: #333;">${file.name}</div>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                ${response.document.text_length} characters • ${(response.document.file_size / 1024).toFixed(1)} KB • Processed and indexed
+                            </div>
+                        `;
+                        statusList.appendChild(statusItem);
+                        
+                        setTimeout(() => {
+                            progressDiv.style.display = 'none';
+                        }, 2000);
+                        
+                        updateStats();
+                    } else {
+                        throw new Error(response.message || 'Upload failed');
+                    }
+                } else {
+                    throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
+                }
+            });
+
+            xhr.addEventListener('error', function() {
+                throw new Error('Network error during upload');
+            });
+
+            xhr.open('POST', '/documents/upload');
+            xhr.send(formData);
+
+        } catch (error) {
+            console.error('Upload error:', error);
+            statusSpan.textContent = `❌ Upload failed: ${error.message}`;
+            progressBar.style.backgroundColor = '#ef4444';
+            
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                progressBar.style.backgroundColor = '#000';
+            }, 3000);
+        }
+    }
+
+    function updateStats() {
+        const statusList = document.getElementById('upload-status-list');
+        const uploadedCount = statusList ? statusList.children.length : 0;
+        
+        document.getElementById('total-documents').textContent = uploadedCount;
+        document.getElementById('db-status').textContent = uploadedCount > 0 ? 'Active' : 'Ready';
+    }
+    
+    function showPageInfo() {
+        showInfoModal('📄 Document Knowledge Base', `
+            <h3>Supported Formats</h3>
+            <ul>
+                <li><strong>TXT</strong> - Plain text files</li>
+                <li><strong>PDF</strong> - Adobe PDF documents</li>
+                <li><strong>DOC/DOCX</strong> - Microsoft Word documents</li>
+            </ul>
+            
+            <h3>How It Works</h3>
+            <p>Documents are processed through several stages:</p>
+            <ol style="padding-left: 20px;">
+                <li>Text extraction from uploaded files</li>
+                <li>Chunking into searchable segments</li>
+                <li>Vector embedding for semantic search</li>
+                <li>Storage in knowledge base for validation</li>
+            </ol>
+            
+            <h3>Using Tags & Categories</h3>
+            <p>Organize documents with tags and categories for better searchability. Use tags like <code>policy</code>, <code>brand</code>, or <code>2024</code> to filter results.</p>
+            
+            <p style="margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 13px;">
+                <strong>Tip:</strong> Upload official documents like brand guidelines, policies, and manuals to validate spoken claims against authoritative sources.
+            </p>
+        `);
+    }
+</script>
+

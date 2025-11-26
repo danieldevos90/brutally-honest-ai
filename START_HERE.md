@@ -1,5 +1,15 @@
 # 🚀 Quick Start Guide
 
+## 📁 Project Structure
+
+- `docs/` - All documentation files
+- `src/` - Python source code
+- `frontend/` - Web interface (Node.js)
+- `landing-page/` - Marketing landing page
+- `omi_firmware/` - ESP32 firmware
+- `scripts/` - Utility scripts
+- `installer/` - Installation packages
+
 ## Running Brutally Honest AI
 
 ### Option 1: Use the Unified Startup Script (Recommended)
@@ -105,3 +115,12 @@ source venv/bin/activate  # macOS/Linux
 venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
+
+## 📚 Documentation
+
+All documentation is in the `docs/` folder:
+
+- **Setup Guides:** `RECOMPUTER_J4011_*.md`, `COMPLETE_SYSTEM_GUIDE.md`
+- **Features:** `DOCUMENT_FEATURE_README.md`, `MULTI_DEVICE_SUPPORT.md`
+- **Development:** `NODEJS_ROUTING_GUIDE.md`, `WHISPER_TRAINING_GUIDE.md`
+- **Validation:** `QUICK_START_VALIDATION.md`, `QUICK_START_FACT_CHECKING.md`

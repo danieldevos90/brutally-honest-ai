@@ -858,6 +858,96 @@ async def process_with_ai(request_data: Dict[str, Any], api_key: Dict[str, Any] 
             "error": str(e)
         }
 
+@app.post("/ai/transcribe-file", tags=["AI Processing"])
+async def transcribe_uploaded_file(
+    file: UploadFile = File(...),
+    validate_documents: bool = Form(False),
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Transcribe an uploaded audio file directly without requiring a connected device.
+    Supports WAV, MP3, M4A, OGG, FLAC audio formats.
+    """
+    try:
+        logger.info(f"📤 Direct file transcription request: {file.filename}")
+        
+        # Validate file type
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        file_ext = Path(file.filename).suffix.lower()
+        supported_formats = {'.wav', '.mp3', '.m4a', '.ogg', '.flac', '.webm', '.mp4'}
+        
+        if file_ext not in supported_formats:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported audio format: {file_ext}. Supported: {', '.join(supported_formats)}"
+            )
+        
+        # Read file data
+        audio_data = await file.read()
+        
+        if len(audio_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        if len(audio_data) > 100 * 1024 * 1024:  # 100MB limit
+            raise HTTPException(status_code=400, detail="File too large (max 100MB)")
+        
+        logger.info(f"📁 File received: {file.filename} ({len(audio_data)} bytes)")
+        
+        # Process with LLAMA processor
+        if validate_documents:
+            # Use enhanced processor with document validation
+            enhanced_processor = await get_enhanced_processor()
+            result = await enhanced_processor.process_audio_with_validation(audio_data, file.filename)
+        else:
+            # Use standard processor
+            processor = await get_processor()
+            result = await processor.process_audio(audio_data, file.filename)
+        
+        if result.success:
+            response_data = {
+                "success": True,
+                "filename": file.filename,
+                "transcription": result.transcription,
+                "analysis": result.analysis,
+                "summary": result.summary,
+                "sentiment": result.sentiment,
+                "keywords": result.keywords,
+                "fact_check": result.fact_check,
+                "brutal_honesty": result.brutal_honesty,
+                "credibility_score": f"{result.credibility_score * 100:.1f}%" if result.credibility_score else "N/A",
+                "questionable_claims": result.questionable_claims,
+                "corrections": result.corrections,
+                "confidence": f"{result.confidence * 100:.1f}%" if result.confidence else "N/A",
+                "processing_time": f"{result.processing_time:.2f}s" if result.processing_time else "N/A",
+                "source": "file_upload"
+            }
+            
+            # Add document validation fields if enabled
+            if validate_documents and hasattr(result, 'document_validation'):
+                response_data.update({
+                    "document_validation": result.document_validation,
+                    "validation_score": f"{result.validation_score * 100:.1f}%" if hasattr(result, 'validation_score') and result.validation_score else "N/A",
+                    "fact_check_sources": result.fact_check_sources if hasattr(result, 'fact_check_sources') else [],
+                    "contradictions": result.contradictions if hasattr(result, 'contradictions') else [],
+                    "supporting_evidence": result.supporting_evidence if hasattr(result, 'supporting_evidence') else []
+                })
+            
+            return response_data
+        else:
+            return {
+                "success": False,
+                "error": result.error,
+                "filename": file.filename
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"File transcription error: {e}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
 @app.post("/device/command")
 async def send_command(command_data: Dict[str, Any]):
     """Send a command to the device"""

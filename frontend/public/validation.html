@@ -20,9 +20,6 @@
             <div class="logo-title">
                 <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
                 <h1>Brutally Honest</h1>
-                <button class="info-btn" onclick="showPageInfo()" title="How it works">
-                    <i data-lucide="info" class="info-icon"></i>
-                </button>
             </div>
             
             <!-- Navigation Menu -->
@@ -75,8 +72,13 @@
 
             <!-- Quick Test Section -->
             <div class="section">
-                <h2>Quick Validation Test</h2>
-                <p style="color: #666; margin-bottom: 15px;">Enter text to validate against your knowledge base</p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 5px;">
+                    <h2 style="margin-bottom: 0;">Quick Validation Test</h2>
+                    <button class="info-btn" onclick="showPageInfo()" title="How validation works">
+                        <i data-lucide="info" class="info-icon"></i>
+                    </button>
+                </div>
+                <p style="color: #666; margin-bottom: 15px; text-align: center;">Enter text to validate against your knowledge base</p>
                 <form onsubmit="validateText(event)">
                     <div style="display: grid; gap: 15px;">
                         <textarea id="test-text" rows="4" placeholder="Enter text to validate (e.g., 'Praxis has 200 stores across Europe')" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: 'Inter', sans-serif;"></textarea>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Brutally Honest</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo.svg">
+    <link rel="apple-touch-icon" href="/logo.svg">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/dynamic-portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Core Scripts -->
+    <script src="/dynamic-portal.js"></script>
+    <script src="/notifications.js"></script>
+    
+    <% if (typeof extraScripts !== 'undefined' && extraScripts.length > 0) { %>
+        <% extraScripts.forEach(script => { %>
+    <script src="/<%= script %>"></script>
+        <% }); %>
+    <% } %>
+    
+    <% if (typeof extraStyles !== 'undefined' && extraStyles.length > 0) { %>
+        <% extraStyles.forEach(style => { %>
+    <link rel="stylesheet" href="/<%= style %>">
+        <% }); %>
+    <% } %>
+    
+    <% if (typeof inlineStyles !== 'undefined') { %>
+    <style>
+        <%- inlineStyles %>
+    </style>
+    <% } %>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Logo and Navigation -->
+        <div class="header">
+            <div class="logo-title">
+                <img src="/logo.svg" alt="Brutally Honest Logo" class="logo">
+                <h1>Brutally Honest</h1>
+                <% if (showInfoBtn) { %>
+                <button class="info-btn" onclick="showPageInfo()" title="How it works">
+                    <i data-lucide="info" class="info-icon"></i>
+                </button>
+                <% } %>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="nav-menu">
+                <a href="/" class="nav-link <%= page === 'home' ? 'active' : '' %>">
+                    <i data-lucide="home" class="nav-icon"></i>
+                    Home
+                </a>
+                <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>">
+                    <i data-lucide="file-text" class="nav-icon"></i>
+                    Documents
+                </a>
+                <a href="/profiles" class="nav-link <%= page === 'profiles' ? 'active' : '' %>">
+                    <i data-lucide="users" class="nav-icon"></i>
+                    Profiles
+                </a>
+                <a href="/validation" class="nav-link <%= page === 'validation' ? 'active' : '' %>">
+                    <i data-lucide="check-circle" class="nav-icon"></i>
+                    Validation
+                </a>
+                <a href="/documentation" class="nav-link <%= page === 'documentation' ? 'active' : '' %>">
+                    <i data-lucide="book-open" class="nav-icon"></i>
+                    Documentation
+                </a>
+                
+                <!-- Theme Toggle -->
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+                    <i data-lucide="moon" id="theme-icon-dark"></i>
+                    <i data-lucide="sun" id="theme-icon-light" style="display: none;"></i>
+                </button>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="user-btn" onclick="toggleUserMenu()">
+                        <i data-lucide="user" class="nav-icon"></i>
+                        <span id="current-user">Account</span>
+                        <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info" id="user-info">
+                            <span class="user-email" id="user-email">Loading...</span>
+                        </div>
+                        <a href="/settings" class="dropdown-item">
+                            <i data-lucide="settings"></i> Settings
+                        </a>
+                        <button class="dropdown-item" onclick="logout()">
+                            <i data-lucide="log-out"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Connection Info Panel -->
+        <div class="connection-info" id="connection-info" style="display: none;">
+            <div class="connection-item">
+                <i data-lucide="bluetooth" class="connection-icon"></i>
+                <span class="connection-label">Connection:</span>
+                <span class="connection-value" id="connection-type">Bluetooth</span>
+            </div>
+            <div class="connection-item">
+                <i data-lucide="battery" class="connection-icon"></i>
+                <span class="connection-label">Battery:</span>
+                <span class="battery-text" id="battery-text">100%</span>
+            </div>
+            <div class="connection-item">
+                <i data-lucide="signal" class="connection-icon"></i>
+                <span class="connection-label">Signal:</span>
+                <span class="signal-text" id="signal-text">Strong</span>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <%- body %>
+        </div>
+    </div>
+    
+    <!-- Common Scripts -->
+    <script>
+        // Theme Management
+        function getPreferredTheme() {
+            const stored = localStorage.getItem('theme');
+            if (stored) return stored;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateThemeIcon(theme);
+        }
+        
+        function updateThemeIcon(theme) {
+            const darkIcon = document.getElementById('theme-icon-dark');
+            const lightIcon = document.getElementById('theme-icon-light');
+            if (darkIcon && lightIcon) {
+                if (theme === 'dark') {
+                    darkIcon.style.display = 'none';
+                    lightIcon.style.display = 'block';
+                } else {
+                    darkIcon.style.display = 'block';
+                    lightIcon.style.display = 'none';
+                }
+            }
+        }
+        
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || getPreferredTheme();
+            const next = current === 'dark' ? 'light' : 'dark';
+            setTheme(next);
+        }
+        
+        // Initialize theme immediately to prevent flash
+        (function() {
+            const theme = getPreferredTheme();
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+        
+        // Toggle user dropdown menu
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('user-dropdown');
+            if (userMenu && !userMenu.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        // Logout function
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '/login';
+            }
+        }
+        
+        // Load user info on page load
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/me');
+                if (response.ok) {
+                    const user = await response.json();
+                    document.getElementById('current-user').textContent = user.name || 'Account';
+                    document.getElementById('user-email').textContent = user.email || '';
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+        
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+            loadUserInfo();
+            updateThemeIcon(getPreferredTheme());
+        });
+        
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            if (!localStorage.getItem('theme')) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
+        });
+    </script>
+    
+    <% if (typeof inlineScripts !== 'undefined') { %>
+    <script>
+        <%- inlineScripts %>
+    </script>
+    <% } %>
+</body>
+</html>
+
