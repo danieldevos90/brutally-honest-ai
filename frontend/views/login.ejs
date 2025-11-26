@@ -97,15 +97,7 @@
         }
         
         .form-group {
-            margin-bottom: 24px;
-        }
-        
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 10px;
-            color: var(--text-secondary);
+            margin-bottom: 20px;
         }
         
         .form-group input {
@@ -133,30 +125,73 @@
             box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
         }
         
+        .form-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+        }
+        
         .btn-login {
-            width: 100%;
-            padding: 16px;
-            background: var(--accent-primary);
-            color: var(--text-inverse);
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 14px 48px;
+            background: #000000;
+            border: 1px solid #000000;
+            border-radius: 99px;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
         .btn-login:hover {
-            background: var(--accent-secondary);
+            background: #1a1a1a;
             transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
         .btn-login:disabled {
-            background: var(--text-muted);
+            background: #cccccc;
+            border-color: #cccccc;
+            color: #666666;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
+        }
+        
+        /* Dark mode button */
+        [data-theme="dark"] .btn-login {
+            background: #ffffff;
+            border-color: #ffffff;
+            color: #000000;
+        }
+        
+        [data-theme="dark"] .btn-login:hover {
+            background: #e0e0e0;
+        }
+        
+        [data-theme="dark"] .btn-login:disabled {
+            background: #333333;
+            border-color: #333333;
+            color: #666666;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) .btn-login {
+                background: #ffffff;
+                border-color: #ffffff;
+                color: #000000;
+            }
+            
+            :root:not([data-theme="light"]) .btn-login:hover {
+                background: #e0e0e0;
+            }
+            
+            :root:not([data-theme="light"]) .btn-login:disabled {
+                background: #333333;
+                border-color: #333333;
+                color: #666666;
+            }
         }
         
         .error-message {
@@ -237,18 +272,18 @@
             
             <form id="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="text" id="email" name="email" placeholder="admin@brutallyhonest.io" required>
+                    <input type="text" id="email" name="email" placeholder="Email" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
                 </div>
                 
-                <button type="submit" class="btn-login" id="login-btn">
-                    Sign In
-                </button>
+                <div class="form-actions">
+                    <button type="submit" class="btn-login" id="login-btn">
+                        Sign In
+                    </button>
+                </div>
             </form>
             
             <div class="login-footer">
