@@ -1186,6 +1186,102 @@ app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (r
     }
 });
 
+// ============================================
+// ASYNC TRANSCRIPTION ENDPOINTS (Background Jobs)
+// ============================================
+
+// Submit async transcription job - returns job ID immediately
+app.post('/api/ai/transcribe-file-async', requireAuth, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No audio file provided' });
+        }
+        
+        const FormData = (await import('form-data')).default;
+        const fetch = (await import('node-fetch')).default;
+        
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(req.file.path), {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+        
+        const validateDocs = req.body.validate_documents === 'true' || req.body.validate_documents === true;
+        formData.append('validate_documents', validateDocs.toString());
+        
+        console.log(`📤 Submitting async transcription job: ${req.file.originalname}`);
+        
+        const response = await fetch(`${API_BASE}/ai/transcribe-file-async`, {
+            method: 'POST',
+            body: formData,
+            headers: formData.getHeaders()
+        });
+        
+        const data = await response.json();
+        
+        // Log job submission
+        addLog('transcribe', 'job_submitted', {
+            filename: req.file.originalname,
+            job_id: data.job_id,
+            validateDocs: validateDocs
+        }, req.user?.id);
+        
+        // Clean up uploaded file
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error cleaning up file:', err);
+        });
+        
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Async transcription submission error:', error);
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, () => {});
+        }
+        res.status(500).json({ success: false, error: 'Failed to submit job: ' + error.message });
+    }
+});
+
+// Get job status
+app.get('/api/ai/jobs/:jobId', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/ai/jobs/${req.params.jobId}`);
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Job status error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// List all jobs
+app.get('/api/ai/jobs', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/ai/jobs`);
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('List jobs error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete a job
+app.delete('/api/ai/jobs/:jobId', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/ai/jobs/${req.params.jobId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Delete job error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`\n🎉 Brutally Honest Frontend running on http://localhost:${PORT}`);
     console.log(`📡 WebSocket server on ws://localhost:3002`);

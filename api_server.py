@@ -11,8 +11,9 @@ import time
 import os
 import secrets
 import hashlib
+import uuid
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Depends, Request, Security
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Depends, Request, Security, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response, HTMLResponse
@@ -23,6 +24,7 @@ import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import json
+from enum import Enum
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -49,6 +51,78 @@ API_KEYS_FILE = Path(__file__).parent / ".api_keys.json"
 
 # Store API keys in memory (loaded from file)
 api_keys: Dict[str, Dict[str, Any]] = {}
+
+# ============================================
+# BACKGROUND JOB SYSTEM
+# ============================================
+
+class JobStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+# Store jobs in memory (job_id -> job_data)
+transcription_jobs: Dict[str, Dict[str, Any]] = {}
+
+def create_job(filename: str, file_size: int, validate_documents: bool = False) -> str:
+    """Create a new transcription job and return job ID"""
+    job_id = str(uuid.uuid4())[:8]  # Short ID for convenience
+    transcription_jobs[job_id] = {
+        "id": job_id,
+        "status": JobStatus.PENDING,
+        "filename": filename,
+        "file_size": file_size,
+        "validate_documents": validate_documents,
+        "created_at": datetime.now().isoformat(),
+        "started_at": None,
+        "completed_at": None,
+        "progress": 0,
+        "progress_message": "Queued for processing",
+        "result": None,
+        "error": None
+    }
+    return job_id
+
+def update_job_status(job_id: str, status: JobStatus, progress: int = None, 
+                      progress_message: str = None, result: dict = None, error: str = None):
+    """Update job status"""
+    if job_id in transcription_jobs:
+        job = transcription_jobs[job_id]
+        job["status"] = status
+        if progress is not None:
+            job["progress"] = progress
+        if progress_message:
+            job["progress_message"] = progress_message
+        if status == JobStatus.PROCESSING and job["started_at"] is None:
+            job["started_at"] = datetime.now().isoformat()
+        if status in [JobStatus.COMPLETED, JobStatus.FAILED]:
+            job["completed_at"] = datetime.now().isoformat()
+        if result:
+            job["result"] = result
+        if error:
+            job["error"] = error
+
+def get_job(job_id: str) -> Optional[Dict[str, Any]]:
+    """Get job by ID"""
+    return transcription_jobs.get(job_id)
+
+def cleanup_old_jobs(max_age_hours: int = 24):
+    """Remove jobs older than max_age_hours"""
+    cutoff = datetime.now() - timedelta(hours=max_age_hours)
+    to_remove = []
+    for job_id, job in transcription_jobs.items():
+        created = datetime.fromisoformat(job["created_at"])
+        if created < cutoff:
+            to_remove.append(job_id)
+    for job_id in to_remove:
+        del transcription_jobs[job_id]
+    if to_remove:
+        logger.info(f"🧹 Cleaned up {len(to_remove)} old jobs")
+
+# ============================================
+# API KEY FUNCTIONS
+# ============================================
 
 def load_api_keys():
     """Load API keys from file"""
@@ -1014,6 +1088,197 @@ async def transcribe_uploaded_file(
     except Exception as e:
         logger.error(f"File transcription error: {e}")
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+# ============================================
+# ASYNC TRANSCRIPTION (Background Jobs)
+# ============================================
+
+async def process_transcription_job(job_id: str, audio_data: bytes, filename: str, validate_documents: bool):
+    """Background task to process transcription"""
+    try:
+        update_job_status(job_id, JobStatus.PROCESSING, 10, "Loading AI models...")
+        
+        # Get processor
+        if validate_documents:
+            update_job_status(job_id, JobStatus.PROCESSING, 20, "Loading enhanced processor with document validation...")
+            processor = await get_enhanced_processor()
+        else:
+            update_job_status(job_id, JobStatus.PROCESSING, 20, "Loading Whisper AI model...")
+            processor = await get_processor()
+        
+        update_job_status(job_id, JobStatus.PROCESSING, 40, "Processing audio file...")
+        
+        # Process audio
+        if validate_documents:
+            result = await processor.process_audio_with_validation(audio_data, filename)
+        else:
+            result = await processor.process_audio(audio_data, filename)
+        
+        update_job_status(job_id, JobStatus.PROCESSING, 80, "Generating analysis...")
+        
+        if result.success:
+            response_data = {
+                "success": True,
+                "filename": filename,
+                "transcription": result.transcription,
+                "analysis": result.analysis,
+                "summary": result.summary,
+                "sentiment": result.sentiment,
+                "keywords": result.keywords,
+                "fact_check": result.fact_check,
+                "brutal_honesty": result.brutal_honesty,
+                "credibility_score": f"{result.credibility_score * 100:.1f}%" if result.credibility_score else "N/A",
+                "questionable_claims": result.questionable_claims,
+                "corrections": result.corrections,
+                "confidence": f"{result.confidence * 100:.1f}%" if result.confidence else "N/A",
+                "processing_time": f"{result.processing_time:.2f}s" if result.processing_time else "N/A",
+                "source": "file_upload_async"
+            }
+            
+            if validate_documents and hasattr(result, 'document_validation'):
+                response_data.update({
+                    "document_validation": result.document_validation,
+                    "validation_score": f"{result.validation_score * 100:.1f}%" if hasattr(result, 'validation_score') and result.validation_score else "N/A",
+                    "fact_check_sources": result.fact_check_sources if hasattr(result, 'fact_check_sources') else [],
+                    "contradictions": result.contradictions if hasattr(result, 'contradictions') else [],
+                    "supporting_evidence": result.supporting_evidence if hasattr(result, 'supporting_evidence') else []
+                })
+            
+            update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+            logger.info(f"✅ Job {job_id} completed successfully")
+        else:
+            update_job_status(job_id, JobStatus.FAILED, 100, "Transcription failed", error=result.error)
+            logger.error(f"❌ Job {job_id} failed: {result.error}")
+            
+    except Exception as e:
+        logger.error(f"❌ Job {job_id} error: {e}")
+        update_job_status(job_id, JobStatus.FAILED, 100, f"Error: {str(e)}", error=str(e))
+
+@app.post("/ai/transcribe-file-async", tags=["AI Processing - Async"])
+async def transcribe_file_async(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    validate_documents: bool = Form(False),
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Submit an audio file for async transcription. Returns a job ID immediately.
+    Poll /ai/jobs/{job_id} to get status and results.
+    
+    This endpoint is recommended for large files or when using Cloudflare proxy
+    to avoid timeout issues.
+    """
+    try:
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        file_ext = Path(file.filename).suffix.lower()
+        supported_formats = {'.wav', '.mp3', '.m4a', '.ogg', '.flac', '.webm', '.mp4'}
+        
+        if file_ext not in supported_formats:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported format: {file_ext}. Supported: {', '.join(supported_formats)}"
+            )
+        
+        # Read file data
+        audio_data = await file.read()
+        
+        if len(audio_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        if len(audio_data) > 500 * 1024 * 1024:  # 500MB limit for async
+            raise HTTPException(status_code=400, detail="File too large (max 500MB)")
+        
+        # Create job
+        job_id = create_job(file.filename, len(audio_data), validate_documents)
+        logger.info(f"📤 Created async transcription job {job_id} for: {file.filename} ({len(audio_data)} bytes)")
+        
+        # Schedule background task
+        background_tasks.add_task(
+            process_transcription_job,
+            job_id,
+            audio_data,
+            file.filename,
+            validate_documents
+        )
+        
+        # Return job ID immediately
+        return {
+            "success": True,
+            "job_id": job_id,
+            "message": "Transcription job submitted",
+            "status_url": f"/ai/jobs/{job_id}",
+            "filename": file.filename,
+            "file_size": len(audio_data)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Async transcription submission error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to submit job: {str(e)}")
+
+@app.get("/ai/jobs/{job_id}", tags=["AI Processing - Async"])
+async def get_job_status(job_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
+    """
+    Get the status and results of a transcription job.
+    
+    Poll this endpoint to check progress. When status is 'completed',
+    the result field contains the full transcription data.
+    """
+    job = get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    return {
+        "job_id": job["id"],
+        "status": job["status"],
+        "progress": job["progress"],
+        "progress_message": job["progress_message"],
+        "filename": job["filename"],
+        "file_size": job["file_size"],
+        "created_at": job["created_at"],
+        "started_at": job["started_at"],
+        "completed_at": job["completed_at"],
+        "result": job["result"] if job["status"] == JobStatus.COMPLETED else None,
+        "error": job["error"] if job["status"] == JobStatus.FAILED else None
+    }
+
+@app.get("/ai/jobs", tags=["AI Processing - Async"])
+async def list_jobs(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """List all transcription jobs (recent first)"""
+    # Cleanup old jobs first
+    cleanup_old_jobs()
+    
+    jobs = sorted(
+        transcription_jobs.values(),
+        key=lambda x: x["created_at"],
+        reverse=True
+    )[:50]  # Return max 50 jobs
+    
+    return {
+        "jobs": [{
+            "job_id": j["id"],
+            "status": j["status"],
+            "progress": j["progress"],
+            "filename": j["filename"],
+            "created_at": j["created_at"],
+            "completed_at": j["completed_at"]
+        } for j in jobs],
+        "total": len(transcription_jobs)
+    }
+
+@app.delete("/ai/jobs/{job_id}", tags=["AI Processing - Async"])
+async def delete_job(job_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Delete a transcription job"""
+    if job_id not in transcription_jobs:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    del transcription_jobs[job_id]
+    return {"success": True, "message": f"Job {job_id} deleted"}
 
 @app.post("/device/command")
 async def send_command(command_data: Dict[str, Any]):

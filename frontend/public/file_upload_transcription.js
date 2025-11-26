@@ -261,18 +261,16 @@ async function transcribeUploadedFiles() {
     
     // Initialize logs
     clearProcessLogs();
-    addProcessLog(`<i data-lucide="files" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Processing ${files.length} uploaded file(s)`);
-    addProcessLog(`<i data-lucide="mic" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Initializing Whisper AI...`);
+    addProcessLog(`📁 Processing ${files.length} uploaded file(s)`);
     
     let allResults = [];
     
-    // Process each file
+    // Process each file using async background jobs
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
         
-        addProcessLog(`<i data-lucide="upload" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Uploading ${i + 1}/${files.length}: ${file.name}`);
-        addProcessLog(`<i data-lucide="file" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>File size: ${sizeMB} MB`);
+        addProcessLog(`⬆️ Uploading ${i + 1}/${files.length}: ${file.name} (${sizeMB} MB)`);
         
         try {
             // Create FormData for upload
@@ -280,36 +278,66 @@ async function transcribeUploadedFiles() {
             formData.append('file', file);
             formData.append('validate_documents', validateDocuments.toString());
             
-            // Send to transcription endpoint
-            const response = await fetch('/api/ai/transcribe-file', {
+            // Submit to ASYNC transcription endpoint (returns immediately with job ID)
+            const submitResponse = await fetch('/api/ai/transcribe-file-async', {
                 method: 'POST',
                 body: formData
             });
             
-            if (response.ok) {
-                const result = await response.json();
-                result.filename = file.name;
-                allResults.push(result);
-                
-                if (result.success) {
-                    addProcessLog(`<i data-lucide="check" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Completed ${file.name}`);
-                } else {
-                    addProcessLog(`<i data-lucide="alert-circle" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Warning for ${file.name}: ${result.error || 'Unknown error'}`);
-                }
-            } else {
-                const errorText = await response.text();
-                console.error(`Transcription failed for ${file.name}:`, errorText);
-                addProcessLog(`<i data-lucide="x" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Failed ${file.name}: ${errorText}`);
-                
-                allResults.push({
-                    filename: file.name,
-                    success: false,
-                    error: errorText
-                });
+            if (!submitResponse.ok) {
+                const errorText = await submitResponse.text();
+                throw new Error(errorText);
             }
+            
+            const submitResult = await submitResponse.json();
+            const jobId = submitResult.job_id;
+            
+            addProcessLog(`🚀 Job submitted: ${jobId} - Processing in background...`);
+            
+            // Poll for job completion
+            let jobComplete = false;
+            let lastProgress = 0;
+            
+            while (!jobComplete) {
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Poll every 2 seconds
+                
+                const statusResponse = await fetch(`/api/ai/jobs/${jobId}`);
+                if (!statusResponse.ok) {
+                    throw new Error('Failed to get job status');
+                }
+                
+                const jobStatus = await statusResponse.json();
+                
+                // Update progress if changed
+                if (jobStatus.progress !== lastProgress) {
+                    lastProgress = jobStatus.progress;
+                    addProcessLog(`⏳ ${file.name}: ${jobStatus.progress}% - ${jobStatus.progress_message}`);
+                    
+                    // Update button text with progress
+                    transcribeBtn.innerHTML = `<i data-lucide="loader-2" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>${jobStatus.progress}% - ${jobStatus.progress_message}`;
+                }
+                
+                if (jobStatus.status === 'completed') {
+                    jobComplete = true;
+                    const result = jobStatus.result;
+                    result.filename = file.name;
+                    allResults.push(result);
+                    addProcessLog(`✅ Completed ${file.name}`);
+                    
+                } else if (jobStatus.status === 'failed') {
+                    jobComplete = true;
+                    addProcessLog(`❌ Failed ${file.name}: ${jobStatus.error}`);
+                    allResults.push({
+                        filename: file.name,
+                        success: false,
+                        error: jobStatus.error
+                    });
+                }
+            }
+            
         } catch (error) {
             console.error(`Error processing ${file.name}:`, error);
-            addProcessLog(`<i data-lucide="x" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Error ${file.name}: ${error.message}`);
+            addProcessLog(`❌ Error ${file.name}: ${error.message}`);
             
             allResults.push({
                 filename: file.name,
