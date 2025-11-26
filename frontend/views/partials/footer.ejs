@@ -9,11 +9,262 @@
         </div>
     </footer>
     
-    <!-- Initialize Lucide Icons -->
+    <!-- Mobile Drawer Overlay -->
+    <div class="mobile-drawer-overlay" id="mobile-drawer-overlay" onclick="closeMobileDrawer()"></div>
+    
+    <!-- Mobile Drawer -->
+    <div class="mobile-drawer" id="mobile-drawer">
+        <!-- Drawer Header -->
+        <div class="drawer-header">
+            <div class="drawer-logo">
+                <img src="/logo.svg" alt="Logo">
+                <h2>Brutally Honest</h2>
+            </div>
+            <button class="drawer-close-btn" onclick="closeMobileDrawer()" aria-label="Close menu">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        
+        <!-- Drawer Navigation -->
+        <nav class="drawer-nav">
+            <a href="/" class="drawer-nav-link <%= page === 'home' ? 'active' : '' %>">
+                <i data-lucide="home"></i>
+                Home
+            </a>
+            <a href="/documents" class="drawer-nav-link <%= page === 'documents' ? 'active' : '' %>">
+                <i data-lucide="file-text"></i>
+                Documents
+            </a>
+            <a href="/profiles" class="drawer-nav-link <%= page === 'profiles' ? 'active' : '' %>">
+                <i data-lucide="users"></i>
+                Profiles
+            </a>
+            <a href="/validation" class="drawer-nav-link <%= page === 'validation' ? 'active' : '' %>">
+                <i data-lucide="check-circle"></i>
+                Validation
+            </a>
+            <a href="/documentation" class="drawer-nav-link <%= page === 'documentation' ? 'active' : '' %>">
+                <i data-lucide="book-open"></i>
+                Documentation
+            </a>
+        </nav>
+        
+        <!-- Theme Toggle in Drawer -->
+        <div class="drawer-theme-toggle">
+            <div class="drawer-theme-label">
+                <i data-lucide="sun" id="drawer-theme-icon"></i>
+                <span id="drawer-theme-text">Light Mode</span>
+            </div>
+            <div class="theme-switch" id="drawer-theme-switch" onclick="toggleThemeFromDrawer()">
+                <div class="theme-switch-knob"></div>
+            </div>
+        </div>
+        
+        <!-- Drawer Footer -->
+        <div class="drawer-footer">
+            <div class="drawer-user-section">
+                <div class="drawer-user-info">
+                    <div class="drawer-user-avatar">
+                        <i data-lucide="user"></i>
+                    </div>
+                    <div class="drawer-user-details">
+                        <div class="drawer-user-name" id="drawer-user-name">Account</div>
+                        <div class="drawer-user-email" id="drawer-user-email">user@email.com</div>
+                    </div>
+                </div>
+                <div class="drawer-actions">
+                    <a href="/settings" class="drawer-action-btn" onclick="closeMobileDrawer()">
+                        <i data-lucide="settings"></i>
+                        Settings
+                    </a>
+                    <button class="drawer-action-btn logout" onclick="logout()">
+                        <i data-lucide="log-out"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Initialize Lucide Icons and Mobile Drawer -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             lucide.createIcons();
+            initTheme();
+            initUserInfo();
+            injectHamburgerButton();
         });
+        
+        // Inject hamburger button via JS (bypasses template cache)
+        function injectHamburgerButton() {
+            // Check if hamburger already exists
+            if (document.getElementById('hamburger-btn')) return;
+            
+            const header = document.querySelector('.header');
+            if (!header) return;
+            
+            // Create hamburger button
+            const btn = document.createElement('button');
+            btn.className = 'hamburger-btn';
+            btn.id = 'hamburger-btn';
+            btn.setAttribute('aria-label', 'Open menu');
+            btn.onclick = toggleMobileDrawer;
+            btn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" x2="20" y1="12" y2="12"></line>
+                    <line x1="4" x2="20" y1="6" y2="6"></line>
+                    <line x1="4" x2="20" y1="18" y2="18"></line>
+                </svg>
+            `;
+            
+            // Append to header
+            header.appendChild(btn);
+            console.log('🍔 Hamburger menu injected');
+        }
+        
+        // Theme functions
+        function isDarkMode() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'dark') return true;
+            if (theme === 'light') return false;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+            updateThemeUI();
+        }
+        
+        function updateThemeUI() {
+            const darkMode = isDarkMode();
+            
+            // Update header icons
+            const lightIcon = document.querySelector('.theme-icon-light');
+            const darkIcon = document.querySelector('.theme-icon-dark');
+            if (lightIcon) lightIcon.style.display = darkMode ? 'none' : 'block';
+            if (darkIcon) darkIcon.style.display = darkMode ? 'block' : 'none';
+            
+            // Update drawer
+            const themeSwitch = document.getElementById('drawer-theme-switch');
+            const themeText = document.getElementById('drawer-theme-text');
+            const themeIcon = document.getElementById('drawer-theme-icon');
+            
+            if (themeSwitch) {
+                themeSwitch.classList.toggle('active', darkMode);
+            }
+            if (themeText) {
+                themeText.textContent = darkMode ? 'Dark Mode' : 'Light Mode';
+            }
+            if (themeIcon) {
+                themeIcon.setAttribute('data-lucide', darkMode ? 'moon' : 'sun');
+                lucide.createIcons();
+            }
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            let newTheme;
+            if (currentTheme === 'dark') {
+                newTheme = 'light';
+            } else if (currentTheme === 'light') {
+                newTheme = 'dark';
+            } else {
+                newTheme = prefersDark ? 'light' : 'dark';
+            }
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeUI();
+        }
+        
+        function toggleThemeFromDrawer() {
+            toggleTheme();
+        }
+        
+        // Mobile drawer functions
+        function toggleMobileDrawer() {
+            const drawer = document.getElementById('mobile-drawer');
+            const overlay = document.getElementById('mobile-drawer-overlay');
+            
+            if (drawer && overlay) {
+                const isOpen = drawer.classList.contains('open');
+                if (isOpen) {
+                    closeMobileDrawer();
+                } else {
+                    drawer.classList.add('open');
+                    overlay.classList.add('show');
+                    document.body.classList.add('drawer-open');
+                }
+            }
+        }
+        
+        function closeMobileDrawer() {
+            const drawer = document.getElementById('mobile-drawer');
+            const overlay = document.getElementById('mobile-drawer-overlay');
+            
+            if (drawer && overlay) {
+                drawer.classList.remove('open');
+                overlay.classList.remove('show');
+                document.body.classList.remove('drawer-open');
+            }
+        }
+        
+        // Close drawer on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMobileDrawer();
+            }
+        });
+        
+        // Close drawer when resizing to desktop
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMobileDrawer();
+            }
+        });
+        
+        // User menu functions
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('user-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        }
+        
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('user-dropdown');
+            if (dropdown && userMenu && !userMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        function initUserInfo() {
+            const userEmail = localStorage.getItem('user_email') || 'user@example.com';
+            const userName = userEmail.split('@')[0];
+            
+            // Update header
+            const headerEmail = document.getElementById('user-email');
+            if (headerEmail) headerEmail.textContent = userEmail;
+            
+            // Update drawer
+            const drawerName = document.getElementById('drawer-user-name');
+            const drawerEmail = document.getElementById('drawer-user-email');
+            if (drawerName) drawerName.textContent = userName;
+            if (drawerEmail) drawerEmail.textContent = userEmail;
+        }
+        
+        function logout() {
+            closeMobileDrawer();
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_email');
+            window.location.href = '/login';
+        }
     </script>
 </body>
 </html>

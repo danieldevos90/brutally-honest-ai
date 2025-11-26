@@ -4,20 +4,20 @@
     <div class="transcription-section">
         
         <!-- Transcription Source Tabs -->
-        <div style="display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid #e5e5e5;">
-            <button id="tab-device" class="transcription-tab active" onclick="switchTranscriptionTab('device')">
+        <div style="display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid var(--border-primary);">
+            <button id="tab-upload" class="transcription-tab active" onclick="switchTranscriptionTab('upload')">
+                <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                Upload & Record
+            </button>
+            <button id="tab-device" class="transcription-tab" onclick="switchTranscriptionTab('device')">
                 <i data-lucide="hard-drive" style="width: 16px; height: 16px;"></i>
                 Device Recordings
-            </button>
-            <button id="tab-upload" class="transcription-tab" onclick="switchTranscriptionTab('upload')">
-                <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
-                Upload File
             </button>
         </div>
         
         <!-- Tab Content: Device Recordings -->
-        <div id="tab-content-device">
-            <p style="text-align: center; margin-bottom: 15px; color: #666;">
+        <div id="tab-content-device" style="display: none;">
+            <p style="text-align: center; margin-bottom: 15px; color: var(--text-muted);">
                 Select one or more recordings from below and transcribe them with Whisper AI (Dutch/English auto-detection)
             </p>
         
@@ -58,52 +58,89 @@
         </div>
         
         <!-- Tab Content: File Upload -->
-        <div id="tab-content-upload" style="display: none;">
-            <p style="text-align: center; margin-bottom: 15px; color: #666;">
-                Upload audio files directly from your computer for transcription - no device required
-            </p>
+        <div id="tab-content-upload">
             
-            <!-- File Upload Area -->
-            <div id="file-upload-area" class="file-upload-dropzone" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('file-upload-input').click()">
-                <input type="file" id="file-upload-input" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" multiple style="display: none;" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
-                <div class="upload-content">
-                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: #999; margin-bottom: 12px;"></i>
-                    <p style="font-weight: 500; margin-bottom: 4px;">Drag & drop audio files here</p>
-                    <p style="color: #999; font-size: 13px; margin-bottom: 12px;">or click anywhere to browse</p>
-                    <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-upload-input').click()" style="font-size: 13px;">
-                        <i data-lucide="folder-open" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                        Browse Files
-                    </button>
-                    <p style="color: #bbb; font-size: 11px; margin-top: 12px;">Supports WAV, MP3, M4A, OGG, FLAC (max 100MB)</p>
+            <!-- Upload Area - Primary Action -->
+            <div id="file-upload-area" class="file-upload-dropzone" style="padding: 40px 20px; margin-bottom: 24px;" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('file-upload-input').click()">
+                <input type="file" id="file-upload-input" accept="audio/*,video/*,.wav,.mp3,.m4a,.ogg,.flac,.webm,.mp4,.mov,.avi,.mkv,.aac,.wma,.aiff" multiple style="display: none;" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
+                <div class="upload-content" style="text-align: center;">
+                    <i data-lucide="upload-cloud" style="width: 56px; height: 56px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                    <p style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Drop files here or tap to browse</p>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Upload audio or video files for transcription</p>
+                    
+                    <!-- Supported Formats Grid -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 400px; margin: 0 auto;">
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">MP3</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">WAV</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">M4A</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">OGG</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">FLAC</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">MP4</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">MOV</span>
+                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">WebM</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 12px; margin-top: 12px;">Max file size: 500MB</p>
                 </div>
             </div>
             
+            <!-- Record Section - Secondary -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                <div style="flex: 1; height: 1px; background: var(--border-primary);"></div>
+                <span style="color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">or record</span>
+                <div style="flex: 1; height: 1px; background: var(--border-primary);"></div>
+            </div>
+            
+            <div id="record-section" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-primary); margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: var(--bg-tertiary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="mic" style="width: 22px; height: 22px; color: var(--text-secondary);"></i>
+                    </div>
+                    <div>
+                        <p style="font-weight: 500; color: var(--text-primary); margin: 0;">Record Audio</p>
+                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;" id="record-status-text">Use your microphone (requires HTTPS)</p>
+                    </div>
+                </div>
+                
+                <button id="record-btn" onclick="toggleRecording()" style="padding: 10px 20px; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; background: var(--accent-primary); color: var(--text-inverse); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                    <i data-lucide="mic" id="record-icon" style="width: 16px; height: 16px;"></i>
+                    <span id="record-text">Record</span>
+                    <span id="record-timer" style="display: none; font-family: monospace;"></span>
+                </button>
+            </div>
+            
+            <p id="record-unsupported" style="display: none; color: var(--error); font-size: 13px; text-align: center; margin-bottom: 20px; padding: 12px; background: var(--error-bg); border-radius: 8px;">
+                ⚠️ Recording requires HTTPS. Upload files instead or access via https://
+            </p>
+            
             <!-- Uploaded Files List -->
-            <div id="uploaded-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-top: 15px; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 500;">Files to Transcribe:</div>
-                    <button onclick="clearUploadedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all files">
-                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            <div id="uploaded-files-display" style="display: none; background: var(--bg-secondary); padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-primary);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="font-weight: 600; color: var(--text-primary);">
+                        <i data-lucide="files" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;"></i>
+                        Files Ready
+                    </div>
+                    <button onclick="clearUploadedFiles()" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 4px;" title="Clear all files">
+                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
                     </button>
                 </div>
-                <div id="uploaded-files-list" style="max-height: 150px; overflow-y: auto;"></div>
-                <div id="uploaded-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;"></div>
+                <div id="uploaded-files-list" style="max-height: 200px; overflow-y: auto;"></div>
+                <div id="uploaded-files-summary" style="font-size: 13px; color: var(--text-muted); margin-top: 10px; text-align: center;"></div>
             </div>
             
             <!-- Document Validation Toggle for Upload -->
-            <div style="text-align: center; margin-bottom: 15px;">
-                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
-                    <input type="checkbox" id="upload-enable-document-validation" style="margin: 0;">
-                    <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
-                    Validate against uploaded documents
+            <div style="text-align: center; margin-bottom: 20px;">
+                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-secondary); cursor: pointer; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-primary);">
+                    <input type="checkbox" id="upload-enable-document-validation" style="width: 18px; height: 18px; margin: 0;">
+                    <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
+                    <span>Fact-check against knowledge base</span>
                 </label>
             </div>
             
             <!-- Transcribe Button for Upload -->
-            <div style="text-align: center; margin-bottom: 20px;">
-                <button id="upload-transcribe-btn" class="btn btn-primary" onclick="transcribeUploadedFiles()" disabled>
-                    <i data-lucide="wand-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                    Select files to transcribe
+            <div style="text-align: center;">
+                <button id="upload-transcribe-btn" class="btn btn-primary btn-lg" onclick="transcribeUploadedFiles()" disabled style="min-width: 200px;">
+                    <i data-lucide="sparkles" style="width: 18px; height: 18px; margin-right: 8px;"></i>
+                    <span id="upload-btn-text">Select files to transcribe</span>
                 </button>
             </div>
         </div>
@@ -347,6 +384,16 @@
         100% { transform: rotate(360deg); }
     }
     
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    @keyframes recording-pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.7; }
+    }
+    
     .transcription-tab {
         display: flex;
         align-items: center;
@@ -386,7 +433,69 @@
         border-color: #333;
         background: #f5f5f5;
     }
+    
+    /* Recording button styles */
+    .btn-record {
+        transition: all 0.2s ease;
+    }
+    
+    .btn-record:hover {
+        background: #555 !important;
+        transform: scale(1.02);
+    }
+    
+    .btn-record.recording {
+        background: #dc2626 !important;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .btn-record.recording:hover {
+        background: #b91c1c !important;
+    }
+    
+    .recording-pulse {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background: #dc2626;
+        border-radius: 50%;
+        animation: recording-pulse 1s ease-in-out infinite;
+    }
+    
+    #record-section {
+        transition: all 0.3s ease;
+    }
+    
+    #record-section.recording-active {
+        border-color: #dc2626;
+        background: #fef2f2;
+    }
 </style>
+
+<script>
+// Initialize recording support check on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if recording is supported
+    if (typeof isRecordingSupported === 'function' && !isRecordingSupported()) {
+        const recordBtn = document.getElementById('record-btn');
+        const unsupportedMsg = document.getElementById('record-unsupported');
+        
+        if (recordBtn) {
+            recordBtn.disabled = true;
+            recordBtn.style.opacity = '0.5';
+            recordBtn.style.cursor = 'not-allowed';
+        }
+        if (unsupportedMsg) {
+            unsupportedMsg.style.display = 'block';
+        }
+    }
+    
+    // Initialize lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
+</script>
 
 <script src="/app.js"></script>
 

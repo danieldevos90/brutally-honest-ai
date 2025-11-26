@@ -28,6 +28,72 @@ app.set('layout extractStyles', true);
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
+const LOGS_FILE = path.join(__dirname, 'activity_logs.json');
+
+// ============================================
+// ACTIVITY LOGGING SYSTEM
+// ============================================
+
+const MAX_LOGS = 500; // Keep last 500 log entries
+let activityLogs = [];
+
+function loadLogs() {
+    try {
+        if (fs.existsSync(LOGS_FILE)) {
+            activityLogs = JSON.parse(fs.readFileSync(LOGS_FILE, 'utf8'));
+        }
+    } catch (e) {
+        console.error('Error loading logs:', e);
+        activityLogs = [];
+    }
+}
+
+function saveLogs() {
+    try {
+        // Keep only last MAX_LOGS entries
+        if (activityLogs.length > MAX_LOGS) {
+            activityLogs = activityLogs.slice(-MAX_LOGS);
+        }
+        fs.writeFileSync(LOGS_FILE, JSON.stringify(activityLogs, null, 2));
+    } catch (e) {
+        console.error('Error saving logs:', e);
+    }
+}
+
+function addLog(type, action, details = {}, userId = null) {
+    const logEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        type: type,        // 'transcribe', 'upload', 'device', 'auth', 'system', 'error'
+        action: action,    // 'started', 'completed', 'failed', etc.
+        details: details,
+        userId: userId,
+        device: details.device || 'web'
+    };
+    
+    activityLogs.push(logEntry);
+    saveLogs();
+    
+    // Broadcast to WebSocket clients
+    broadcastLog(logEntry);
+    
+    console.log(`[LOG] ${type}/${action}:`, JSON.stringify(details).substring(0, 200));
+    return logEntry;
+}
+
+function broadcastLog(logEntry) {
+    if (wss) {
+        const message = JSON.stringify({ type: 'activity_log', data: logEntry });
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(message);
+            }
+        });
+    }
+}
+
+// Load logs on startup
+loadLogs();
 
 function loadUsers() {
     try {
@@ -189,6 +255,9 @@ app.post('/api/auth/login', (req, res) => {
         });
         saveSessions();
         
+        // Log successful login
+        addLog('auth', 'login_success', { email: user.email, userId: user.id }, user.id);
+        
         res.setHeader('Set-Cookie', `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400`);
         res.json({ 
             success: true, 
@@ -201,6 +270,8 @@ app.post('/api/auth/login', (req, res) => {
             }
         });
     } else {
+        // Log failed login attempt
+        addLog('auth', 'login_failed', { attemptedEmail: loginId }, null);
         res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 });
@@ -241,6 +312,85 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
         name: req.user.name,
         role: req.user.role
     });
+});
+
+// ============================================
+// ACTIVITY LOGS API ENDPOINTS
+// ============================================
+
+// Get recent logs
+app.get('/api/logs', requireAuth, (req, res) => {
+    const { type, limit = 100, since } = req.query;
+    
+    let logs = [...activityLogs].reverse(); // Most recent first
+    
+    // Filter by type if specified
+    if (type) {
+        logs = logs.filter(l => l.type === type);
+    }
+    
+    // Filter by timestamp if specified
+    if (since) {
+        const sinceDate = new Date(since);
+        logs = logs.filter(l => new Date(l.timestamp) > sinceDate);
+    }
+    
+    // Limit results
+    logs = logs.slice(0, parseInt(limit));
+    
+    res.json({
+        success: true,
+        count: logs.length,
+        total: activityLogs.length,
+        logs: logs
+    });
+});
+
+// Get log statistics
+app.get('/api/logs/stats', requireAuth, (req, res) => {
+    const now = new Date();
+    const hourAgo = new Date(now - 60 * 60 * 1000);
+    const dayAgo = new Date(now - 24 * 60 * 60 * 1000);
+    
+    const stats = {
+        total: activityLogs.length,
+        lastHour: activityLogs.filter(l => new Date(l.timestamp) > hourAgo).length,
+        last24h: activityLogs.filter(l => new Date(l.timestamp) > dayAgo).length,
+        byType: {},
+        byAction: {},
+        recentErrors: activityLogs.filter(l => l.type === 'error').slice(-10).reverse()
+    };
+    
+    // Count by type
+    activityLogs.forEach(l => {
+        stats.byType[l.type] = (stats.byType[l.type] || 0) + 1;
+        stats.byAction[l.action] = (stats.byAction[l.action] || 0) + 1;
+    });
+    
+    res.json({ success: true, stats });
+});
+
+// Add a log entry (for client-side logging)
+app.post('/api/logs', requireAuth, (req, res) => {
+    const { type, action, details } = req.body;
+    
+    if (!type || !action) {
+        return res.status(400).json({ error: 'type and action are required' });
+    }
+    
+    const logEntry = addLog(type, action, details || {}, req.user?.id);
+    res.json({ success: true, log: logEntry });
+});
+
+// Clear logs (admin only)
+app.delete('/api/logs', requireAuth, (req, res) => {
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    activityLogs = [];
+    saveLogs();
+    res.json({ success: true, message: 'Logs cleared' });
 });
 
 // ============================================
@@ -441,12 +591,23 @@ app.post('/api/devices/connect/:deviceId', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
         const deviceId = decodeURIComponent(req.params.deviceId);
+        
+        addLog('device', 'connect_started', { deviceId }, req.user?.id);
+        
         const response = await fetch(`${API_BASE}/devices/connect/${encodeURIComponent(deviceId)}`, {
             method: 'POST'
         });
         const data = await response.json();
+        
+        if (data.success !== false) {
+            addLog('device', 'connected', { deviceId }, req.user?.id);
+        } else {
+            addLog('device', 'connect_failed', { deviceId, error: data.error }, req.user?.id);
+        }
+        
         res.json(data);
     } catch (error) {
+        addLog('error', 'device_connect_error', { deviceId: req.params.deviceId, error: error.message }, req.user?.id);
         res.status(500).json({ error: 'Failed to connect device' });
     }
 });
@@ -946,10 +1107,21 @@ app.post('/api/ai/process', requireAuth, async (req, res) => {
 
 // Direct file transcription endpoint (no device required)
 app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (req, res) => {
+    const startTime = Date.now();
+    
     try {
         if (!req.file) {
+            addLog('transcribe', 'failed', { error: 'No audio file provided' }, req.user?.id);
             return res.status(400).json({ success: false, error: 'No audio file provided' });
         }
+        
+        // Log transcription start
+        addLog('transcribe', 'started', {
+            filename: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            validateDocs: req.body.validate_documents === 'true'
+        }, req.user?.id);
         
         const FormData = (await import('form-data')).default;
         const fetch = (await import('node-fetch')).default;
@@ -972,6 +1144,23 @@ app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (r
         });
         
         const data = await response.json();
+        const duration = Date.now() - startTime;
+        
+        // Log transcription completion
+        if (response.ok && data.success !== false) {
+            addLog('transcribe', 'completed', {
+                filename: req.file.originalname,
+                duration: duration,
+                transcriptLength: data.transcript?.length || 0,
+                validated: validateDocs
+            }, req.user?.id);
+        } else {
+            addLog('transcribe', 'failed', {
+                filename: req.file.originalname,
+                duration: duration,
+                error: data.error || 'Unknown error'
+            }, req.user?.id);
+        }
         
         fs.unlink(req.file.path, (err) => {
             if (err) console.error('Error cleaning up file:', err);
@@ -979,7 +1168,15 @@ app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (r
         
         res.status(response.status).json(data);
     } catch (error) {
+        const duration = Date.now() - startTime;
         console.error('File transcription proxy error:', error);
+        
+        // Log error
+        addLog('error', 'transcription_error', {
+            filename: req.file?.originalname,
+            duration: duration,
+            error: error.message
+        }, req.user?.id);
         
         if (req.file && req.file.path) {
             fs.unlink(req.file.path, () => {});

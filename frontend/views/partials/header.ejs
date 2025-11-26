@@ -40,7 +40,7 @@
                 <h1>Brutally Honest</h1>
             </div>
             
-            <!-- Navigation Menu -->
+            <!-- Navigation Menu (Desktop) -->
             <nav class="nav-menu">
                 <a href="/" class="nav-link <%= page === 'home' ? 'active' : '' %>">
                     <i data-lucide="home" class="nav-icon"></i>
@@ -58,11 +58,44 @@
                     <i data-lucide="check-circle" class="nav-icon"></i>
                     Validation
                 </a>
-                <a href="#" class="nav-link" onclick="showDocumentation()">
+                <a href="/documentation" class="nav-link <%= page === 'documentation' ? 'active' : '' %>">
                     <i data-lucide="book-open" class="nav-icon"></i>
                     Documentation
                 </a>
+                
+                <!-- Theme Toggle -->
+                <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
+                    <i data-lucide="sun" class="theme-icon-light"></i>
+                    <i data-lucide="moon" class="theme-icon-dark" style="display: none;"></i>
+                </button>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="user-btn" onclick="toggleUserMenu()">
+                        <i data-lucide="user" class="nav-icon"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info">
+                            <span class="user-email" id="user-email">Loading...</span>
+                        </div>
+                        <a href="/settings" class="dropdown-item">
+                            <i data-lucide="settings"></i> Settings
+                        </a>
+                        <button class="dropdown-item" onclick="logout()">
+                            <i data-lucide="log-out"></i> Logout
+                        </button>
+                    </div>
+                </div>
             </nav>
+            
+            <!-- Hamburger Menu Button (Mobile) -->
+            <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileDrawer()" aria-label="Open menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="4" x2="20" y1="12" y2="12"></line>
+                    <line x1="4" x2="20" y1="6" y2="6"></line>
+                    <line x1="4" x2="20" y1="18" y2="18"></line>
+                </svg>
+            </button>
         </div>
         
         <!-- Connection Info Panel (if device is connected) -->

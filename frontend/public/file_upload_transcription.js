@@ -401,18 +401,42 @@ function displayUploadTranscriptionResults(results) {
 // HELPER FUNCTIONS
 // ============================================
 
-function showNotification(type, message) {
-    // Use existing notification system if available
-    if (typeof window.showNotification === 'function') {
-        window.showNotification(type, message);
+function showNotification(typeOrMessage, message) {
+    // Support both (type, message) and (message, type) patterns
+    let type = 'info';
+    let msg = message;
+    
+    if (typeof message === 'undefined') {
+        // Single argument - just the message
+        msg = typeOrMessage;
+    } else if (['success', 'error', 'warning', 'info'].includes(typeOrMessage)) {
+        type = typeOrMessage;
+        msg = message;
+    } else {
+        msg = typeOrMessage;
+        if (['success', 'error', 'warning', 'info'].includes(message)) {
+            type = message;
+            msg = typeOrMessage;
+        }
+    }
+    
+    // Use notification system if available
+    if (typeof window.notificationSystem !== 'undefined' && window.notificationSystem) {
+        const titleMap = {
+            success: '✅ Success',
+            error: '❌ Error',
+            warning: '⚠️ Warning',
+            info: 'ℹ️ Info'
+        };
+        window.notificationSystem[type](titleMap[type], msg.replace(/<br>/g, '\n'));
         return;
     }
     
     // Fallback to alert
     if (type === 'error') {
-        alert('Error: ' + message.replace(/<br>/g, '\n'));
+        alert('Error: ' + msg.replace(/<br>/g, '\n'));
     } else {
-        alert(message.replace(/<br>/g, '\n'));
+        alert(msg.replace(/<br>/g, '\n'));
     }
 }
 
@@ -420,8 +444,38 @@ function showNotification(type, message) {
 // AUDIO RECORDING (Mobile Support)
 // ============================================
 
+// Check if recording is supported (requires HTTPS or localhost)
+function isRecordingSupported() {
+    // Check for secure context (HTTPS or localhost)
+    const isSecure = window.isSecureContext || 
+                     location.protocol === 'https:' || 
+                     location.hostname === 'localhost' || 
+                     location.hostname === '127.0.0.1';
+    
+    // Check for mediaDevices API
+    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    
+    // Check for MediaRecorder
+    const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
+    
+    return isSecure && hasMediaDevices && hasMediaRecorder;
+}
+
 async function startRecording() {
     try {
+        // Check if recording is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            // Not a secure context - show helpful message
+            const isHTTP = location.protocol === 'http:' && location.hostname !== 'localhost';
+            if (isHTTP) {
+                showNotification('error', 'Recording requires HTTPS. Please access via https:// or use localhost.');
+                console.error('Recording requires secure context (HTTPS). Current protocol:', location.protocol);
+            } else {
+                showNotification('error', 'Recording not supported in this browser.');
+            }
+            return;
+        }
+        
         // Request microphone permission
         const stream = await navigator.mediaDevices.getUserMedia({ 
             audio: {
@@ -532,33 +586,47 @@ function updateRecordingUI(recording) {
     const recordIcon = document.getElementById('record-icon');
     const recordText = document.getElementById('record-text');
     const recordTimer = document.getElementById('record-timer');
+    const recordIndicator = document.getElementById('recording-indicator');
+    const recordSection = document.getElementById('record-section');
     
     if (recordBtn) {
         if (recording) {
             recordBtn.classList.add('recording');
-            recordBtn.style.background = '#ef4444';
-            recordBtn.style.borderColor = '#ef4444';
-            recordBtn.style.color = 'white';
+            recordBtn.style.background = '#dc2626';
         } else {
             recordBtn.classList.remove('recording');
-            recordBtn.style.background = '';
-            recordBtn.style.borderColor = '';
-            recordBtn.style.color = '';
+            recordBtn.style.background = '#333';
         }
     }
     
     if (recordIcon) {
         recordIcon.setAttribute('data-lucide', recording ? 'square' : 'mic');
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
     }
     
     if (recordText) {
-        recordText.textContent = recording ? 'Stop' : 'Record';
+        recordText.textContent = recording ? 'Stop Recording' : 'Start Recording';
     }
     
     if (recordTimer) {
         recordTimer.style.display = recording ? 'inline' : 'none';
         if (!recording) recordTimer.textContent = '';
+    }
+    
+    // Update recording indicator
+    if (recordIndicator) {
+        recordIndicator.style.display = recording ? 'block' : 'none';
+    }
+    
+    // Update record section styling
+    if (recordSection) {
+        if (recording) {
+            recordSection.classList.add('recording-active');
+        } else {
+            recordSection.classList.remove('recording-active');
+        }
     }
 }
 
