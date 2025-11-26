@@ -12,6 +12,50 @@ let recordingStartTime = null;
 let recordingTimer = null;
 
 // ============================================
+// PROCESS LOG FUNCTIONS (Global)
+// ============================================
+
+window.clearProcessLogs = function() {
+    const logContent = document.getElementById('log-content');
+    const resultsLogContent = document.getElementById('results-log-content');
+    if (logContent) logContent.innerHTML = '';
+    if (resultsLogContent) resultsLogContent.innerHTML = '';
+};
+
+window.addProcessLog = function(message) {
+    const logContent = document.getElementById('log-content');
+    const resultsLogContent = document.getElementById('results-log-content');
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `<div style="margin-bottom: 4px;"><span style="color: #888;">[${timestamp}]</span> ${message}</div>`;
+    
+    if (logContent) {
+        logContent.innerHTML += logEntry;
+        logContent.scrollTop = logContent.scrollHeight;
+    }
+    if (resultsLogContent) {
+        resultsLogContent.innerHTML += logEntry;
+        resultsLogContent.scrollTop = resultsLogContent.scrollHeight;
+    }
+};
+
+window.toggleProcessLogs = function() {
+    const processLogs = document.getElementById('process-logs');
+    const resultsLogs = document.getElementById('results-process-logs');
+    
+    if (processLogs) {
+        processLogs.style.display = processLogs.style.display === 'none' ? 'block' : 'none';
+    }
+    if (resultsLogs) {
+        resultsLogs.style.display = resultsLogs.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+// Also available without window prefix
+const clearProcessLogs = window.clearProcessLogs;
+const addProcessLog = window.addProcessLog;
+const toggleProcessLogs = window.toggleProcessLogs;
+
+// ============================================
 // TAB SWITCHING
 // ============================================
 

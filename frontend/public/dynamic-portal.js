@@ -19,8 +19,6 @@ class DynamicPortal {
     
     init() {
         this.createDynamicElements();
-        this.setupRealTimeUpdates();
-        this.initializeCharts();
         this.startActivityMonitoring();
         this.addAnimations();
         
