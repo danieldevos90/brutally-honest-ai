@@ -2,19 +2,25 @@
 """
 Brutally Honest AI - REST API Server
 Provides HTTP endpoints for the frontend using the src/ structure
+With Bearer Token Authentication for external API access
 """
 
 import asyncio
 import sys
 import time
+import os
+import secrets
+import hashlib
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Depends, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 import logging
 from typing import Optional, Dict, Any, List
+from datetime import datetime, timedelta
 import json
 
 # Add src to path
@@ -32,11 +38,147 @@ from documents.vector_store import get_vector_store
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ============================================
+# API KEY / BEARER TOKEN AUTHENTICATION
+# ============================================
+
+# API Configuration
+API_MASTER_KEY = os.environ.get("API_MASTER_KEY", "bh_" + secrets.token_hex(24))
+API_KEYS_FILE = Path(__file__).parent / ".api_keys.json"
+
+# Store API keys in memory (loaded from file)
+api_keys: Dict[str, Dict[str, Any]] = {}
+
+def load_api_keys():
+    """Load API keys from file"""
+    global api_keys
+    if API_KEYS_FILE.exists():
+        try:
+            with open(API_KEYS_FILE, "r") as f:
+                api_keys = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load API keys: {e}")
+            api_keys = {}
+    
+    # Always ensure master key exists
+    master_key_hash = hashlib.sha256(API_MASTER_KEY.encode()).hexdigest()
+    api_keys[master_key_hash] = {
+        "name": "Master Key",
+        "created": datetime.now().isoformat(),
+        "permissions": ["*"],
+        "is_master": True
+    }
+
+def save_api_keys():
+    """Save API keys to file"""
+    try:
+        with open(API_KEYS_FILE, "w") as f:
+            json.dump(api_keys, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save API keys: {e}")
+
+def generate_api_key(name: str = "API Key") -> str:
+    """Generate a new API key"""
+    key = "bh_" + secrets.token_hex(24)
+    key_hash = hashlib.sha256(key.encode()).hexdigest()
+    api_keys[key_hash] = {
+        "name": name,
+        "created": datetime.now().isoformat(),
+        "permissions": ["*"],
+        "is_master": False
+    }
+    save_api_keys()
+    return key
+
+def verify_api_key(key: str) -> Optional[Dict[str, Any]]:
+    """Verify an API key and return its info"""
+    key_hash = hashlib.sha256(key.encode()).hexdigest()
+    return api_keys.get(key_hash)
+
+def revoke_api_key(key: str) -> bool:
+    """Revoke an API key"""
+    key_hash = hashlib.sha256(key.encode()).hexdigest()
+    if key_hash in api_keys and not api_keys[key_hash].get("is_master"):
+        del api_keys[key_hash]
+        save_api_keys()
+        return True
+    return False
+
+# Security scheme
+security = HTTPBearer(auto_error=False)
+
+async def get_api_key(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
+) -> Optional[Dict[str, Any]]:
+    """
+    Verify API key from Bearer token or allow internal requests
+    """
+    # Allow internal requests from localhost (frontend proxy)
+    client_host = request.client.host if request.client else ""
+    if client_host in ["127.0.0.1", "localhost", "::1"]:
+        return {"name": "Internal", "permissions": ["*"], "internal": True}
+    
+    # Check Bearer token
+    if credentials:
+        key_info = verify_api_key(credentials.credentials)
+        if key_info:
+            return key_info
+    
+    # Check X-API-Key header as fallback
+    api_key_header = request.headers.get("X-API-Key")
+    if api_key_header:
+        key_info = verify_api_key(api_key_header)
+        if key_info:
+            return key_info
+    
+    return None
+
+async def require_api_key(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Security(security)
+) -> Dict[str, Any]:
+    """
+    Require valid API key - raises 401 if not authenticated
+    """
+    key_info = await get_api_key(request, credentials)
+    if not key_info:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key. Use Bearer token or X-API-Key header.",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    return key_info
+
+# Load API keys on startup
+load_api_keys()
+
 # FastAPI app
 app = FastAPI(
     title="Brutally Honest AI API",
-    description="REST API for ESP32S3 Brutally Honest AI device management",
-    version="1.0.0"
+    description="""
+## REST API for Brutally Honest AI Platform
+
+### Authentication
+All endpoints require authentication via Bearer token:
+```
+Authorization: Bearer bh_your_api_key_here
+```
+
+Or via X-API-Key header:
+```
+X-API-Key: bh_your_api_key_here
+```
+
+### Getting Started
+1. Use the master API key shown in the console on startup
+2. Or create a new key via POST /auth/keys
+
+### API Documentation
+- Interactive docs: /docs
+- ReDoc: /redoc
+    """,
+    version="2.0.0"
 )
 
 # CORS middleware
@@ -47,6 +189,90 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================
+# AUTH ENDPOINTS (Public)
+# ============================================
+
+@app.get("/auth/info", tags=["Authentication"])
+async def auth_info():
+    """Get authentication information and API key format"""
+    return {
+        "message": "Brutally Honest AI API",
+        "auth_methods": [
+            "Bearer token in Authorization header",
+            "X-API-Key header"
+        ],
+        "key_format": "bh_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "docs_url": "/docs",
+        "create_key": "POST /auth/keys (requires master key)"
+    }
+
+@app.post("/auth/keys", tags=["Authentication"])
+async def create_api_key(
+    name: str = "API Key",
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """Create a new API key (requires authentication with existing key)"""
+    if not api_key.get("is_master") and not api_key.get("internal"):
+        # Only master key or internal can create new keys
+        raise HTTPException(status_code=403, detail="Only master key can create new API keys")
+    
+    new_key = generate_api_key(name)
+    return {
+        "success": True,
+        "api_key": new_key,
+        "name": name,
+        "message": "Store this key securely - it won't be shown again!"
+    }
+
+@app.get("/auth/keys", tags=["Authentication"])
+async def list_api_keys(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """List all API keys (hashed, without actual keys)"""
+    if not api_key.get("is_master") and not api_key.get("internal"):
+        raise HTTPException(status_code=403, detail="Only master key can list API keys")
+    
+    return {
+        "keys": [
+            {
+                "name": info["name"],
+                "created": info["created"],
+                "is_master": info.get("is_master", False),
+                "hash_prefix": key_hash[:12] + "..."
+            }
+            for key_hash, info in api_keys.items()
+        ]
+    }
+
+@app.delete("/auth/keys/{key_prefix}", tags=["Authentication"])
+async def delete_api_key(
+    key_prefix: str,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """Revoke an API key by its hash prefix"""
+    if not api_key.get("is_master") and not api_key.get("internal"):
+        raise HTTPException(status_code=403, detail="Only master key can delete API keys")
+    
+    # Find key by prefix
+    for key_hash in list(api_keys.keys()):
+        if key_hash.startswith(key_prefix):
+            if api_keys[key_hash].get("is_master"):
+                raise HTTPException(status_code=403, detail="Cannot delete master key")
+            del api_keys[key_hash]
+            save_api_keys()
+            return {"success": True, "message": "API key revoked"}
+    
+    raise HTTPException(status_code=404, detail="API key not found")
+
+@app.get("/auth/verify", tags=["Authentication"])
+async def verify_token(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Verify current API key is valid"""
+    return {
+        "valid": True,
+        "name": api_key.get("name"),
+        "permissions": api_key.get("permissions", []),
+        "is_master": api_key.get("is_master", False)
+    }
 
 # Global connector instance (legacy - kept for backward compatibility)
 connector: Optional[UnifiedESP32S3Connector] = None
@@ -118,13 +344,24 @@ async def shutdown_event():
     except Exception as e:
         logger.error(f"❌ Shutdown error: {e}")
 
-@app.get("/")
+@app.get("/", tags=["General"])
 async def root():
-    """Root endpoint"""
-    return {"message": "Brutally Honest AI API Server", "version": "1.0.0"}
+    """Root endpoint - public info"""
+    return {
+        "message": "Brutally Honest AI API Server",
+        "version": "2.0.0",
+        "auth_required": True,
+        "docs": "/docs",
+        "auth_info": "/auth/info"
+    }
 
-@app.get("/status")
-async def get_status():
+@app.get("/health", tags=["General"])
+async def health():
+    """Health check endpoint - public"""
+    return {"status": "healthy", "timestamp": time.time()}
+
+@app.get("/status", tags=["System"])
+async def get_status(api_key: Dict[str, Any] = Depends(require_api_key)):
     """Get overall system status"""
     try:
         conn = await get_connector()
@@ -167,8 +404,8 @@ async def get_status():
         logger.error(f"Failed to get status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get device status: {str(e)}")
 
-@app.get("/devices/status")
-async def get_devices_status():
+@app.get("/devices/status", tags=["Devices"])
+async def get_devices_status(api_key: Dict[str, Any] = Depends(require_api_key)):
     """Get status of all detected ESP32S3 devices"""
     try:
         manager = get_device_manager_instance()
@@ -196,8 +433,8 @@ async def get_devices_status():
             "error": str(e)
         }
 
-@app.post("/devices/connect/{device_id:path}")
-async def connect_to_device(device_id: str):
+@app.post("/devices/connect/{device_id:path}", tags=["Devices"])
+async def connect_to_device(device_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
     """Connect to a specific device"""
     try:
         # URL decode the device ID
@@ -225,8 +462,8 @@ async def connect_to_device(device_id: str):
             "message": f"Connection error: {str(e)}"
         }
 
-@app.post("/devices/disconnect/{device_id:path}")
-async def disconnect_from_device(device_id: str):
+@app.post("/devices/disconnect/{device_id:path}", tags=["Devices"])
+async def disconnect_from_device(device_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
     """Disconnect from a specific device"""
     try:
         # URL decode the device ID
@@ -247,8 +484,8 @@ async def disconnect_from_device(device_id: str):
             "message": f"Disconnect error: {str(e)}"
         }
 
-@app.post("/devices/select/{device_id:path}")
-async def select_device(device_id: str):
+@app.post("/devices/select/{device_id:path}", tags=["Devices"])
+async def select_device(device_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
     """Select a device as the active device"""
     try:
         # URL decode the device ID
@@ -563,8 +800,8 @@ async def upload_recording(file: UploadFile = File(...)):
         logger.error(f"Upload error: {e}")
         return {"success": False, "error": str(e)}
 
-@app.post("/ai/process")
-async def process_with_ai(request_data: Dict[str, Any]):
+@app.post("/ai/process", tags=["AI Processing"])
+async def process_with_ai(request_data: Dict[str, Any], api_key: Dict[str, Any] = Depends(require_api_key)):
     """Process audio file with LLAMA AI"""
     try:
         filename = request_data.get("filename", "")
@@ -678,13 +915,14 @@ async def switch_connection(connection_data: Dict[str, Any]):
 
 # Document Management Endpoints
 
-@app.post("/documents/upload")
+@app.post("/documents/upload", tags=["Documents"])
 async def upload_document(
     file: UploadFile = File(...),
     tags: Optional[str] = Form(None),
     context: Optional[str] = Form(None),
     category: Optional[str] = Form(None),
-    related_documents: Optional[str] = Form(None)
+    related_documents: Optional[str] = Form(None),
+    api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """Upload and process a document (txt, pdf, doc, docx) with optional metadata"""
     try:
@@ -757,8 +995,8 @@ async def upload_document(
         logger.error(f"Document upload error: {e}")
         raise HTTPException(status_code=500, detail=f"Document upload failed: {str(e)}")
 
-@app.get("/documents/list")
-async def list_documents(tags: Optional[str] = None, category: Optional[str] = None):
+@app.get("/documents/list", tags=["Documents"])
+async def list_documents(tags: Optional[str] = None, category: Optional[str] = None, api_key: Dict[str, Any] = Depends(require_api_key)):
     """List all documents with optional filtering by tags or category"""
     try:
         vector_store = await get_vector_store()
@@ -776,8 +1014,8 @@ async def list_documents(tags: Optional[str] = None, category: Optional[str] = N
         logger.error(f"Failed to list documents: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
 
-@app.get("/documents/search")
-async def search_documents(query: str, limit: int = 5):
+@app.get("/documents/search", tags=["Documents"])
+async def search_documents(query: str, limit: int = 5, api_key: Dict[str, Any] = Depends(require_api_key)):
     """Search documents using vector similarity"""
     try:
         if not query or not query.strip():
@@ -1480,10 +1718,22 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.close()
 
 if __name__ == "__main__":
-    print("🎯 Starting Brutally Honest AI API Server...")
-    print("📡 API will be available at: http://localhost:8000")
-    print("🔌 WebSocket endpoint: ws://localhost:8000/ws")
-    print("📚 API docs: http://localhost:8000/docs")
+    print("\n" + "="*60)
+    print("🎯 BRUTALLY HONEST AI - API SERVER")
+    print("="*60)
+    print(f"📡 API URL: http://localhost:8000")
+    print(f"📚 API Docs: http://localhost:8000/docs")
+    print(f"🔌 WebSocket: ws://localhost:8000/ws")
+    print("="*60)
+    print("🔐 AUTHENTICATION")
+    print("="*60)
+    print(f"🔑 Master API Key: {API_MASTER_KEY}")
+    print("")
+    print("Use in requests:")
+    print(f"  Authorization: Bearer {API_MASTER_KEY}")
+    print("  OR")
+    print(f"  X-API-Key: {API_MASTER_KEY}")
+    print("="*60 + "\n")
     
     uvicorn.run(
         "api_server:app",

@@ -20,6 +20,9 @@
             <div class="logo-title">
                 <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
                 <h1>Brutally Honest</h1>
+                <button class="info-btn" onclick="showPageInfo()" title="How it works">
+                    <i data-lucide="info" class="info-icon"></i>
+                </button>
             </div>
             
             <!-- Navigation Menu -->
@@ -40,10 +43,30 @@
                     <i data-lucide="check-circle" class="nav-icon"></i>
                     Validation
                 </a>
-                <a href="#" class="nav-link" onclick="showDocumentation()">
+                <a href="/documentation" class="nav-link">
                     <i data-lucide="book-open" class="nav-icon"></i>
                     Documentation
                 </a>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="user-btn" onclick="toggleUserMenu()">
+                        <i data-lucide="user" class="nav-icon"></i>
+                        <span id="current-user">Account</span>
+                        <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info">
+                            <span class="user-email" id="user-email">Loading...</span>
+                        </div>
+                        <a href="/settings" class="dropdown-item">
+                            <i data-lucide="settings"></i> Settings
+                        </a>
+                        <button class="dropdown-item" onclick="logout()">
+                            <i data-lucide="log-out"></i> Logout
+                        </button>
+                    </div>
+                </div>
             </nav>
         </div>
 
@@ -377,6 +400,64 @@
                 alert(message);
             }
         }
+        
+        // Info Modal - How Validation Works
+        function showPageInfo() {
+            const modal = document.createElement('div');
+            modal.className = 'info-modal';
+            modal.innerHTML = `
+                <div class="info-modal-content">
+                    <button class="info-modal-close" onclick="this.closest('.info-modal').remove()">&times;</button>
+                    <h2>✅ How Validation Works</h2>
+                    
+                    <h3>1. Knowledge Base Matching</h3>
+                    <p>Claims are compared against your uploaded documents using semantic search to find relevant evidence.</p>
+                    
+                    <h3>2. Confidence Scoring</h3>
+                    <ul>
+                        <li><span style="color: #22c55e;">✅ Verified</span> - Evidence strongly supports the claim (>70%)</li>
+                        <li><span style="color: #f59e0b;">⚠️ Partially Verified</span> - Some supporting evidence (40-70%)</li>
+                        <li><span style="color: #ef4444;">❌ Not Verified</span> - No supporting evidence found (<40%)</li>
+                        <li><span style="color: #8b5cf6;">🔄 Contradiction</span> - Evidence contradicts the claim</li>
+                    </ul>
+                    
+                    <h3>3. Evidence Trail</h3>
+                    <p>Each validation shows the source documents and specific passages used to evaluate the claim.</p>
+                    
+                    <p style="margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 13px;">
+                        <strong>Best Practice:</strong> Upload comprehensive, up-to-date documents to ensure accurate validation results.
+                    </p>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+        }
+        
+        // User Menu
+        function toggleUserMenu() {
+            document.getElementById('user-dropdown').classList.toggle('show');
+        }
+        
+        async function logout() {
+            try { await fetch('/api/auth/logout', { method: 'POST' }); } catch (e) {}
+            window.location.href = '/login';
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-menu')) {
+                const dropdown = document.getElementById('user-dropdown');
+                if (dropdown) dropdown.classList.remove('show');
+            }
+        });
+        
+        fetch('/api/auth/status').then(r => r.json()).then(data => {
+            if (data.authenticated && data.user) {
+                document.getElementById('current-user').textContent = data.user.name || 'Account';
+                document.getElementById('user-email').textContent = data.user.email;
+            }
+        }).catch(() => {});
     </script>
 
     <style>

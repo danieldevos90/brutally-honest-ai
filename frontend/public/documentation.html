@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Brutally Honest AI</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="logo.svg">
+    <link rel="icon" type="image/png" sizes="16x16" href="logo.svg">
+    <link rel="apple-touch-icon" href="logo.svg">
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dynamic-portal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-title">
+                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
+                <h1>Brutally Honest</h1>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="nav-menu">
+                <a href="/" class="nav-link">
+                    <i data-lucide="home" class="nav-icon"></i>
+                    Home
+                </a>
+                <a href="/documents" class="nav-link">
+                    <i data-lucide="file-text" class="nav-icon"></i>
+                    Documents
+                </a>
+                <a href="/profiles" class="nav-link">
+                    <i data-lucide="users" class="nav-icon"></i>
+                    Profiles
+                </a>
+                <a href="/validation" class="nav-link">
+                    <i data-lucide="check-circle" class="nav-icon"></i>
+                    Validation
+                </a>
+                <a href="/documentation" class="nav-link active">
+                    <i data-lucide="book-open" class="nav-icon"></i>
+                    Documentation
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            
+            <!-- Quick Start -->
+            <div class="section">
+                <h2>🚀 Quick Start</h2>
+                <div class="doc-content">
+                    <p>Brutally Honest AI is a voice validation platform that transcribes audio and provides unfiltered AI analysis with fact-checking capabilities.</p>
+                    
+                    <div class="quick-steps">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <h4>Connect Device</h4>
+                                <p>Connect your ESP32S3 device via USB or Bluetooth from the Home page.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <h4>Upload Documents</h4>
+                                <p>Add reference documents to the Knowledge Base for fact-checking.</p>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <h4>Record & Analyze</h4>
+                                <p>Record audio and get AI-powered transcription with brutal honesty analysis.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="section">
+                <h2>✨ Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i data-lucide="mic"></i>
+                        </div>
+                        <h3>Audio Recording</h3>
+                        <p>Record audio via ESP32S3 device with SD card storage. Support for USB and Bluetooth connections.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i data-lucide="file-audio"></i>
+                        </div>
+                        <h3>Whisper Transcription</h3>
+                        <p>High-quality audio-to-text conversion using OpenAI Whisper running locally on your device.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i data-lucide="brain"></i>
+                        </div>
+                        <h3>LLAMA Analysis</h3>
+                        <p>Local LLM processing with Ollama for sentiment analysis, summarization, and brutal honesty feedback.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i data-lucide="shield-check"></i>
+                        </div>
+                        <h3>Fact Checking</h3>
+                        <p>Cross-reference claims against your uploaded document knowledge base for validation.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i data-lucide="database"></i>
+                        </div>
+                        <h3>Knowledge Base</h3>
+                        <p>Upload PDF, DOC, TXT files to build a searchable vector database for document retrieval.</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i data-lucide="users"></i>
+                        </div>
+                        <h3>Profile Management</h3>
+                        <p>Create profiles for clients, brands, and persons to track facts and validate claims.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Reference -->
+            <div class="section">
+                <h2>🔌 API Reference</h2>
+                <div class="doc-content">
+                    <p>The API is available at <code>https://api.brutallyhonest.io</code> or locally at <code>http://localhost:8000</code></p>
+                    
+                    <div class="api-section">
+                        <h3>Device Endpoints</h3>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/status</code>
+                            <p>Get system and device status</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/devices/status</code>
+                            <p>List all connected ESP32S3 devices</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method post">POST</span>
+                            <code>/devices/connect/{device_id}</code>
+                            <p>Connect to a specific device</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/device/recordings</code>
+                            <p>List recordings from connected device</p>
+                        </div>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h3>AI Processing</h3>
+                        <div class="api-endpoint">
+                            <span class="method post">POST</span>
+                            <code>/ai/process</code>
+                            <p>Process audio file with transcription and analysis</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method post">POST</span>
+                            <code>/ai/process_with_validation</code>
+                            <p>Process with document validation enabled</p>
+                        </div>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h3>Documents</h3>
+                        <div class="api-endpoint">
+                            <span class="method post">POST</span>
+                            <code>/documents/upload</code>
+                            <p>Upload document to knowledge base</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/documents/search?query=...</code>
+                            <p>Search documents by semantic similarity</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method post">POST</span>
+                            <code>/documents/query</code>
+                            <p>Query documents with LLAMA response</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/documents/stats</code>
+                            <p>Get knowledge base statistics</p>
+                        </div>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h3>Profiles</h3>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/profiles/clients</code>
+                            <p>List client profiles</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method post">POST</span>
+                            <code>/profiles/clients</code>
+                            <p>Create new client profile</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/profiles/brands</code>
+                            <p>List brand profiles</p>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="method get">GET</span>
+                            <code>/profiles/persons</code>
+                            <p>List person profiles</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hardware Setup -->
+            <div class="section">
+                <h2>🔧 Hardware Setup</h2>
+                <div class="doc-content">
+                    <h3>Supported Devices</h3>
+                    <ul>
+                        <li><strong>XIAO ESP32S3 Sense</strong> with Expansion Board</li>
+                        <li>SD Card for recording storage</li>
+                        <li>OLED Display (optional)</li>
+                    </ul>
+                    
+                    <h3>Connections</h3>
+                    <ul>
+                        <li><strong>USB:</strong> Connect via USB-C cable</li>
+                        <li><strong>Bluetooth:</strong> Connect wirelessly (requires initial USB setup)</li>
+                    </ul>
+                    
+                    <h3>LED Indicators</h3>
+                    <ul>
+                        <li><strong>Solid:</strong> Ready</li>
+                        <li><strong>Blinking:</strong> Recording in progress</li>
+                        <li><strong>Fast blink:</strong> Processing/uploading</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Troubleshooting -->
+            <div class="section">
+                <h2>❓ Troubleshooting</h2>
+                <div class="doc-content">
+                    <div class="faq-item">
+                        <h4>Device not detected?</h4>
+                        <p>Try putting the ESP32S3 in boot mode: Hold BOOT button, press RESET, release BOOT after 2 seconds.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Transcription slow?</h4>
+                        <p>Consider using the "base" Whisper model instead of "medium" for faster processing.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>LLAMA not responding?</h4>
+                        <p>Check if Ollama is running: <code>systemctl status ollama</code></p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Document upload failing?</h4>
+                        <p>Ensure file is under 10MB and in supported format (TXT, PDF, DOC, DOCX).</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <style>
+        .doc-content {
+            line-height: 1.7;
+            color: #333;
+        }
+        
+        .doc-content p {
+            margin-bottom: 16px;
+        }
+        
+        .doc-content code {
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+        
+        .doc-content ul {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+        
+        .doc-content li {
+            margin-bottom: 8px;
+        }
+        
+        .doc-content h3 {
+            margin: 24px 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .doc-content h4 {
+            margin: 16px 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        /* Quick Steps */
+        .quick-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .step {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+        }
+        
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: #000;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .step-content h4 {
+            margin: 0 0 4px 0;
+            font-size: 15px;
+        }
+        
+        .step-content p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.2s ease;
+        }
+        
+        .feature-card:hover {
+            border-color: #ddd;
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: #000;
+            color: #fff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        
+        .feature-icon i {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .feature-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .feature-card p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        /* API Reference */
+        .api-section {
+            margin-bottom: 24px;
+        }
+        
+        .api-section h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .api-endpoint .method {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .api-endpoint .method.get {
+            background: #10b981;
+            color: #fff;
+        }
+        
+        .api-endpoint .method.post {
+            background: #3b82f6;
+            color: #fff;
+        }
+        
+        .api-endpoint .method.delete {
+            background: #ef4444;
+            color: #fff;
+        }
+        
+        .api-endpoint code {
+            font-size: 13px;
+            background: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .api-endpoint p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        /* FAQ */
+        .faq-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .faq-item h4 {
+            margin: 0 0 8px 0;
+            color: #000;
+        }
+        
+        .faq-item p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
+
