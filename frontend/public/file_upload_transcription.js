@@ -4,6 +4,13 @@
 // Global state for uploaded files
 let uploadedFiles = new Map(); // file.name -> File object
 
+// Global state for audio recording
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let recordingStartTime = null;
+let recordingTimer = null;
+
 // ============================================
 // TAB SWITCHING
 // ============================================
@@ -409,6 +416,179 @@ function showNotification(type, message) {
     }
 }
 
+// ============================================
+// AUDIO RECORDING (Mobile Support)
+// ============================================
+
+async function startRecording() {
+    try {
+        // Request microphone permission
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 44100
+            } 
+        });
+        
+        // Determine best supported format
+        const mimeType = getSupportedMimeType();
+        
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onstop = () => {
+            // Stop all tracks
+            stream.getTracks().forEach(track => track.stop());
+            
+            // Create blob from chunks
+            const audioBlob = new Blob(audioChunks, { type: mimeType });
+            
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const extension = mimeType.includes('webm') ? 'webm' : 
+                              mimeType.includes('mp4') ? 'm4a' : 
+                              mimeType.includes('ogg') ? 'ogg' : 'wav';
+            const filename = `recording_${timestamp}.${extension}`;
+            
+            // Create File object from Blob
+            const file = new File([audioBlob], filename, { type: mimeType });
+            
+            // Add to uploaded files
+            uploadedFiles.set(filename, file);
+            updateUploadedFilesDisplay();
+            
+            showNotification('success', `Recording saved: ${filename}`);
+        };
+        
+        // Start recording
+        mediaRecorder.start(1000); // Collect data every second
+        isRecording = true;
+        recordingStartTime = Date.now();
+        
+        // Update UI
+        updateRecordingUI(true);
+        startRecordingTimer();
+        
+    } catch (error) {
+        console.error('Error starting recording:', error);
+        
+        if (error.name === 'NotAllowedError') {
+            showNotification('error', 'Microphone access denied. Please allow microphone access to record.');
+        } else if (error.name === 'NotFoundError') {
+            showNotification('error', 'No microphone found. Please connect a microphone.');
+        } else {
+            showNotification('error', `Recording error: ${error.message}`);
+        }
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        
+        // Update UI
+        updateRecordingUI(false);
+        stopRecordingTimer();
+    }
+}
+
+function toggleRecording() {
+    if (isRecording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+}
+
+function getSupportedMimeType() {
+    const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/wav'
+    ];
+    
+    for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+            return type;
+        }
+    }
+    
+    return 'audio/webm'; // Fallback
+}
+
+function updateRecordingUI(recording) {
+    const recordBtn = document.getElementById('record-btn');
+    const recordIcon = document.getElementById('record-icon');
+    const recordText = document.getElementById('record-text');
+    const recordTimer = document.getElementById('record-timer');
+    
+    if (recordBtn) {
+        if (recording) {
+            recordBtn.classList.add('recording');
+            recordBtn.style.background = '#ef4444';
+            recordBtn.style.borderColor = '#ef4444';
+            recordBtn.style.color = 'white';
+        } else {
+            recordBtn.classList.remove('recording');
+            recordBtn.style.background = '';
+            recordBtn.style.borderColor = '';
+            recordBtn.style.color = '';
+        }
+    }
+    
+    if (recordIcon) {
+        recordIcon.setAttribute('data-lucide', recording ? 'square' : 'mic');
+        lucide.createIcons();
+    }
+    
+    if (recordText) {
+        recordText.textContent = recording ? 'Stop' : 'Record';
+    }
+    
+    if (recordTimer) {
+        recordTimer.style.display = recording ? 'inline' : 'none';
+        if (!recording) recordTimer.textContent = '';
+    }
+}
+
+function startRecordingTimer() {
+    const timerEl = document.getElementById('record-timer');
+    if (!timerEl) return;
+    
+    recordingTimer = setInterval(() => {
+        if (!recordingStartTime) return;
+        
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const mins = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const secs = (elapsed % 60).toString().padStart(2, '0');
+        timerEl.textContent = `${mins}:${secs}`;
+    }, 1000);
+}
+
+function stopRecordingTimer() {
+    if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+    }
+    recordingStartTime = null;
+}
+
+// Check if recording is supported
+function isRecordingSupported() {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+}
+
 // Make functions globally available
 window.switchTranscriptionTab = switchTranscriptionTab;
 window.handleDragOver = handleDragOver;
@@ -418,4 +598,8 @@ window.handleFileSelect = handleFileSelect;
 window.removeUploadedFile = removeUploadedFile;
 window.clearUploadedFiles = clearUploadedFiles;
 window.transcribeUploadedFiles = transcribeUploadedFiles;
+window.startRecording = startRecording;
+window.stopRecording = stopRecording;
+window.toggleRecording = toggleRecording;
+window.isRecordingSupported = isRecordingSupported;
 

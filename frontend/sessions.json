@@ -6,5 +6,13 @@
     "role": "admin",
     "created": 1764172223105,
     "expires": 1764258623104
+  },
+  "84a22de39dc8a7d5218a98d41cc06c14d9badf684a436372e6e498d76904219f": {
+    "userId": "admin",
+    "email": "admin@brutallyhonest.io",
+    "name": "Admin",
+    "role": "admin",
+    "created": 1764174736481,
+    "expires": 1764261136481
   }
 }

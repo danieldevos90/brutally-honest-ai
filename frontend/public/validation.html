@@ -10,65 +10,28 @@
     <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="navigation.js"></script>
     <script src="dynamic-portal.js"></script>
     <script src="notifications.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo-title">
-                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
-                <h1>Brutally Honest</h1>
-            </div>
-            
-            <!-- Navigation Menu -->
-            <nav class="nav-menu">
-                <a href="/" class="nav-link">
-                    <i data-lucide="home" class="nav-icon"></i>
-                    Home
-                </a>
-                <a href="/documents" class="nav-link">
-                    <i data-lucide="file-text" class="nav-icon"></i>
-                    Documents
-                </a>
-                <a href="/profiles" class="nav-link">
-                    <i data-lucide="users" class="nav-icon"></i>
-                    Profiles
-                </a>
-                <a href="/validation" class="nav-link active">
-                    <i data-lucide="check-circle" class="nav-icon"></i>
-                    Validation
-                </a>
-                <a href="/documentation" class="nav-link">
-                    <i data-lucide="book-open" class="nav-icon"></i>
-                    Documentation
-                </a>
-                
-                <!-- User Menu -->
-                <div class="user-menu">
-                    <button class="user-btn" onclick="toggleUserMenu()">
-                        <i data-lucide="user" class="nav-icon"></i>
-                        <span id="current-user">Account</span>
-                        <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="user-info">
-                            <span class="user-email" id="user-email">Loading...</span>
-                        </div>
-                        <a href="/settings" class="dropdown-item">
-                            <i data-lucide="settings"></i> Settings
-                        </a>
-                        <button class="dropdown-item" onclick="logout()">
-                            <i data-lucide="log-out"></i> Logout
-                        </button>
-                    </div>
-                </div>
-            </nav>
-        </div>
+        <!-- Navigation injected by navigation.js -->
+        <div id="navigation-placeholder"></div>
 
         <!-- Main Content -->
         <div class="main-content">
+
+            <!-- Knowledge Base Status -->
+            <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+                <div style="display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 16px; font-size: 12px; color: #666;">
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i><span id="kb-documents" style="font-weight: 600; color: #333;">0</span> docs</span>
+                    <span style="color: #ccc;">·</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="users" style="width: 12px; height: 12px;"></i><span id="kb-profiles" style="font-weight: 600; color: #333;">0</span> profiles</span>
+                    <span style="color: #ccc;">·</span>
+                    <span style="display: inline-flex; align-items: center; gap: 4px; color: #22c55e;"><i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>Ready</span>
+                </div>
+            </div>
 
             <!-- Quick Test Section -->
             <div class="section">
@@ -102,7 +65,7 @@
             <div class="section">
                 <h2>How Validation Works</h2>
                 <div style="display: grid; gap: 15px;">
-                    <div style="background: #f8f9fa; border-radius: 8px; padding: 20px;">
+                    <div style="padding: 20px;">
                         <div style="display: flex; align-items: start; gap: 15px;">
                             <div style="background: #e7f3ff; border-radius: 50%; padding: 12px; flex-shrink: 0;">
                                 <i data-lucide="search" style="width: 24px; height: 24px; color: #0066cc;"></i>
@@ -114,7 +77,7 @@
                         </div>
                     </div>
                     
-                    <div style="background: #f8f9fa; border-radius: 8px; padding: 20px;">
+                    <div style="padding: 20px;">
                         <div style="display: flex; align-items: start; gap: 15px;">
                             <div style="background: #fff3e0; border-radius: 50%; padding: 12px; flex-shrink: 0;">
                                 <i data-lucide="database" style="width: 24px; height: 24px; color: #ff9800;"></i>
@@ -126,7 +89,7 @@
                         </div>
                     </div>
                     
-                    <div style="background: #f8f9fa; border-radius: 8px; padding: 20px;">
+                    <div style="padding: 20px;">
                         <div style="display: flex; align-items: start; gap: 15px;">
                             <div style="background: #e8f5e9; border-radius: 50%; padding: 12px; flex-shrink: 0;">
                                 <i data-lucide="brain" style="width: 24px; height: 24px; color: #4caf50;"></i>
@@ -138,7 +101,7 @@
                         </div>
                     </div>
                     
-                    <div style="background: #f8f9fa; border-radius: 8px; padding: 20px;">
+                    <div style="padding: 20px;">
                         <div style="display: flex; align-items: start; gap: 15px;">
                             <div style="background: #fce4ec; border-radius: 50%; padding: 12px; flex-shrink: 0;">
                                 <i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: #e91e63;"></i>
@@ -148,30 +111,6 @@
                                 <p style="color: #666; margin: 0;">Get a detailed report with credibility score and warnings for contradictions</p>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Knowledge Base Status -->
-            <div class="section">
-                <h2>Knowledge Base Status</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; text-align: center;">
-                        <i data-lucide="file-text" style="width: 32px; height: 32px; color: #666; margin-bottom: 10px;"></i>
-                        <div style="font-size: 24px; font-weight: 600; margin-bottom: 5px;" id="kb-documents">0</div>
-                        <div style="color: #666; font-size: 14px;">Documents</div>
-                    </div>
-                    
-                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; text-align: center;">
-                        <i data-lucide="users" style="width: 32px; height: 32px; color: #666; margin-bottom: 10px;"></i>
-                        <div style="font-size: 24px; font-weight: 600; margin-bottom: 5px;" id="kb-profiles">0</div>
-                        <div style="color: #666; font-size: 14px;">Profiles</div>
-                    </div>
-                    
-                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; text-align: center;">
-                        <i data-lucide="check-circle" style="width: 32px; height: 32px; color: #666; margin-bottom: 10px;"></i>
-                        <div style="font-size: 24px; font-weight: 600; margin-bottom: 5px;">Ready</div>
-                        <div style="color: #666; font-size: 14px;">System Status</div>
                     </div>
                 </div>
             </div>
@@ -482,7 +421,58 @@
         .btn-primary:hover {
             background: #333;
         }
+
+        .kb-status-bar {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            background: #f8f8f8;
+            border: 1px solid #e5e5e5;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+
+        .kb-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kb-item svg {
+            width: 13px !important;
+            height: 13px !important;
+            stroke-width: 2;
+        }
+
+        .kb-item span {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .kb-divider {
+            color: #ccc;
+            font-size: 10px;
+        }
+
+        .kb-ready {
+            color: #22c55e;
+        }
+
+        .kb-ready svg {
+            color: #22c55e;
+        }
     </style>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-copyright">© 2025 All rights reserved</span>
+        </div>
+    </footer>
 </body>
 </html>
 

@@ -17,6 +17,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Navigation component -->
+    <script src="navigation.js"></script>
     <!-- Multi-file functionality -->
     <script src="multi_file_functions.js"></script>
     <!-- File upload transcription (no device required) -->
@@ -30,60 +32,8 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo-title">
-                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
-                <h1>Brutally Honest</h1>
-                <button class="info-btn" onclick="showPageInfo()" title="How it works">
-                    <i data-lucide="info" class="info-icon"></i>
-                </button>
-            </div>
-            
-            <!-- Navigation Menu -->
-            <nav class="nav-menu">
-                <a href="/" class="nav-link active">
-                    <i data-lucide="home" class="nav-icon"></i>
-                    Home
-                </a>
-                <a href="/documents" class="nav-link">
-                    <i data-lucide="file-text" class="nav-icon"></i>
-                    Documents
-                </a>
-                <a href="/profiles" class="nav-link">
-                    <i data-lucide="users" class="nav-icon"></i>
-                    Profiles
-                </a>
-                <a href="/validation" class="nav-link">
-                    <i data-lucide="check-circle" class="nav-icon"></i>
-                    Validation
-                </a>
-                <a href="/documentation" class="nav-link">
-                    <i data-lucide="book-open" class="nav-icon"></i>
-                    Documentation
-                </a>
-                
-                <!-- User Menu -->
-                <div class="user-menu">
-                    <button class="user-btn" onclick="toggleUserMenu()">
-                        <i data-lucide="user" class="nav-icon"></i>
-                        <span id="current-user">Account</span>
-                        <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="user-info" id="user-info">
-                            <span class="user-email" id="user-email">Loading...</span>
-                        </div>
-                        <a href="/settings" class="dropdown-item">
-                            <i data-lucide="settings"></i> Settings
-                        </a>
-                        <button class="dropdown-item" onclick="logout()">
-                            <i data-lucide="log-out"></i> Logout
-                        </button>
-                    </div>
-                </div>
-            </nav>
-        </div>
+        <!-- Navigation injected by navigation.js -->
+        <div id="navigation-placeholder"></div>
         
         <!-- Connection Info Panel -->
         <div class="connection-info" id="connection-info" style="display: none;">
@@ -182,14 +132,18 @@
                         <div id="file-upload-area" class="file-upload-dropzone" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('file-upload-input').click()">
                             <input type="file" id="file-upload-input" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" multiple style="display: none;" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
                             <div class="upload-content">
-                                <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: #999; margin-bottom: 12px;"></i>
-                                <p style="font-weight: 500; margin-bottom: 4px;">Drag & drop audio files here</p>
-                                <p style="color: #999; font-size: 13px; margin-bottom: 12px;">or click anywhere to browse</p>
-                                <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-upload-input').click()" style="font-size: 13px;">
-                                    <i data-lucide="folder-open" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-                                    Browse Files
-                                </button>
-                                <p style="color: #bbb; font-size: 11px; margin-top: 12px;">Supports WAV, MP3, M4A, OGG, FLAC (max 100MB)</p>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                                    <i data-lucide="upload-cloud" style="width: 20px; height: 20px; color: #999;"></i>
+                                    <span style="font-weight: 500; font-size: 14px;">Drop audio or</span>
+                                    <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-upload-input').click()" style="font-size: 13px; padding: 6px 12px;">browse</button>
+                                    <span style="color: #999; font-size: 13px;">or</span>
+                                    <button id="record-btn" class="btn btn-secondary" onclick="event.stopPropagation(); toggleRecording()" style="font-size: 13px; padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
+                                        <i id="record-icon" data-lucide="mic" style="width: 14px; height: 14px;"></i>
+                                        <span id="record-text">Record</span>
+                                        <span id="record-timer" style="display: none; font-family: monospace; font-size: 12px;"></span>
+                                    </button>
+                                </div>
+                                <p style="color: #999; font-size: 11px; margin-top: 8px;">WAV, MP3, M4A, OGG, FLAC (max 100MB)</p>
                             </div>
                         </div>
                         
@@ -2273,5 +2227,13 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', loadUserInfo);
     </script>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-copyright">© 2025 All rights reserved</span>
+        </div>
+    </footer>
 </body>
 </html>

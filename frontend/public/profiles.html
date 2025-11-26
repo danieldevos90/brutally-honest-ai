@@ -10,83 +10,29 @@
     <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="navigation.js"></script>
     <script src="dynamic-portal.js"></script>
     <script src="notifications.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo-title">
-                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
-                <h1>Brutally Honest</h1>
-                <button class="info-btn" onclick="showPageInfo()" title="How it works">
-                    <i data-lucide="info" class="info-icon"></i>
-                </button>
-            </div>
-            
-            <!-- Navigation Menu -->
-            <nav class="nav-menu">
-                <a href="/" class="nav-link">
-                    <i data-lucide="home" class="nav-icon"></i>
-                    Home
-                </a>
-                <a href="/documents" class="nav-link">
-                    <i data-lucide="file-text" class="nav-icon"></i>
-                    Documents
-                </a>
-                <a href="/profiles" class="nav-link active">
-                    <i data-lucide="users" class="nav-icon"></i>
-                    Profiles
-                </a>
-                <a href="/validation" class="nav-link">
-                    <i data-lucide="check-circle" class="nav-icon"></i>
-                    Validation
-                </a>
-                <a href="/documentation" class="nav-link">
-                    <i data-lucide="book-open" class="nav-icon"></i>
-                    Documentation
-                </a>
-                
-                <!-- User Menu -->
-                <div class="user-menu">
-                    <button class="user-btn" onclick="toggleUserMenu()">
-                        <i data-lucide="user" class="nav-icon"></i>
-                        <span id="current-user">Account</span>
-                        <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <div class="user-dropdown" id="user-dropdown">
-                        <div class="user-info">
-                            <span class="user-email" id="user-email">Loading...</span>
-                        </div>
-                        <a href="/settings" class="dropdown-item">
-                            <i data-lucide="settings"></i> Settings
-                        </a>
-                        <button class="dropdown-item" onclick="logout()">
-                            <i data-lucide="log-out"></i> Logout
-                        </button>
-                    </div>
-                </div>
-            </nav>
-        </div>
+        <!-- Navigation injected by navigation.js -->
+        <div id="navigation-placeholder"></div>
 
         <!-- Main Content -->
         <div class="main-content">
 
             <!-- Profile Type Selection -->
             <div class="section">
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button class="tab-button active" onclick="switchProfileType('clients')" id="tab-clients">
-                        <i data-lucide="briefcase" style="width: 16px; height: 16px;"></i>
-                        Clients
+                <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 20px;">
+                    <button class="icon-tab active" onclick="switchProfileType('clients')" id="tab-clients" title="Clients">
+                        <i data-lucide="briefcase"></i>
                     </button>
-                    <button class="tab-button" onclick="switchProfileType('brands')" id="tab-brands">
-                        <i data-lucide="tag" style="width: 16px; height: 16px;"></i>
-                        Brands
+                    <button class="icon-tab" onclick="switchProfileType('brands')" id="tab-brands" title="Brands">
+                        <i data-lucide="tag"></i>
                     </button>
-                    <button class="tab-button" onclick="switchProfileType('persons')" id="tab-persons">
-                        <i data-lucide="user" style="width: 16px; height: 16px;"></i>
-                        Persons
+                    <button class="icon-tab" onclick="switchProfileType('persons')" id="tab-persons" title="Persons">
+                        <i data-lucide="user"></i>
                     </button>
                 </div>
             </div>
@@ -425,28 +371,33 @@
     </script>
 
     <style>
-        .tab-button {
+        .icon-tab {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 8px;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: #000;
+            color: white;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
             transition: all 0.2s;
         }
         
-        .tab-button:hover {
-            background: #f5f5f5;
+        .icon-tab i {
+            width: 22px;
+            height: 22px;
         }
         
-        .tab-button.active {
+        .icon-tab:hover {
+            background: #333;
+            transform: scale(1.05);
+        }
+        
+        .icon-tab.active {
             background: #000;
-            color: white;
-            border-color: #000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         
         .btn-primary {
@@ -469,6 +420,14 @@
             background: #333;
         }
     </style>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-copyright">© 2025 All rights reserved</span>
+        </div>
+    </footer>
 </body>
 </html>
 

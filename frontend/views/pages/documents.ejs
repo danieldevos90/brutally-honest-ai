@@ -2,27 +2,32 @@
 <div class="section">
     <h2>Upload Documents</h2>
     <div class="upload-section">
-        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+        <div id="upload-area" class="file-upload-dropzone" onclick="document.getElementById('file-input').click()">
+            <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;">
             <div class="upload-content">
-                <i data-lucide="upload" style="width: 48px; height: 48px; margin-bottom: 15px; color: #666;"></i>
-                <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 8px;">Add documents to knowledge base</div>
-                <div class="upload-subtitle">TXT, PDF, DOC, DOCX • Text will be extracted and indexed</div>
+                <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                <p style="font-weight: 500; margin-bottom: 4px; color: var(--text-primary);">Drag & drop documents here</p>
+                <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">or click anywhere to browse</p>
+                <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-input').click()" style="font-size: 13px;">
+                    <i data-lucide="folder-open" style="width: 14px; height: 14px; margin-right: 4px;"></i>
+                    Browse Files
+                </button>
+                <p style="color: var(--text-muted); font-size: 11px; margin-top: 12px;">Supports TXT, PDF, DOC, DOCX</p>
             </div>
         </div>
-        <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;">
         
         <!-- Enhanced Metadata Form -->
-        <div id="metadata-form" style="display: none; margin-top: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 15px 0;">Add Document Metadata</h3>
+        <div id="metadata-form" style="display: none; margin-top: 20px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-primary);">Add Document Metadata</h3>
             <div style="display: grid; gap: 15px;">
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Tags (comma-separated)</label>
-                    <input type="text" id="doc-tags" placeholder="e.g., policy, brand, official, 2025" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                    <small style="color: #666;">Use tags to organize and filter documents</small>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--text-primary);">Tags (comma-separated)</label>
+                    <input type="text" id="doc-tags" placeholder="e.g., policy, brand, official, 2025" style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary);">
+                    <small style="color: var(--text-muted);">Use tags to organize and filter documents</small>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Category</label>
-                    <select id="doc-category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--text-primary);">Category</label>
+                    <select id="doc-category" style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary);">
                         <option value="">Select category...</option>
                         <option value="policy">Policy</option>
                         <option value="contract">Contract</option>
@@ -33,15 +38,15 @@
                     </select>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">Context Description</label>
-                    <textarea id="doc-context" rows="3" placeholder="Describe what this document is about and why it's important..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                    <label style="display: block; margin-bottom: 5px; font-weight: 500; color: var(--text-primary);">Context Description</label>
+                    <textarea id="doc-context" rows="3" placeholder="Describe what this document is about and why it's important..." style="width: 100%; padding: 10px; border: 1px solid var(--border-primary); border-radius: 5px; background: var(--bg-primary); color: var(--text-primary);"></textarea>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button onclick="uploadWithMetadata()" class="btn-primary" style="flex: 1;">
                         <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
                         Upload Document
                     </button>
-                    <button onclick="cancelUpload()" style="flex: 1; padding: 10px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer;">
+                    <button onclick="cancelUpload()" style="flex: 1; padding: 10px; border: 1px solid var(--border-primary); background: var(--bg-secondary); color: var(--text-primary); border-radius: 5px; cursor: pointer;">
                         Cancel
                     </button>
                 </div>
@@ -50,13 +55,13 @@
         
         <!-- Upload Progress -->
         <div id="upload-progress" style="display: none; margin-top: 15px;">
-            <div style="background: #f5f5f5; border-radius: 10px; padding: 15px;">
+            <div style="background: var(--bg-secondary); border-radius: 10px; padding: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span id="upload-status">Uploading...</span>
-                    <span id="upload-percentage">0%</span>
+                    <span id="upload-status" style="color: var(--text-primary);">Uploading...</span>
+                    <span id="upload-percentage" style="color: var(--text-primary);">0%</span>
                 </div>
-                <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
-                    <div id="progress-bar" style="background: #000; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                <div style="background: var(--border-primary); height: 4px; border-radius: 2px; overflow: hidden;">
+                    <div id="progress-bar" style="background: var(--text-primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
                 </div>
             </div>
         </div>
@@ -66,7 +71,7 @@
 <!-- Upload Status -->
 <div class="section" id="upload-status-section" style="display: none;">
     <h2>Upload Status</h2>
-    <div id="upload-status-list" style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+    <div id="upload-status-list" style="background: var(--bg-secondary); border-radius: 8px; padding: 15px;">
         <!-- Upload status items will appear here -->
     </div>
 </div>
@@ -75,34 +80,30 @@
 <div class="section">
     <h2>Status</h2>
     <div style="text-align: center; padding: 20px;">
-        <div style="font-size: 18px; margin-bottom: 10px;">
+        <div style="font-size: 18px; margin-bottom: 10px; color: var(--text-primary);">
             <span id="total-documents">0</span> documents uploaded
         </div>
-        <div style="font-size: 14px; color: #666;">
+        <div style="font-size: 14px; color: var(--text-tertiary);">
             Status: <span id="db-status">Ready</span>
         </div>
     </div>
 </div>
 
 <style>
-    .upload-area {
-        border: 2px dashed #ddd;
+    .file-upload-dropzone {
+        border: 2px dashed var(--border-primary);
         border-radius: 12px;
         padding: 40px 20px;
         text-align: center;
         cursor: pointer;
         transition: all 0.3s ease;
-        background: #fafafa;
+        background: transparent;
     }
     
-    .upload-area:hover {
-        border-color: #333;
-        background: #f5f5f5;
-    }
-    
-    .upload-area.dragover {
-        border-color: #000;
-        background: #f0f0f0;
+    .file-upload-dropzone:hover,
+    .file-upload-dropzone.dragover {
+        border-color: var(--text-tertiary);
+        background: var(--bg-tertiary);
     }
     
     .btn-primary {

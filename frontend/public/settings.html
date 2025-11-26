@@ -212,30 +212,12 @@
             word-break: break-all;
         }
     </style>
+    <script src="navigation.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo-title">
-                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
-                <h1>Settings</h1>
-            </div>
-            <nav class="nav-menu">
-                <a href="/" class="nav-link">
-                    <i data-lucide="home" class="nav-icon"></i> Home
-                </a>
-                <a href="/documents" class="nav-link">
-                    <i data-lucide="file-text" class="nav-icon"></i> Documents
-                </a>
-                <a href="/profiles" class="nav-link">
-                    <i data-lucide="users" class="nav-icon"></i> Profiles
-                </a>
-                <a href="/settings" class="nav-link active">
-                    <i data-lucide="settings" class="nav-icon"></i> Settings
-                </a>
-            </nav>
-        </div>
+        <!-- Navigation injected by navigation.js -->
+        <div id="navigation-placeholder"></div>
     </div>
     
     <div class="settings-container">
@@ -519,6 +501,14 @@
         
         init();
     </script>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-copyright">© 2025 All rights reserved</span>
+        </div>
+    </footer>
 </body>
 </html>
 

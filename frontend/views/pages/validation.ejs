@@ -1,3 +1,14 @@
+<!-- Knowledge Base Status -->
+<div style="display: flex; justify-content: center; margin-bottom: 20px;">
+    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 16px; font-size: 12px; color: #666;">
+        <span style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i><span id="kb-documents" style="font-weight: 600; color: #333;">0</span> docs</span>
+        <span style="color: #ccc;">·</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="users" style="width: 12px; height: 12px;"></i><span id="kb-profiles" style="font-weight: 600; color: #333;">0</span> profiles</span>
+        <span style="color: #ccc;">·</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; color: #22c55e;"><i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>Ready</span>
+    </div>
+</div>
+
 <!-- Quick Test Section -->
 <div class="section">
     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 5px;">
@@ -69,44 +80,21 @@
     </div>
 </div>
 
-<!-- Knowledge Base Status -->
-<div class="section">
-    <h2>Knowledge Base Status</h2>
-    <div class="kb-stats">
-        <div class="kb-stat-card">
-            <i data-lucide="file-text"></i>
-            <div class="kb-stat-value" id="kb-documents">0</div>
-            <div class="kb-stat-label">Documents</div>
-        </div>
-        
-        <div class="kb-stat-card">
-            <i data-lucide="users"></i>
-            <div class="kb-stat-value" id="kb-profiles">0</div>
-            <div class="kb-stat-label">Profiles</div>
-        </div>
-        
-        <div class="kb-stat-card">
-            <i data-lucide="check-circle"></i>
-            <div class="kb-stat-value">Ready</div>
-            <div class="kb-stat-label">System Status</div>
-        </div>
-    </div>
-</div>
-
 <style>
     .validation-steps {
         display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 16px;
     }
     
     .validation-step {
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border-primary);
         border-radius: var(--radius-md);
-        padding: 20px;
+        padding: 24px 16px;
         display: flex;
-        align-items: flex-start;
-        gap: 16px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
     }
     
     .validation-step-icon {
@@ -155,39 +143,50 @@
         margin: 0;
         color: var(--text-tertiary);
         font-size: 14px;
+        line-height: 1.5;
     }
     
-    .kb-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 16px;
+    .kb-status-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        background: #f8f8f8;
+        border: 1px solid #e5e5e5;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #888;
+        margin-top: 8px;
     }
-    
-    .kb-stat-card {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-primary);
-        border-radius: var(--radius-md);
-        padding: 24px;
-        text-align: center;
+
+    .kb-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
-    
-    .kb-stat-card svg {
-        width: 32px;
-        height: 32px;
-        color: var(--text-muted);
-        margin-bottom: 12px;
+
+    .kb-item svg {
+        width: 13px !important;
+        height: 13px !important;
+        stroke-width: 2;
     }
-    
-    .kb-stat-value {
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 4px;
+
+    .kb-item span {
+        font-weight: 600;
+        color: #333;
     }
-    
-    .kb-stat-label {
-        font-size: 13px;
-        color: var(--text-muted);
+
+    .kb-divider {
+        color: #ccc;
+        font-size: 10px;
+    }
+
+    .kb-ready {
+        color: #22c55e;
+    }
+
+    .kb-ready svg {
+        color: #22c55e;
     }
     
     /* Results styling */
@@ -360,9 +359,21 @@
         color: var(--text-secondary);
     }
     
+    @media (max-width: 1024px) {
+        .validation-steps {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
     @media (max-width: 768px) {
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 600px) {
+        .validation-steps {
+            grid-template-columns: 1fr;
         }
     }
 </style>

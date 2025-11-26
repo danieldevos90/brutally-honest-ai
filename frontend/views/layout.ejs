@@ -49,11 +49,6 @@
             <div class="logo-title">
                 <img src="/logo.svg" alt="Brutally Honest Logo" class="logo">
                 <h1>Brutally Honest</h1>
-                <% if (showInfoBtn) { %>
-                <button class="info-btn" onclick="showPageInfo()" title="How it works">
-                    <i data-lucide="info" class="info-icon"></i>
-                </button>
-                <% } %>
             </div>
             
             <!-- Navigation Menu -->
@@ -87,13 +82,12 @@
                 
                 <!-- User Menu -->
                 <div class="user-menu">
-                    <button class="user-btn" onclick="toggleUserMenu()">
-                        <i data-lucide="user" class="nav-icon"></i>
-                        <span id="current-user">Account</span>
-                        <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                    <button class="user-btn" onclick="toggleUserMenu()" title="Account">
+                        <i data-lucide="user"></i>
                     </button>
                     <div class="user-dropdown" id="user-dropdown">
                         <div class="user-info" id="user-info">
+                            <span class="user-name" id="user-name">Account</span>
                             <span class="user-email" id="user-email">Loading...</span>
                         </div>
                         <a href="/settings" class="dropdown-item">
@@ -131,6 +125,14 @@
             <%- body %>
         </div>
     </div>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-copyright">© <%= new Date().getFullYear() %> All rights reserved</span>
+        </div>
+    </footer>
     
     <!-- Common Scripts -->
     <script>
@@ -205,8 +207,10 @@
                 const response = await fetch('/api/auth/me');
                 if (response.ok) {
                     const user = await response.json();
-                    document.getElementById('current-user').textContent = user.name || 'Account';
-                    document.getElementById('user-email').textContent = user.email || '';
+                    const nameEl = document.getElementById('user-name');
+                    const emailEl = document.getElementById('user-email');
+                    if (nameEl) nameEl.textContent = user.name || 'Account';
+                    if (emailEl) emailEl.textContent = user.email || '';
                 }
             } catch (error) {
                 console.error('Error loading user info:', error);

@@ -1,17 +1,17 @@
-<!-- Profile Type Selection -->
-<div class="section">
-    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <button class="tab-button active" onclick="switchProfileType('clients')" id="tab-clients">
-            <i data-lucide="briefcase" style="width: 16px; height: 16px;"></i>
-            Clients
+<!-- Profile Type Selection - Centered Buttons -->
+<div class="section token-buttons-section">
+    <div class="token-buttons-container">
+        <button type="button" class="btn token-button-active" onclick="switchProfileType('clients')" id="tab-clients">
+            <i data-lucide="briefcase"></i>
+            <span>Clients</span>
         </button>
-        <button class="tab-button" onclick="switchProfileType('brands')" id="tab-brands">
-            <i data-lucide="tag" style="width: 16px; height: 16px;"></i>
-            Brands
+        <button type="button" class="btn" onclick="switchProfileType('brands')" id="tab-brands">
+            <i data-lucide="tag"></i>
+            <span>Brands</span>
         </button>
-        <button class="tab-button" onclick="switchProfileType('persons')" id="tab-persons">
-            <i data-lucide="user" style="width: 16px; height: 16px;"></i>
-            Persons
+        <button type="button" class="btn" onclick="switchProfileType('persons')" id="tab-persons">
+            <i data-lucide="user"></i>
+            <span>Persons</span>
         </button>
     </div>
 </div>
@@ -19,109 +19,185 @@
 <!-- Create Profile Section -->
 <div class="section">
     <h2 id="create-profile-title">Create Client Profile</h2>
-    <form id="create-profile-form" onsubmit="createProfile(event)">
-        <div style="display: grid; gap: 15px;">
-            <div>
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Name *</label>
-                <input type="text" id="profile-name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            </div>
-            
-            <div id="client-fields">
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Type *</label>
-                <select id="profile-type" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                    <option value="individual">Individual</option>
-                    <option value="company">Company</option>
-                    <option value="brand">Brand</option>
-                </select>
-            </div>
-            
-            <div id="person-fields" style="display: none;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Role</label>
-                <input type="text" id="profile-role" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            </div>
-            
-            <div id="person-company-field" style="display: none;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Company</label>
-                <input type="text" id="profile-company" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            </div>
-            
-            <div>
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Description *</label>
-                <textarea id="profile-description" required rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
-            </div>
-            
-            <div id="brand-values-field" style="display: none;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Values (comma-separated)</label>
-                <input type="text" id="profile-values" placeholder="e.g., quality, innovation, sustainability" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            </div>
-            
-            <div>
-                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Tags (comma-separated)</label>
-                <input type="text" id="profile-tags" placeholder="e.g., retail, DIY, europe" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-            </div>
-            
-            <button type="submit" class="btn btn-primary" style="width: 100%;">
-                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-                Create Profile
-            </button>
+    <form id="create-profile-form" class="form-grid" onsubmit="createProfile(event)">
+        <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input type="text" id="profile-name" class="form-input" required>
         </div>
+        
+        <div id="client-fields" class="form-group">
+            <label class="form-label">Type *</label>
+            <select id="profile-type" class="form-input" required>
+                <option value="individual">Individual</option>
+                <option value="company">Company</option>
+                <option value="brand">Brand</option>
+            </select>
+        </div>
+        
+        <div id="person-fields" class="form-group" style="display: none;">
+            <label class="form-label">Role</label>
+            <input type="text" id="profile-role" class="form-input">
+        </div>
+        
+        <div id="person-company-field" class="form-group" style="display: none;">
+            <label class="form-label">Company</label>
+            <input type="text" id="profile-company" class="form-input">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Description *</label>
+            <textarea id="profile-description" class="form-input" rows="3" required></textarea>
+        </div>
+        
+        <div id="brand-values-field" class="form-group" style="display: none;">
+            <label class="form-label">Values (comma-separated)</label>
+            <input type="text" id="profile-values" class="form-input" placeholder="e.g., quality, innovation, sustainability">
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Tags (comma-separated)</label>
+            <input type="text" id="profile-tags" class="form-input" placeholder="e.g., retail, DIY, europe">
+        </div>
+        
+        <button type="submit" class="btn btn-block">
+            <i data-lucide="plus"></i>
+            Create Profile
+        </button>
     </form>
 </div>
 
 <!-- Profiles List -->
 <div class="section">
     <h2 id="profiles-list-title">Client Profiles</h2>
-    <div id="profiles-list" style="display: grid; gap: 15px;">
-        <div style="text-align: center; padding: 40px; color: #999;">
-            <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 15px;"></i>
+    <div id="profiles-list" class="profiles-grid">
+        <div class="empty-state">
+            <i data-lucide="users"></i>
             <p>No profiles yet. Create your first profile above.</p>
         </div>
     </div>
 </div>
 
 <style>
-    .tab-button {
+    /* Form Styles */
+    .form-grid {
+        display: grid;
+        gap: 16px;
+    }
+    
+    .form-group {
         display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 20px;
-        border: 1px solid #ddd;
-        background: white;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .form-label {
         font-weight: 500;
-        transition: all 0.2s;
+        font-size: 14px;
+        color: #333;
     }
     
-    .tab-button:hover {
-        background: #f5f5f5;
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 15px;
+        font-family: inherit;
+        transition: border-color 0.2s ease;
+        background: #fff;
     }
     
-    .tab-button.active {
-        background: #000;
-        color: white;
+    .form-input:focus {
+        outline: none;
         border-color: #000;
     }
     
-    .btn-primary {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        background: #000;
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
+    /* Profiles Grid */
+    .profiles-grid {
+        display: grid;
+        gap: 16px;
     }
     
-    .btn-primary:hover {
-        background: #333;
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+        width: 100%;
+    }
+    
+    .empty-state i {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+        stroke-width: 1.5;
+    }
+    
+    .empty-state p {
+        margin: 0;
+        text-align: center;
+    }
+    
+    /* Profile Card */
+    .profile-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+    }
+    
+    .profile-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+    
+    .profile-card h3 {
+        margin: 0 0 6px 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .profile-card p {
+        color: #666;
+        margin: 12px 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .profile-tag {
+        display: inline-block;
+        background: #f0f0f0;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #666;
+        margin-right: 6px;
+        margin-bottom: 6px;
+    }
+    
+    .profile-tag-blue {
+        background: #e7f3ff;
+        color: #0066cc;
+    }
+    
+    .profile-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .profile-facts {
+        font-size: 14px;
+        color: #666;
     }
 </style>
 
@@ -130,15 +206,22 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
         loadProfiles();
     });
 
     function switchProfileType(type) {
         currentProfileType = type;
         
-        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`tab-${type}`).classList.add('active');
+        // Update active button
+        document.querySelectorAll('.token-buttons-container .btn').forEach(btn => {
+            btn.classList.remove('token-button-active');
+        });
+        document.getElementById(`tab-${type}`).classList.add('token-button-active');
         
+        // Show/hide fields
         const clientFields = document.getElementById('client-fields');
         const personFields = document.getElementById('person-fields');
         const personCompanyField = document.getElementById('person-company-field');
@@ -150,16 +233,16 @@
         brandValuesField.style.display = 'none';
         
         if (type === 'clients') {
-            clientFields.style.display = 'block';
+            clientFields.style.display = 'flex';
             document.getElementById('create-profile-title').textContent = 'Create Client Profile';
             document.getElementById('profiles-list-title').textContent = 'Client Profiles';
         } else if (type === 'brands') {
-            brandValuesField.style.display = 'block';
+            brandValuesField.style.display = 'flex';
             document.getElementById('create-profile-title').textContent = 'Create Brand Profile';
             document.getElementById('profiles-list-title').textContent = 'Brand Profiles';
         } else if (type === 'persons') {
-            personFields.style.display = 'block';
-            personCompanyField.style.display = 'block';
+            personFields.style.display = 'flex';
+            personCompanyField.style.display = 'flex';
             document.getElementById('create-profile-title').textContent = 'Create Person Profile';
             document.getElementById('profiles-list-title').textContent = 'Person Profiles';
         }
@@ -219,14 +302,7 @@
 
     async function loadProfiles() {
         try {
-            let endpoint = '';
-            if (currentProfileType === 'clients') {
-                endpoint = '/profiles/clients';
-            } else if (currentProfileType === 'brands') {
-                endpoint = '/profiles/brands';
-            } else if (currentProfileType === 'persons') {
-                endpoint = '/profiles/persons';
-            }
+            let endpoint = '/profiles/' + currentProfileType;
             
             const response = await fetch(`${API_BASE}${endpoint}`);
             const result = await response.json();
@@ -235,30 +311,28 @@
             
             if (result.success && result.profiles && result.profiles.length > 0) {
                 listEl.innerHTML = result.profiles.map(profile => `
-                    <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                    <div class="profile-card">
+                        <div class="profile-card-header">
                             <div>
-                                <h3 style="margin: 0 0 5px 0;">${escapeHtml(profile.name)}</h3>
-                                ${profile.type ? `<span style="display: inline-block; background: #f0f0f0; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: #666;">${escapeHtml(profile.type)}</span>` : ''}
-                                ${profile.role ? `<span style="display: inline-block; background: #f0f0f0; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: #666;">${escapeHtml(profile.role)}</span>` : ''}
+                                <h3>${escapeHtml(profile.name)}</h3>
+                                ${profile.type ? `<span class="profile-tag">${escapeHtml(profile.type)}</span>` : ''}
+                                ${profile.role ? `<span class="profile-tag">${escapeHtml(profile.role)}</span>` : ''}
                             </div>
-                            <button onclick="deleteProfile('${profile.id}')" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">
-                                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                            <button onclick="deleteProfile('${profile.id}')" class="btn btn-danger btn-sm">
+                                <i data-lucide="trash-2"></i>
                             </button>
                         </div>
-                        <p style="color: #666; margin: 10px 0;">${escapeHtml(profile.description)}</p>
+                        <p>${escapeHtml(profile.description)}</p>
                         ${profile.tags && profile.tags.length > 0 ? `
-                            <div style="margin-top: 10px;">
-                                ${profile.tags.map(tag => `<span style="display: inline-block; background: #e7f3ff; color: #0066cc; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin-right: 5px;">${escapeHtml(tag)}</span>`).join('')}
+                            <div>
+                                ${profile.tags.map(tag => `<span class="profile-tag profile-tag-blue">${escapeHtml(tag)}</span>`).join('')}
                             </div>
                         ` : ''}
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 14px; color: #666;">${profile.facts ? profile.facts.length : 0} facts</span>
-                                <button onclick="viewProfile('${profile.id}')" style="background: #000; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                                    View Details
-                                </button>
-                            </div>
+                        <div class="profile-card-footer">
+                            <span class="profile-facts">${profile.facts ? profile.facts.length : 0} facts</span>
+                            <button onclick="viewProfile('${profile.id}')" class="btn btn-sm">
+                                View Details
+                            </button>
                         </div>
                     </div>
                 `).join('');
@@ -266,8 +340,8 @@
                 lucide.createIcons();
             } else {
                 listEl.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #999;">
-                        <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 15px;"></i>
+                    <div class="empty-state">
+                        <i data-lucide="users"></i>
                         <p>No profiles yet. Create your first profile above.</p>
                     </div>
                 `;
@@ -282,14 +356,7 @@
         if (!confirm('Are you sure you want to delete this profile?')) return;
         
         try {
-            let endpoint = '';
-            if (currentProfileType === 'clients') {
-                endpoint = `/profiles/clients/${profileId}`;
-            } else if (currentProfileType === 'brands') {
-                endpoint = `/profiles/brands/${profileId}`;
-            } else if (currentProfileType === 'persons') {
-                endpoint = `/profiles/persons/${profileId}`;
-            }
+            const endpoint = `/profiles/${currentProfileType}/${profileId}`;
             
             const response = await fetch(`${API_BASE}${endpoint}`, {
                 method: 'DELETE'
@@ -323,15 +390,10 @@
             </ul>
             
             <h3>Voice Profiles</h3>
-            <p>Create person profiles with voice samples to enable speaker identification in transcriptions. The system learns to recognize different voices over time.</p>
+            <p>Create person profiles with voice samples to enable speaker identification in transcriptions.</p>
             
             <h3>Brand Documents</h3>
-            <p>Attach documents to brand profiles to validate claims against official brand guidelines, policies, and marketing materials.</p>
-            
-            <p style="margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 13px;">
-                <strong>Tip:</strong> Link person profiles to client or brand profiles for comprehensive tracking and analysis.
-            </p>
+            <p>Attach documents to brand profiles to validate claims against official brand guidelines.</p>
         `);
     }
 </script>
-

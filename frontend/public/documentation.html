@@ -17,40 +17,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="navigation.js"></script>
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo-title">
-                <img src="logo.svg" alt="Brutally Honest Logo" class="logo">
-                <h1>Brutally Honest</h1>
-            </div>
-            
-            <!-- Navigation Menu -->
-            <nav class="nav-menu">
-                <a href="/" class="nav-link">
-                    <i data-lucide="home" class="nav-icon"></i>
-                    Home
-                </a>
-                <a href="/documents" class="nav-link">
-                    <i data-lucide="file-text" class="nav-icon"></i>
-                    Documents
-                </a>
-                <a href="/profiles" class="nav-link">
-                    <i data-lucide="users" class="nav-icon"></i>
-                    Profiles
-                </a>
-                <a href="/validation" class="nav-link">
-                    <i data-lucide="check-circle" class="nav-icon"></i>
-                    Validation
-                </a>
-                <a href="/documentation" class="nav-link active">
-                    <i data-lucide="book-open" class="nav-icon"></i>
-                    Documentation
-                </a>
-            </nav>
-        </div>
+        <!-- Navigation injected by navigation.js -->
+        <div id="navigation-placeholder"></div>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -291,6 +263,10 @@
     </div>
 
     <style>
+        .section h2 {
+            color: var(--text-secondary);
+        }
+        
         .doc-content {
             line-height: 1.7;
             color: #333;
@@ -511,6 +487,14 @@
             lucide.createIcons();
         });
     </script>
+    
+    <footer class="site-footer">
+        <div class="footer-content">
+            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-copyright">© 2025 All rights reserved</span>
+        </div>
+    </footer>
 </body>
 </html>
 

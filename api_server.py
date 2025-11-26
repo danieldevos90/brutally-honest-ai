@@ -15,8 +15,9 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Depends, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.responses import Response
+from fastapi.responses import Response, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.openapi.docs import get_swagger_ui_html
 import uvicorn
 import logging
 from typing import Optional, Dict, Any, List
@@ -189,6 +190,72 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Custom Swagger UI with white/light theme
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    html = get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        swagger_ui_parameters={
+            "syntaxHighlight.theme": "agate",
+            "persistAuthorization": True,
+        },
+    )
+    # Inject custom CSS for white/light theme
+    custom_css = """
+    <style>
+        body { background-color: #ffffff !important; color: #333333 !important; }
+        .swagger-ui { background-color: #ffffff !important; }
+        .swagger-ui .topbar { background-color: #ffffff !important; border-bottom: 1px solid #e0e0e0 !important; }
+        .swagger-ui .topbar .download-url-wrapper { background-color: #ffffff !important; }
+        .swagger-ui .topbar .download-url-wrapper input { background-color: #ffffff !important; color: #333333 !important; border: 1px solid #e0e0e0 !important; }
+        .swagger-ui .info { background-color: #ffffff !important; color: #333333 !important; }
+        .swagger-ui .info .title { color: #333333 !important; }
+        .swagger-ui .info .description { color: #555555 !important; }
+        .swagger-ui .scheme-container { background-color: #f5f5f5 !important; }
+        .swagger-ui .opblock { background-color: #ffffff !important; border: 1px solid #e0e0e0 !important; }
+        .swagger-ui .opblock.opblock-get { border-color: #61affe !important; background-color: #ffffff !important; }
+        .swagger-ui .opblock.opblock-post { border-color: #49cc90 !important; background-color: #ffffff !important; }
+        .swagger-ui .opblock.opblock-put { border-color: #fca130 !important; background-color: #ffffff !important; }
+        .swagger-ui .opblock.opblock-delete { border-color: #f93e3e !important; background-color: #ffffff !important; }
+        .swagger-ui .opblock .opblock-summary { color: #333333 !important; }
+        .swagger-ui .opblock .opblock-summary-method { color: #ffffff !important; }
+        .swagger-ui .opblock-body { background-color: #ffffff !important; color: #333333 !important; }
+        .swagger-ui .opblock-description-wrapper { color: #555555 !important; }
+        .swagger-ui .parameter__name { color: #333333 !important; }
+        .swagger-ui .parameter__type { color: #666666 !important; }
+        .swagger-ui .parameter__in { color: #666666 !important; }
+        .swagger-ui .response-col_status { color: #333333 !important; }
+        .swagger-ui .response-col_description { color: #555555 !important; }
+        .swagger-ui .model-box { background-color: #ffffff !important; color: #333333 !important; }
+        .swagger-ui .model-title { color: #333333 !important; }
+        .swagger-ui .prop-name { color: #333333 !important; }
+        .swagger-ui .prop-type { color: #666666 !important; }
+        .swagger-ui .prop-format { color: #999999 !important; }
+        .swagger-ui .btn { background-color: #4CAF50 !important; color: #ffffff !important; }
+        .swagger-ui .btn.execute { background-color: #4CAF50 !important; }
+        .swagger-ui .btn.cancel { background-color: #f44336 !important; }
+        .swagger-ui input[type="text"], .swagger-ui input[type="password"], .swagger-ui textarea, .swagger-ui select { background-color: #ffffff !important; color: #333333 !important; border: 1px solid #e0e0e0 !important; }
+        .swagger-ui .response-content-type { color: #333333 !important; }
+        .swagger-ui .highlight-code { background-color: #f5f5f5 !important; }
+        .swagger-ui .microlight { background-color: #f5f5f5 !important; color: #333333 !important; }
+        .swagger-ui code { background-color: #f5f5f5 !important; color: #333333 !important; }
+        .swagger-ui pre { background-color: #f5f5f5 !important; color: #333333 !important; }
+        .swagger-ui .markdown p, .swagger-ui .markdown pre, .swagger-ui .markdown code { color: #333333 !important; }
+        .swagger-ui .markdown pre { background-color: #f5f5f5 !important; }
+        .swagger-ui .scheme-container { background-color: #f5f5f5 !important; }
+        .swagger-ui .auth-wrapper { background-color: #ffffff !important; }
+        .swagger-ui .auth-btn-wrapper { background-color: #ffffff !important; }
+        .swagger-ui .authorization__btn { background-color: #4CAF50 !important; color: #ffffff !important; }
+        .swagger-ui .authorization__btn.locked { background-color: #f44336 !important; }
+        .swagger-ui .authorization__btn.unlocked { background-color: #4CAF50 !important; }
+    </style>
+    """
+    html_body = html.body.decode("utf-8")
+    # Insert custom CSS before closing head tag
+    html_body = html_body.replace("</head>", custom_css + "</head>")
+    return HTMLResponse(content=html_body)
 
 # ============================================
 # AUTH ENDPOINTS (Public)
