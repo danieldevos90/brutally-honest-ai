@@ -1,501 +1,988 @@
-<!-- AI Transcription Section -->
-<div class="section">
-    <h2>AI Transcription</h2>
-    <div class="transcription-section">
-        
-        <!-- Transcription Source Tabs -->
-        <div style="display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid var(--border-primary);">
-            <button id="tab-upload" class="transcription-tab active" onclick="switchTranscriptionTab('upload')">
-                <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
-                Upload & Record
-            </button>
-            <button id="tab-device" class="transcription-tab" onclick="switchTranscriptionTab('device')">
-                <i data-lucide="hard-drive" style="width: 16px; height: 16px;"></i>
-                Device Recordings
-            </button>
-        </div>
-        
-        <!-- Tab Content: Device Recordings -->
-        <div id="tab-content-device" style="display: none;">
-            <p style="text-align: center; margin-bottom: 15px; color: var(--text-muted);">
-                Select one or more recordings from below and transcribe them with Whisper AI (Dutch/English auto-detection)
-            </p>
-        
-            <!-- Selected Files Display (Device mode) -->
-            <div id="selected-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="font-weight: 500;">Selected Recordings:</div>
-                    <button onclick="clearSelectedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all selections">
-                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
-                    </button>
-                </div>
-                <div id="selected-files-list" style="max-height: 120px; overflow-y: auto;"></div>
-                <div id="selected-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;"></div>
-            </div>
-            
-            <!-- Document Validation Toggle -->
-            <div style="text-align: center; margin-bottom: 15px;">
-                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
-                    <input type="checkbox" id="enable-document-validation" style="margin: 0;">
-                    <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
-                    Validate transcription against uploaded documents
-                </label>
-                <div style="font-size: 12px; color: #999; margin-top: 4px;">
-                    Uses your document knowledge base to fact-check transcribed content
-                </div>
-            </div>
-            
-            <!-- Action Buttons -->
-            <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFiles()" disabled>
-                    Select recordings to transcribe
-                </button>
-                <button id="clear-results-btn" class="btn btn-secondary" onclick="clearTranscriptionResults()" style="display: none;">
-                    <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                    Clear Results
-                </button>
-            </div>
-        </div>
-        
-        <!-- Tab Content: File Upload -->
-        <div id="tab-content-upload">
-            
-            <!-- Upload Area - Primary Action -->
-            <div id="file-upload-area" class="file-upload-dropzone" style="padding: 40px 20px; margin-bottom: 24px;" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('file-upload-input').click()">
-                <input type="file" id="file-upload-input" accept="audio/*,video/*,.wav,.mp3,.m4a,.ogg,.flac,.webm,.mp4,.mov,.avi,.mkv,.aac,.wma,.aiff" multiple style="display: none;" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
-                <div class="upload-content" style="text-align: center;">
-                    <i data-lucide="upload-cloud" style="width: 56px; height: 56px; color: var(--text-muted); margin-bottom: 16px;"></i>
-                    <p style="font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Drop files here or tap to browse</p>
-                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Upload audio or video files for transcription</p>
-                    
-                    <!-- Supported Formats Grid -->
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 400px; margin: 0 auto;">
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">MP3</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">WAV</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">M4A</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">OGG</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">FLAC</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">MP4</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">MOV</span>
-                        <span style="background: var(--bg-tertiary); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: var(--text-secondary);">WebM</span>
-                    </div>
-                    <p style="color: var(--text-muted); font-size: 12px; margin-top: 12px;">Max file size: 500MB</p>
-                </div>
-            </div>
-            
-            <!-- Record Section - Secondary -->
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-                <div style="flex: 1; height: 1px; background: var(--border-primary);"></div>
-                <span style="color: var(--text-muted); font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">or record</span>
-                <div style="flex: 1; height: 1px; background: var(--border-primary);"></div>
-            </div>
-            
-            <div id="record-section" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-primary); margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 44px; height: 44px; background: var(--bg-tertiary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <i data-lucide="mic" style="width: 22px; height: 22px; color: var(--text-secondary);"></i>
-                    </div>
-                    <div>
-                        <p style="font-weight: 500; color: var(--text-primary); margin: 0;">Record Audio</p>
-                        <p style="color: var(--text-muted); font-size: 13px; margin: 0;" id="record-status-text">Use your microphone (requires HTTPS)</p>
-                    </div>
-                </div>
-                
-                <button id="record-btn" onclick="toggleRecording()" style="padding: 10px 20px; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; background: var(--accent-primary); color: var(--text-inverse); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-weight: 500;">
-                    <i data-lucide="mic" id="record-icon" style="width: 16px; height: 16px;"></i>
-                    <span id="record-text">Record</span>
-                    <span id="record-timer" style="display: none; font-family: monospace;"></span>
-                </button>
-            </div>
-            
-            <p id="record-unsupported" style="display: none; color: var(--error); font-size: 13px; text-align: center; margin-bottom: 20px; padding: 12px; background: var(--error-bg); border-radius: 8px;">
-                ⚠️ Recording requires HTTPS. Upload files instead or access via https://
-            </p>
-            
-            <!-- Uploaded Files List -->
-            <div id="uploaded-files-display" style="display: none; background: var(--bg-secondary); padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-primary);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-weight: 600; color: var(--text-primary);">
-                        <i data-lucide="files" style="width: 16px; height: 16px; margin-right: 6px; vertical-align: middle;"></i>
-                        Files Ready
-                    </div>
-                    <button onclick="clearUploadedFiles()" style="background: none; border: none; cursor: pointer; color: var(--error); padding: 4px;" title="Clear all files">
-                        <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
-                    </button>
-                </div>
-                <div id="uploaded-files-list" style="max-height: 200px; overflow-y: auto;"></div>
-                <div id="uploaded-files-summary" style="font-size: 13px; color: var(--text-muted); margin-top: 10px; text-align: center;"></div>
-            </div>
-            
-            <!-- Document Validation Toggle for Upload -->
-            <div style="text-align: center; margin-bottom: 20px;">
-                <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-secondary); cursor: pointer; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-primary);">
-                    <input type="checkbox" id="upload-enable-document-validation" style="width: 18px; height: 18px; margin: 0;">
-                    <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
-                    <span>Fact-check against knowledge base</span>
-                </label>
-            </div>
-            
-            <!-- Transcribe Button for Upload -->
-            <div style="text-align: center;">
-                <button id="upload-transcribe-btn" class="btn btn-primary btn-lg" onclick="transcribeUploadedFiles()" disabled style="min-width: 200px;">
-                    <i data-lucide="sparkles" style="width: 18px; height: 18px; margin-right: 8px;"></i>
-                    <span id="upload-btn-text">Select files to transcribe</span>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Transcription Results (shared between tabs) -->
-        <div id="transcription-results" style="display: none;">
-            <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0; color: #333;">Transcription Results</h3>
-                <button onclick="toggleProcessLogs()" style="background: none; border: none; cursor: pointer; color: #666; margin-left: 8px; padding: 0;" title="Show processing logs">
-                    <i data-lucide="info" style="width: 16px; height: 16px;"></i>
-                </button>
-            </div>
-            
-            <!-- Condensed Results -->
-            <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;">
-                <div style="margin-bottom: 8px;">
-                    <strong style="color: #333;">Transcript:</strong>
-                    <div id="transcript-text" style="color: #333; margin-top: 4px;"></div>
-                </div>
-                
-                <div style="margin-bottom: 8px;">
-                    <strong style="color: #333;">Sentiment:</strong>
-                    <span id="transcript-sentiment" style="color: #555; margin-left: 8px;"></span>
-                </div>
-                
-                <div>
-                    <strong style="color: #333;">Brutal Honest Reply:</strong>
-                    <div id="transcript-brutal-honesty" style="color: #555; margin-top: 4px; line-height: 1.4;"></div>
-                </div>
-                
-                <!-- Document Validation Results -->
-                <div id="document-validation-section" style="display: none; border-top: 1px solid #e0e0e0; padding-top: 12px; margin-top: 12px;">
-                    <strong style="color: #333;">📚 Document Validation:</strong>
-                    <div id="document-validation-summary" style="color: #555; margin-top: 4px; line-height: 1.4;"></div>
-                    
-                    <div id="validation-score-section" style="margin-top: 8px; display: none;">
-                        <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Validation Score:</div>
-                        <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
-                            <div id="validation-score-bar" style="background: #10b981; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
-                        </div>
-                        <div id="validation-score-text" style="font-size: 12px; color: #666; margin-top: 2px;">0%</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Expandable Logs Section for Results -->
-            <div id="results-process-logs" style="display: none; margin-bottom: 15px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #ddd;">
-                <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #333;">Processing Logs</div>
-                <div id="results-log-content" style="color: #555; line-height: 1.4;"></div>
-            </div>
-        </div>
-        
-        <!-- Processing Indicator -->
-        <div id="transcription-loading" style="display: none; text-align: center; padding: 20px;">
-            <div style="margin-bottom: 10px;">
-                <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #333; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            </div>
-            <div style="display: flex; align-items: center; justify-content: center; margin-top: 10px;">
-                <span style="color: #666; margin-right: 8px;">Untangling the spaghetti of words you just threw at me...</span>
-                <button onclick="toggleProcessLogs()" style="background: none; border: none; cursor: pointer; color: #666; padding: 0;" title="Show processing logs">
-                    <i data-lucide="info" style="width: 16px; height: 16px;"></i>
-                </button>
-            </div>
-            
-            <div id="process-logs" style="display: none; margin-top: 15px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #ddd;">
-                <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #333;">Processing Logs</div>
-                <div id="log-content" style="color: #555; line-height: 1.4;"></div>
-            </div>
-        </div>
-    </div>
+<% 
+  layout = 'layout';
+  pageTitle = 'Home';
+  extraScripts = ['home.js', 'multi_file_functions.js', 'file_upload_transcription_v2.js', 'devices_manager.js', 'shared.js'];
+%>
+
+<!-- Notifications handled by notifications.js -->
+
+<!-- TABS - Record First -->
+<div class="tabs">
+  <button id="tab-record" class="tab active" data-tab="record" onclick="switchTab('record')">
+    Record
+  </button>
+  <button id="tab-upload" class="tab" data-tab="upload" onclick="switchTab('upload')">
+    Upload
+  </button>
+  <button id="tab-history" class="tab" data-tab="history" onclick="switchTab('history')">
+    History
+  </button>
+  <button id="tab-device" class="tab" data-tab="device" onclick="switchTab('device')">
+    ESP32
+  </button>
 </div>
 
-<!-- Device Selection Section -->
-<div class="section" id="device-selection-section">
-    <h2>Select ESP32S3 Device</h2>
-    <div class="device-selection">
-        <p style="text-align: center; margin-bottom: 20px; color: #666;">
-            Choose which ESP32S3 device to monitor and manage
-        </p>
-        
-        <div class="device-selection-controls" style="text-align: center; margin-bottom: 20px;">
-            <button class="btn btn-primary" onclick="scanForDevices()" id="scan-devices-btn">
-                <i data-lucide="search" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                Scan for Devices
-            </button>
-            <button class="btn btn-secondary" onclick="refreshDeviceSelection()" id="refresh-devices-btn">
-                <i data-lucide="refresh-cw" style="width: 16px; height: 16px; margin-right: 6px;"></i>
-                Refresh
-            </button>
-        </div>
-        
-        <div class="devices-container">
-            <div id="devices-list" class="devices-list">
-                <div class="devices-empty">
-                    <i data-lucide="search" style="width: 48px; height: 48px; margin-bottom: 15px; color: #ccc;"></i>
-                    <p>Click "Scan for Devices" to detect ESP32S3 devices</p>
-                </div>
-            </div>
-        </div>
-        
-        <div id="selected-device-info" class="selected-device-info" style="display: none;">
-            <div class="selected-device-header">
-                <i data-lucide="check-circle" style="width: 20px; height: 20px; margin-right: 8px; color: #10B981;"></i>
-                <span>Selected Device:</span>
-                <span id="selected-device-name" style="font-weight: 600; color: #10B981;"></span>
-            </div>
-            <div class="selected-device-details">
-                <span id="selected-device-type"></span> • 
-                <span id="selected-device-port"></span> • 
-                <span id="selected-device-status"></span>
-            </div>
-        </div>
+<!-- TAB: RECORD (Primary) -->
+<div id="tab-content-record" class="tab-content active" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60px 20px;">
+  <div class="record-hero" style="display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 400px;">
+    <!-- Recording Status Indicator -->
+    <div id="recording-indicator" class="recording-indicator" style="display: none;">
+      <span class="pulse-dot"></span>
+      <span class="recording-label-text">Recording...</span>
+      <span id="record-timer" class="record-timer">00:00</span>
     </div>
-</div>
-
-<!-- Device Status Section -->
-<div class="section" id="device-status-section" style="display: none;">
-    <div class="device-status-header">
-        <h2>ESP32S3 Device Status</h2>
-        <button class="btn btn-secondary btn-small" onclick="changeSelectedDevice()" style="margin-left: auto;">
-            <i data-lucide="settings" style="width: 14px; height: 14px; margin-right: 4px;"></i>
-            Change Device
+    
+    <!-- Record Button - uses design system btn-primary -->
+    <button id="record-btn" class="btn btn-primary btn-lg" style="border-radius: 99px; padding: 16px 32px; margin-bottom: 32px;" onclick="toggleRecording()">
+      <i data-lucide="mic" class="record-icon"></i>
+      <i data-lucide="square" class="stop-icon" style="display: none;"></i>
+      <span id="record-text">Tap to Record</span>
+    </button>
+    
+    <!-- Recording Instructions -->
+    <p class="record-hint" id="record-hint" style="color: var(--text-muted); font-size: 14px; max-width: 320px; margin: 0;">
+      Press the button to start recording. Your recording will be automatically saved.
+    </p>
+  </div>
+  
+  <!-- Recent Recording (shows after recording) -->
+  <div id="recent-recording" class="card mt-4" style="display: none;">
+    <div class="card-header">
+      <span class="font-medium">Last Recording</span>
+      <span id="recent-recording-status" class="status-badge saved">Saved</span>
+    </div>
+    <div class="recording-preview">
+      <audio id="recording-playback" controls class="w-full"></audio>
+      <div class="recording-actions mt-3">
+        <button class="btn btn-primary btn-sm" onclick="transcribeLastRecording()">
+          Transcribe
         </button>
+        <button class="btn btn-secondary btn-sm" onclick="discardLastRecording()">
+          Discard
+        </button>
+      </div>
     </div>
-    <div class="device-status">
-        <div class="device-info">
-            <h3>Recordings on SD Card</h3>
-            
-            <div class="recordings-summary" id="recordings-summary" style="display: none;">
-                <div class="summary-item">
-                    <span>Files:</span>
-                    <span id="summary-files">0</span>
-                </div>
-                <div class="summary-item">
-                    <span>Size:</span>
-                    <span id="summary-size">0 MB</span>
-                </div>
-                <div class="summary-item">
-                    <span>Connection:</span>
-                    <span id="summary-connection">USB</span>
-                </div>
-                <div class="summary-item">
-                    <span>Status:</span>
-                    <span id="connection-status">--</span>
-                </div>
-            </div>
-            
-            <div id="recordings-list">
-                <div class="recordings-empty">
-                    <span class="loading-dots">Loading</span>
-                </div>
-            </div>
-            
-            <div class="device-buttons">
-                <button class="btn btn-secondary" onclick="refreshRecordings()">
-                    USB Refresh
-                </button>
-                <button class="btn btn-secondary" onclick="getRecordingsDirectly()">
-                    Direct Fetch
-                </button>
-                <button class="btn btn-primary" onclick="connectBLE()">
-                    Connect BLE
-                </button>
-            </div>
-        </div>
-        
-        <div class="device-info">
-            <h3>Device Status</h3>
-            
-            <div class="status-bar" style="margin-bottom: 15px;">
-                <div class="status-item">
-                    <div class="status-dot" id="backend-status"></div>
-                    <span>Backend</span>
-                </div>
-                <div class="status-item">
-                    <div class="status-dot" id="llm-status"></div>
-                    <span>LLM</span>
-                </div>
-                <div class="status-item">
-                    <div class="status-dot" id="audio-status"></div>
-                    <span>Audio</span>
-                </div>
-            </div>
-            
-            <div class="device-info-grid">
-                <div class="device-info-item">
-                    <div class="device-info-label">Device</div>
-                    <div class="device-info-value" id="device-status">--</div>
-                </div>
-                <div class="device-info-item">
-                    <div class="device-info-label">Files</div>
-                    <div class="device-info-value" id="file-count">--</div>
-                </div>
-                <div class="device-info-item">
-                    <div class="device-info-label">Battery</div>
-                    <div class="device-info-value" id="battery-level">--</div>
-                </div>
-                <div class="device-info-item">
-                    <div class="device-info-label">Storage</div>
-                    <div class="device-info-value" id="storage-used">--</div>
-                </div>
-                <div class="device-info-item">
-                    <div class="device-info-label">BLE</div>
-                    <div class="device-info-value" id="ble-status">Disconnected</div>
-                </div>
-                <div class="device-info-item">
-                    <div class="device-info-label">Firmware</div>
-                    <div class="device-info-value" id="firmware-version">--</div>
-                </div>
-            </div>
-            
-            <div class="device-buttons">
-                <button class="btn btn-secondary" onclick="getBLEInfo()">
-                    Get Device Info
-                </button>
-            </div>
-        </div>
+  </div>
+  
+  <!-- Quick Tips -->
+  <div class="tips-section mt-4">
+    <div class="tip-card">
+      <svg class="tip-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span class="tip-text">Speak clearly for better transcription accuracy</span>
     </div>
+  </div>
 </div>
 
-<!-- AI Processing Modal -->
-<div class="ai-modal" id="ai-modal" style="display: none;">
-    <div class="ai-modal-content">
-        <button class="ai-close" onclick="closeAIModal()">×</button>
-        <h3 id="ai-modal-title">AI Analysis</h3>
-        <div id="ai-modal-body">
-            <div class="ai-processing">
-                <div class="loading-dots">Processing with LLAMA AI</div>
-                <p>Analyzing audio content...</p>
-            </div>
+<!-- TAB: UPLOAD -->
+<div id="tab-content-upload" class="tab-content" style="display: none;">
+  <div class="card">
+    <form id="upload-form" enctype="multipart/form-data">
+      <div class="file-upload" id="file-upload-area">
+        <svg class="file-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+        <div class="file-upload-text">
+          <strong>Click to upload</strong> or drag and drop<br>
+          <span class="text-xs text-muted">Audio/video: WAV, MP3, M4A, WebM, MP4</span>
         </div>
-        <div style="text-align: center; margin-top: 15px;">
-            <button class="btn btn-secondary" onclick="closeAIModal()">Close</button>
-        </div>
+        <input type="file" id="audio-file" name="file" accept="audio/*,video/*" multiple />
+      </div>
+    </form>
+  </div>
+  
+  <!-- Selected Files Display -->
+  <div id="uploaded-files-display" class="card mt-4" style="display: none;">
+    <div class="card-header">
+      <span class="font-medium">Selected Files</span>
+      <button class="btn btn-tertiary btn-sm" onclick="clearUploadedFiles()">Clear All</button>
     </div>
+    <div id="uploaded-files-list" class="files-list"></div>
+    <div id="uploaded-files-summary" class="files-summary"></div>
+    <div class="upload-options mt-3">
+      <label class="checkbox-label">
+        <input type="checkbox" id="upload-enable-document-validation">
+        <span>Enable document validation</span>
+      </label>
+    </div>
+    <button id="upload-transcribe-btn" class="btn btn-primary mt-3 w-full" onclick="transcribeUploadedFiles()" disabled>
+      Transcribe Files
+    </button>
+  </div>
+  
+  <!-- Transcription Progress -->
+  <div id="transcription-loading" class="card mt-4" style="display: none;">
+    <div class="progress-container">
+      <div class="progress-spinner"></div>
+      <div id="progress-text" class="progress-text">Processing...</div>
+      <div id="progress-bar-container" class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+      </div>
+    </div>
+    <div id="process-logs" class="process-logs mt-3" style="display: none;"></div>
+  </div>
+  
+  <!-- Results -->
+  <div id="transcription-results" class="card mt-4" style="display: none;"></div>
+</div>
+
+<!-- TAB: HISTORY -->
+<div id="tab-content-history" class="tab-content" style="display: none;">
+  <!-- Search & Filter Bar - 5 Column Grid -->
+  <div class="history-toolbar" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: center; margin-bottom: 16px;">
+    <div style="position: relative;">
+      <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
+      <input type="text" id="history-search" placeholder="Search..." oninput="filterHistory()" style="width: 100%; padding: 8px 10px 8px 32px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 13px; background: var(--bg-primary); color: var(--text-primary);">
+    </div>
+    <select id="history-status-filter" onchange="filterHistory()" style="width: 100%; padding: 8px 24px 8px 10px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 13px; background: var(--bg-primary) url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%23666%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E') no-repeat right 6px center; color: var(--text-secondary); cursor: pointer; appearance: none;">
+      <option value="">Status</option>
+      <option value="completed">Completed</option>
+      <option value="pending">Pending</option>
+      <option value="failed">Failed</option>
+    </select>
+    <select id="history-sentiment-filter" onchange="filterHistory()" style="width: 100%; padding: 8px 24px 8px 10px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 13px; background: var(--bg-primary) url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%23666%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E') no-repeat right 6px center; color: var(--text-secondary); cursor: pointer; appearance: none;">
+      <option value="">Sentiment</option>
+      <option value="positive">Positive</option>
+      <option value="neutral">Neutral</option>
+      <option value="negative">Negative</option>
+    </select>
+    <select id="history-sort" onchange="filterHistory()" style="width: 100%; padding: 8px 24px 8px 10px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 13px; background: var(--bg-primary) url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%23666%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E') no-repeat right 6px center; color: var(--text-secondary); cursor: pointer; appearance: none;">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+    </select>
+    <button class="btn btn-tertiary btn-sm" onclick="loadTranscriptionHistory()" style="padding: 8px 12px; font-size: 13px;">
+      <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+    </button>
+  </div>
+  
+  <!-- Results Count -->
+  <div id="history-results-info" class="history-results-info">
+    <span id="history-count">0 recordings</span>
+  </div>
+  
+  <!-- Grid Layout with gaps -->
+  <div id="history-list" class="history-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(400px, 100%), 1fr)); gap: 20px;">
+    <div class="text-center text-muted py-4">Loading history...</div>
+  </div>
+</div>
+
+<!-- TAB: ESP32 DEVICE -->
+<div id="tab-content-device" class="tab-content" style="display: none;">
+  <div class="card">
+    <div class="card-header">
+      <span class="font-medium">ESP32S3 Device</span>
+    </div>
+    <select id="device-select" class="input" onchange="selectDevice(this.value)">
+      <option value="">-- Select Device --</option>
+    </select>
+  </div>
+  
+  <div class="card mt-4">
+    <div class="card-header">
+      <span class="font-medium">Device Recordings</span>
+      <button id="refresh-recordings-btn" class="btn btn-tertiary btn-sm" onclick="refreshDeviceRecordings()">Refresh</button>
+    </div>
+    <div id="device-recordings-list" class="flex flex-col gap-2">
+      <p class="text-muted text-sm">Select a device to see recordings</p>
+    </div>
+  </div>
 </div>
 
 <style>
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    
-    @keyframes recording-pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.2); opacity: 0.7; }
-    }
-    
-    .transcription-tab {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 24px;
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        color: #666;
-        border-bottom: 2px solid transparent;
-        transition: all 0.2s;
-    }
-    
-    .transcription-tab:hover {
-        color: #333;
-    }
-    
-    .transcription-tab.active {
-        color: #000;
-        border-bottom-color: #000;
-    }
-    
-    .file-upload-dropzone {
-        border: 2px dashed #ddd;
-        border-radius: 12px;
-        padding: 40px 20px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        background: #fafafa;
-    }
-    
-    .file-upload-dropzone:hover,
-    .file-upload-dropzone.dragover {
-        border-color: #333;
-        background: #f5f5f5;
-    }
-    
-    /* Recording button styles */
-    .btn-record {
-        transition: all 0.2s ease;
-    }
-    
-    .btn-record:hover {
-        background: #555 !important;
-        transform: scale(1.02);
-    }
-    
-    .btn-record.recording {
-        background: #dc2626 !important;
-        animation: pulse 1.5s ease-in-out infinite;
-    }
-    
-    .btn-record.recording:hover {
-        background: #b91c1c !important;
-    }
-    
-    .recording-pulse {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        background: #dc2626;
-        border-radius: 50%;
-        animation: recording-pulse 1s ease-in-out infinite;
-    }
-    
-    #record-section {
-        transition: all 0.3s ease;
-    }
-    
-    #record-section.recording-active {
-        border-color: #dc2626;
-        background: #fef2f2;
-    }
+/* Notifications use design-system.css toast classes */
+
+/* Record Tab Content - Centered */
+#tab-content-record.active {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 60px 20px !important;
+  min-height: 300px;
+}
+
+/* Record Hero Section */
+#tab-content-record .record-hero {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100%;
+  max-width: 400px;
+}
+
+/* Recording Indicator */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 20px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+.pulse-dot {
+  width: 12px;
+  height: 12px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.recording-label-text {
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.record-timer {
+  font-family: 'SF Mono', 'Monaco', monospace;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* Record Button - full round pill style */
+#tab-content-record #record-btn,
+#record-btn.btn.btn-primary.btn-lg {
+  border-radius: 99px !important;
+  padding: 16px 32px !important;
+  font-size: 16px !important;
+  margin-bottom: 32px !important;
+}
+
+#record-btn.recording {
+  background: var(--color-danger, #dc2626) !important;
+}
+
+#record-btn.recording:hover {
+  background: var(--color-danger-hover, #b91c1c) !important;
+}
+
+#record-btn .record-icon,
+#record-btn .stop-icon {
+  width: 20px;
+  height: 20px;
+}
+
+#record-btn.recording .record-icon {
+  display: none;
+}
+
+#record-btn.recording .stop-icon {
+  display: inline-block !important;
+}
+
+#tab-content-record .record-hint {
+  color: var(--text-muted);
+  font-size: 14px;
+  max-width: 320px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Recent Recording Card */
+#recent-recording .recording-preview {
+  padding: 16px;
+}
+
+#recent-recording audio {
+  border-radius: 8px;
+  width: 100%;
+}
+
+.recording-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge.saved { background: #dcfce7; color: #166534; }
+.status-badge.pending { background: #fef3c7; color: #92400e; }
+.status-badge.error { background: #fee2e2; color: #991b1b; }
+.status-badge.completed { background: #dcfce7; color: #166534; }
+
+/* Tips Section */
+.tips-section {
+  width: 100%;
+}
+
+.tip-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.tip-icon-svg {
+  flex-shrink: 0;
+  stroke: var(--primary, #6366f1);
+}
+
+.tip-text {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* History Toolbar - Horizontal Layout */
+.history-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0;
+  background: transparent;
+}
+
+.history-search-wrapper {
+  position: relative;
+  flex: 0 0 280px;
+}
+
+.history-search-wrapper .search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.history-search-input {
+  width: 100%;
+  padding: 10px 14px 10px 42px;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.history-search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.history-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.history-filters {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.history-filter-select {
+  padding: 10px 32px 10px 12px;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 130px;
+}
+
+.history-filter-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.history-results-info {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* History Grid Layout - WITH GAPS */
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 24px !important;
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* History Card - White background with gap */
+.history-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s, transform 0.2s;
+  margin-bottom: 0 !important;
+}
+
+.history-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* History Block - White background */
+.history-block {
+  background: var(--bg-primary);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.history-block:last-child {
+  border-bottom: none;
+}
+
+.history-block.header-block {
+  background: var(--bg-primary);
+}
+
+/* Mobile responsive for history grid */
+@media (max-width: 900px) {
+  #tab-content-history {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .history-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    margin: 0 0 12px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .history-toolbar > div:first-child {
+    grid-column: 1 / -1;
+  }
+  
+  .history-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .history-card {
+    margin: 0 !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  .history-block {
+    padding: 12px 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+  }
+  
+  .history-results-info {
+    padding: 0 0 8px 0 !important;
+  }
+  
+  .history-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  
+  .history-actions-inline {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+  
+  .history-actions-inline .btn {
+    flex: 1 !important;
+  }
+  
+  .history-meta-row {
+    flex-wrap: wrap !important;
+    gap: 6px 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-toolbar {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .history-toolbar select,
+  .history-toolbar input {
+    font-size: 12px !important;
+  }
+  
+  .history-filename {
+    font-size: 13px !important;
+    word-break: break-all !important;
+  }
+}
+
+.history-item {
+  display: block;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+
+.history-item:hover {
+  background: var(--surface-2);
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+/* History Empty State */
+.history-empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.history-empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.history-empty-state p {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+/* No transcription state */
+.no-transcription {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+/* Mini credibility bar */
+.cred-bar-mini {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.cred-bar-mini-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.cred-bar-mini-fill.cred-success {
+  background: linear-gradient(90deg, #22c55e, #10b981);
+}
+
+.cred-bar-mini-fill.cred-warning {
+  background: linear-gradient(90deg, #f59e0b, #eab308);
+}
+
+.cred-bar-mini-fill.cred-error {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.cred-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Badges block */
+.badges-block {
+  padding: 12px 20px;
+}
+
+.recording-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-neutral {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* Dark mode badge adjustments */
+[data-theme="dark"] .badge-success,
+.dark-mode .badge-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+[data-theme="dark"] .badge-error,
+.dark-mode .badge-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.history-info {
+  width: 100%;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.history-filename {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.history-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.history-section {
+  margin-top: 12px;
+}
+
+.history-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.history-transcription {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 8px;
+  border-left: 3px solid var(--primary, #6366f1);
+}
+
+.history-fact-check {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  padding: 10px 14px;
+  background: #fef3c7;
+  border-radius: 8px;
+  border-left: 3px solid #f59e0b;
+}
+
+.history-analysis {
+  font-size: 13px;
+}
+
+.claim-item {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border-left: 4px solid;
+}
+
+.claim-item.claim-verified {
+  background: #dcfce7;
+  border-left-color: #22c55e;
+}
+
+.claim-item.claim-incorrect {
+  background: #fee2e2;
+  border-left-color: #ef4444;
+}
+
+.claim-item.claim-nuanced {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+}
+
+.claim-item.claim-neutral {
+  background: var(--surface);
+  border-left-color: var(--text-muted);
+}
+
+.claim-status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.claim-verified .claim-status { color: #16a34a; }
+.claim-incorrect .claim-status { color: #dc2626; }
+.claim-nuanced .claim-status { color: #d97706; }
+
+.claim-text {
+  font-weight: 500;
+  margin-bottom: 4px;
+  font-style: italic;
+}
+
+.claim-reasoning {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.analysis-line {
+  padding: 4px 0;
+}
+
+.history-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Voice Analysis Styles */
+.voice-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.voice-stat {
+  text-align: center;
+  padding: 12px;
+  background: var(--surface);
+  border-radius: 8px;
+}
+
+.voice-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.voice-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.voice-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.voice-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.indicator-label {
+  width: 90px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.indicator-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.indicator-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.indicator-value {
+  width: 40px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+@media (max-width: 600px) {
+  .voice-analysis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.keyword-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.history-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+/* Progress */
+.progress-container {
+  padding: 20px;
+  text-align: center;
+}
+
+.progress-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary, #6366f1);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-text {
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.progress-bar-container {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--primary, #6366f1);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* Files List */
+.files-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.files-summary {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  
+  .history-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
 </style>
-
-<script>
-// Initialize recording support check on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if recording is supported
-    if (typeof isRecordingSupported === 'function' && !isRecordingSupported()) {
-        const recordBtn = document.getElementById('record-btn');
-        const unsupportedMsg = document.getElementById('record-unsupported');
-        
-        if (recordBtn) {
-            recordBtn.disabled = true;
-            recordBtn.style.opacity = '0.5';
-            recordBtn.style.cursor = 'not-allowed';
-        }
-        if (unsupportedMsg) {
-            unsupportedMsg.style.display = 'block';
-        }
-    }
-    
-    // Initialize lucide icons
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-});
-</script>
-
-<script src="/app.js"></script>
-
