@@ -175,46 +175,146 @@ class IntelligentFactChecker:
         return result
     
     async def _extract_claims(self, text: str) -> List[str]:
-        """Extract factual claims from text using LLM"""
+        """Extract factual claims from text using LLAMA (Ollama)"""
         
-        if not self.llm:
-            # Fallback: simple sentence extraction
-            return self._simple_claim_extraction(text)
+        # Always try LLAMA first - it's smarter than regex
+        claims = await self._extract_claims_with_llama(text)
+        if claims is not None:
+            return claims
         
-        prompt = """Analyze this text and extract all FACTUAL CLAIMS (statements that can be verified as true or false).
-
-IMPORTANT:
-- Only extract statements that make factual assertions
-- Ignore opinions, questions, greetings, and filler words
-- Each claim should be a complete, verifiable statement
-- Return claims in the original language
-
-TEXT:
-\"\"\"
-{text}
-\"\"\"
-
-Return ONLY a JSON array of claim strings, nothing else:
-["claim 1", "claim 2", ...]
-
-If there are no factual claims, return: []
-"""
+        # Fallback to config-based extraction only if LLAMA completely fails
+        logger.warning("LLAMA claim extraction failed, using config-based fallback")
+        return self._config_based_claim_extraction(text)
+    
+    async def _extract_claims_with_llama(self, text: str) -> Optional[List[str]]:
+        """Use LLAMA via Ollama to intelligently extract claims"""
+        import aiohttp
         
+        prompt = f"""You are a fact-checker assistant. Analyze this text and identify ONLY verifiable factual claims.
+
+RULES:
+1. A FACTUAL CLAIM is a statement that can be objectively verified as TRUE or FALSE
+2. IGNORE: opinions, feelings, questions, greetings, conversational filler, meta-talk about recording
+3. IGNORE: subjective statements like "it's annoying", "I want", "I think"
+4. INCLUDE: statements with numbers, dates, names, locations, scientific facts, historical events
+5. Keep claims in the original language
+6. Maximum 5 claims
+
+TEXT TO ANALYZE:
+"{text}"
+
+Respond with ONLY a JSON array. Examples:
+- If text is "The Earth is flat and 2+2=5" → ["The Earth is flat", "2+2=5"]
+- If text is "I think it's annoying, want to test" → []
+- If text is "Apple was founded in 1976 by Steve Jobs" → ["Apple was founded in 1976", "Apple was founded by Steve Jobs"]
+
+JSON ARRAY (or empty [] if no factual claims):"""
+
         try:
-            response = await self.llm.generate(prompt.format(text=text))
+            # Try using the initialized LLM client first
+            if self.llm:
+                response = await self.llm.generate(prompt)
+                claims = self._parse_claims_json(response)
+                if claims is not None:
+                    logger.info(f"✅ LLAMA extracted {len(claims)} claims via LLM client")
+                    return claims
             
-            # Parse JSON response
-            json_match = re.search(r'\[.*\]', response, re.DOTALL)
+            # Direct Ollama call as backup
+            ollama_url = "http://localhost:11434/api/generate"
+            payload = {
+                "model": "llama3.2:3b",  # or tinyllama:latest
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,  # Low temp for consistent extraction
+                    "num_predict": 200,
+                }
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(ollama_url, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        response = data.get("response", "")
+                        claims = self._parse_claims_json(response)
+                        if claims is not None:
+                            logger.info(f"✅ LLAMA extracted {len(claims)} claims via direct Ollama")
+                            return claims
+                    else:
+                        logger.warning(f"Ollama returned status {resp.status}")
+                        
+        except Exception as e:
+            logger.warning(f"LLAMA claim extraction error: {e}")
+        
+        return None
+    
+    def _parse_claims_json(self, response: str) -> Optional[List[str]]:
+        """Parse JSON array from LLAMA response"""
+        try:
+            # Try to find JSON array in response
+            json_match = re.search(r'\[.*?\]', response, re.DOTALL)
             if json_match:
                 claims = json.loads(json_match.group())
-                return [c.strip() for c in claims if c.strip()]
-        except Exception as e:
-            logger.warning(f"LLM claim extraction failed: {e}")
+                if isinstance(claims, list):
+                    # Filter and clean claims
+                    valid_claims = [
+                        c.strip() for c in claims 
+                        if isinstance(c, str) and len(c.strip()) > 10
+                    ]
+                    return valid_claims[:5]  # Max 5 claims
+        except json.JSONDecodeError:
+            pass
+        return None
+    
+    def _config_based_claim_extraction(self, text: str) -> List[str]:
+        """Fallback: use configurable patterns for claim extraction"""
+        try:
+            from src.ai.claim_config import get_claim_config
+            config = get_claim_config()
+        except ImportError:
+            # If config not available, use hardcoded defaults
+            return self._simple_claim_extraction(text)
         
-        return self._simple_claim_extraction(text)
+        sentences = re.split(r'[.!?]+', text)
+        claims = []
+        
+        # Flatten all skip patterns
+        all_skip_patterns = []
+        for patterns in config.skip_patterns.values():
+            all_skip_patterns.extend(patterns)
+        
+        # Flatten all fact indicators
+        all_fact_indicators = []
+        for patterns in config.fact_indicators.values():
+            all_fact_indicators.extend(patterns)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            
+            # Check minimum requirements
+            if len(sentence) < config.min_sentence_length:
+                continue
+            if len(sentence.split()) < config.min_word_count:
+                continue
+            
+            lower_sentence = sentence.lower()
+            
+            # Skip if matches any skip pattern
+            if any(re.search(p, lower_sentence) for p in all_skip_patterns):
+                continue
+            
+            # Must have at least one fact indicator
+            if any(re.search(p, lower_sentence, re.IGNORECASE) for p in all_fact_indicators):
+                claims.append(sentence)
+        
+        return claims[:config.max_claims_to_extract]
     
     def _simple_claim_extraction(self, text: str) -> List[str]:
-        """Fallback: simple sentence-based claim extraction - only extract VERIFIABLE facts"""
+        """Legacy fallback - delegates to config-based extraction"""
+        return self._config_based_claim_extraction(text)
+    
+    def _legacy_simple_claim_extraction(self, text: str) -> List[str]:
+        """Hardcoded fallback if config system fails - only extract VERIFIABLE facts"""
         # Split into sentences
         sentences = re.split(r'[.!?]+', text)
         claims = []
