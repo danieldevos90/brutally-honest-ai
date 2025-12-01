@@ -261,6 +261,30 @@ function renderHistoryItems(items) {
             ${processingTime ? `<span class="badge badge-neutral">Time: ${processingTime}</span>` : ''}
           </div>
         </div>
+        
+        ${brutalHonesty || factCheck ? `
+          <!-- Fact Check / Analysis Block -->
+          <div class="history-block analysis-block">
+            <div class="block-title" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleAnalysis(this)">
+              <span>🔍 Fact Analysis</span>
+              <span class="toggle-icon">▼</span>
+            </div>
+            <div class="analysis-content">
+              ${brutalHonesty ? `
+                <div class="analysis-section">
+                  <div class="analysis-label">Brutal Honest Assessment:</div>
+                  <div class="brutal-honesty-content">${formatBrutalHonesty(brutalHonesty)}</div>
+                </div>
+              ` : ''}
+              ${factCheck ? `
+                <div class="analysis-section">
+                  <div class="analysis-label">Fact Check:</div>
+                  <div class="fact-check-content">${escapeHtml(factCheck)}</div>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        ` : ''}
       </div>
     `;
   });
@@ -466,6 +490,19 @@ window.addEventListener('hashchange', () => {
   }
 });
 
+// Toggle analysis section visibility
+function toggleAnalysis(element) {
+  const content = element.parentElement.querySelector('.analysis-content');
+  const icon = element.querySelector('.toggle-icon');
+  if (content.style.display === 'none') {
+    content.style.display = 'block';
+    icon.textContent = '▼';
+  } else {
+    content.style.display = 'none';
+    icon.textContent = '▶';
+  }
+}
+
 // Make functions globally available
 window.switchTab = switchTab;
 window.loadTranscriptionHistory = loadTranscriptionHistory;
@@ -476,5 +513,6 @@ window.updateRecordingUI = updateRecordingUI;
 window.loadHistory = loadTranscriptionHistory;
 window.downloadHistoryItem = downloadHistoryItem;
 window.reanalyzeHistoryItem = reanalyzeHistoryItem;
+window.toggleAnalysis = toggleAnalysis;
 
 console.log('Home.js loaded');
