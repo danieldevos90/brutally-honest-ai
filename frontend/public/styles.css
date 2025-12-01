@@ -1028,6 +1028,104 @@
   margin-bottom: var(--space-2);
 }
 
+/* Summary Block */
+.summary-block {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  border-left: 3px solid var(--color-info);
+}
+
+.summary-text {
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  color: var(--text-primary);
+  padding: var(--space-2) 0;
+}
+
+/* Mistakes / Unfacts Block */
+.mistakes-block {
+  background: rgba(239, 68, 68, 0.05);
+  border-left: 3px solid var(--color-error);
+}
+
+.mistakes-title {
+  color: var(--color-error);
+  font-weight: var(--font-semibold);
+}
+
+.mistakes-content {
+  padding: var(--space-2) 0;
+}
+
+.mistake-item,
+.correction-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.mistake-item:last-child,
+.correction-item:last-child {
+  margin-bottom: 0;
+}
+
+.mistake-item {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.correction-item {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.mistake-icon,
+.correction-icon {
+  flex-shrink: 0;
+  font-size: var(--text-base);
+}
+
+.mistake-text {
+  color: var(--color-error);
+  line-height: 1.5;
+}
+
+.correction-text {
+  color: var(--color-warning);
+  line-height: 1.5;
+}
+
+/* Collapsible transcription for long recordings */
+.transcription-block .block-title {
+  user-select: none;
+}
+
+.transcription-block .transcription-text {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+/* Scrollbar styling for long transcriptions */
+.transcription-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transcription-text::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xs);
+}
+
+.transcription-text::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: var(--radius-xs);
+}
+
+.transcription-text::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
 .history-empty-state p {
   font-size: var(--text-lg);
   font-weight: var(--font-medium);

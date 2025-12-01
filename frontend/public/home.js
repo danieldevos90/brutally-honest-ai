@@ -203,6 +203,12 @@ function renderHistoryItems(items) {
     const agentsUsed = r.agents_used || ['Whisper STT', 'LLAMA Analysis'];
     const duration = voiceAnalysis?.duration_seconds ? Math.round(voiceAnalysis.duration_seconds) + 's' : '';
     
+    // New fields for long recording analysis
+    const summary = r.summary || '';
+    const questionableClaims = r.questionable_claims || [];
+    const corrections = r.corrections || [];
+    const analysis = r.analysis || '';
+    
     // Credibility score from analysis
     const credScore = r.credibility_score || (confidence ? Math.round(parseFloat(confidence) * 100) : null);
     const credClass = credScore >= 70 ? 'cred-success' : credScore >= 40 ? 'cred-warning' : 'cred-error';
@@ -241,11 +247,22 @@ function renderHistoryItems(items) {
           ` : ''}
         </div>
         
+        ${summary ? `
+          <!-- Summary Block (for long recordings) -->
+          <div class="history-block summary-block">
+            <div class="block-title">📝 Summary</div>
+            <div class="summary-text">${escapeHtml(summary)}</div>
+          </div>
+        ` : ''}
+        
         ${transcription ? `
           <!-- Transcription Block -->
           <div class="history-block transcription-block">
-            <div class="block-title">Transcription</div>
-            <div class="transcription-text">${formatTranscriptionWithMoods(transcription, sentenceMoods)}</div>
+            <div class="block-title" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection(this)">
+              <span>📄 Full Transcription ${transcription.length > 500 ? `(${transcription.length} chars)` : ''}</span>
+              <span class="toggle-icon">${transcription.length > 500 ? '▶' : '▼'}</span>
+            </div>
+            <div class="transcription-text" style="${transcription.length > 500 ? 'display: none;' : ''}">${formatTranscriptionWithMoods(transcription, sentenceMoods)}</div>
           </div>
         ` : `
           <div class="history-block">
@@ -262,14 +279,37 @@ function renderHistoryItems(items) {
           </div>
         </div>
         
+        ${questionableClaims.length > 0 || corrections.length > 0 ? `
+          <!-- Mistakes / Unfacts Block -->
+          <div class="history-block mistakes-block">
+            <div class="block-title mistakes-title">
+              <span>❌ Mistakes & Questionable Claims (${questionableClaims.length + corrections.length})</span>
+            </div>
+            <div class="mistakes-content">
+              ${questionableClaims.map(claim => `
+                <div class="mistake-item">
+                  <span class="mistake-icon">⚠️</span>
+                  <span class="mistake-text">${escapeHtml(typeof claim === 'string' ? claim : claim.text || claim.claim || JSON.stringify(claim))}</span>
+                </div>
+              `).join('')}
+              ${corrections.map(correction => `
+                <div class="correction-item">
+                  <span class="correction-icon">✏️</span>
+                  <span class="correction-text">${escapeHtml(typeof correction === 'string' ? correction : correction.text || correction.correction || JSON.stringify(correction))}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+        
         ${brutalHonesty || factCheck ? `
           <!-- Fact Check / Analysis Block -->
           <div class="history-block analysis-block">
-            <div class="block-title" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleAnalysis(this)">
-              <span>🔍 Fact Analysis</span>
-              <span class="toggle-icon">▼</span>
+            <div class="block-title" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection(this)">
+              <span>🔍 Detailed Fact Analysis</span>
+              <span class="toggle-icon">▶</span>
             </div>
-            <div class="analysis-content">
+            <div class="analysis-content" style="display: none;">
               ${brutalHonesty ? `
                 <div class="analysis-section">
                   <div class="analysis-label">Brutal Honest Assessment:</div>
@@ -490,17 +530,25 @@ window.addEventListener('hashchange', () => {
   }
 });
 
-// Toggle analysis section visibility
-function toggleAnalysis(element) {
-  const content = element.parentElement.querySelector('.analysis-content');
+// Toggle any collapsible section visibility
+function toggleSection(element) {
+  const parent = element.parentElement;
+  const content = parent.querySelector('.analysis-content, .transcription-text, .summary-text');
   const icon = element.querySelector('.toggle-icon');
-  if (content.style.display === 'none') {
-    content.style.display = 'block';
-    icon.textContent = '▼';
-  } else {
-    content.style.display = 'none';
-    icon.textContent = '▶';
+  if (content) {
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      icon.textContent = '▼';
+    } else {
+      content.style.display = 'none';
+      icon.textContent = '▶';
+    }
   }
+}
+
+// Legacy alias
+function toggleAnalysis(element) {
+  toggleSection(element);
 }
 
 // Make functions globally available
@@ -514,5 +562,6 @@ window.loadHistory = loadTranscriptionHistory;
 window.downloadHistoryItem = downloadHistoryItem;
 window.reanalyzeHistoryItem = reanalyzeHistoryItem;
 window.toggleAnalysis = toggleAnalysis;
+window.toggleSection = toggleSection;
 
 console.log('Home.js loaded');
