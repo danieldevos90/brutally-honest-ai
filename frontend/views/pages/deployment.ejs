@@ -1,0 +1,1273 @@
+<!-- OTA Deployment Management Page -->
+<style>
+    .deployment-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .deployment-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color, #333);
+    }
+    
+    .deployment-header h2 {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin: 0;
+        color: var(--text-primary, #fff);
+    }
+    
+    .deployment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .deploy-card {
+        background: var(--card-bg, #1e1e1e);
+        border: 1px solid var(--border-color, #333);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .deploy-card:hover {
+        border-color: var(--accent-color, #4ecdc4);
+        box-shadow: 0 4px 20px rgba(78, 205, 196, 0.1);
+    }
+    
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        color: var(--text-primary, #fff);
+        font-size: 1.1rem;
+    }
+    
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--accent-color, #4ecdc4) 0%, var(--accent-secondary, #44a08d) 100%);
+        color: white;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .status-online {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-offline {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .status-deploying {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    
+    .system-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .info-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #888);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+        font-size: 0.9rem;
+        color: var(--text-primary, #fff);
+        font-weight: 500;
+    }
+    
+    .deploy-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .deploy-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    
+    .deploy-btn-primary {
+        background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+        color: white;
+    }
+    
+    .deploy-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+    }
+    
+    .deploy-btn-secondary {
+        background: var(--bg-tertiary, #2a2a2a);
+        color: var(--text-primary, #fff);
+        border: 1px solid var(--border-color, #333);
+    }
+    
+    .deploy-btn-secondary:hover {
+        background: var(--bg-hover, #333);
+        border-color: var(--accent-color, #4ecdc4);
+    }
+    
+    .deploy-btn-danger {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    .deploy-btn-danger:hover {
+        background: rgba(239, 68, 68, 0.25);
+    }
+    
+    .deploy-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+    
+    .progress-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color, #333);
+    }
+    
+    .progress-bar-container {
+        background: var(--bg-tertiary, #2a2a2a);
+        border-radius: 10px;
+        height: 12px;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #4ecdc4 0%, #44a08d 100%);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary, #888);
+        text-align: center;
+    }
+    
+    .logs-section {
+        margin-top: 1.5rem;
+    }
+    
+    .logs-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    
+    .logs-header h4 {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-primary, #fff);
+    }
+    
+    .logs-container {
+        background: #0d0d0d;
+        border: 1px solid var(--border-color, #333);
+        border-radius: 8px;
+        padding: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: #a0a0a0;
+    }
+    
+    .logs-container pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .backup-list {
+        margin-top: 1rem;
+    }
+    
+    .backup-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        background: var(--bg-tertiary, #2a2a2a);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .backup-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .backup-name {
+        font-size: 0.9rem;
+        color: var(--text-primary, #fff);
+    }
+    
+    .backup-date {
+        font-size: 0.75rem;
+        color: var(--text-secondary, #888);
+    }
+    
+    .history-list {
+        margin-top: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .history-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--bg-tertiary, #2a2a2a);
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .history-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .history-icon.success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+    }
+    
+    .history-icon.failed {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    
+    .history-details {
+        flex: 1;
+    }
+    
+    .history-type {
+        font-weight: 500;
+        color: var(--text-primary, #fff);
+        font-size: 0.9rem;
+    }
+    
+    .history-time {
+        font-size: 0.8rem;
+        color: var(--text-secondary, #888);
+    }
+    
+    .history-duration {
+        font-size: 0.85rem;
+        color: var(--accent-color, #4ecdc4);
+    }
+    
+    .config-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .config-input {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .config-input label {
+        font-size: 0.85rem;
+        color: var(--text-secondary, #888);
+    }
+    
+    .config-input input {
+        padding: 0.75rem;
+        background: var(--bg-tertiary, #2a2a2a);
+        border: 1px solid var(--border-color, #333);
+        border-radius: 8px;
+        color: var(--text-primary, #fff);
+        font-size: 0.9rem;
+    }
+    
+    .config-input input:focus {
+        outline: none;
+        border-color: var(--accent-color, #4ecdc4);
+    }
+    
+    /* Pulse animation for deploying status */
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .status-deploying {
+        animation: pulse 1.5s infinite;
+    }
+    
+    .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+<!-- Admin Access Denied Banner (hidden by default) -->
+<div id="admin-access-denied" style="display: none; max-width: 600px; margin: 4rem auto; padding: 2rem; text-align: center; background: var(--card-bg, #1e1e1e); border: 1px solid var(--border-color, #333); border-radius: 12px;">
+    <div style="width: 80px; height: 80px; margin: 0 auto 1.5rem; border-radius: 50%; background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center;">
+        <i data-lucide="shield-x" style="width: 40px; height: 40px; color: #ef4444;"></i>
+    </div>
+    <h2 style="color: var(--text-primary, #fff); margin: 0 0 1rem;">Access Restricted</h2>
+    <p style="color: var(--text-secondary, #888); margin: 0 0 1.5rem;">
+        OTA Deployment is only available to administrators.<br>
+        Please contact your system administrator if you need deployment access.
+    </p>
+    <a href="/" class="deploy-btn deploy-btn-secondary" style="display: inline-flex; text-decoration: none;">
+        <i data-lucide="arrow-left"></i>
+        Back to Home
+    </a>
+</div>
+
+<div class="deployment-container" id="deployment-main">
+    <div class="deployment-header">
+        <h2>
+            <i data-lucide="rocket"></i>
+            OTA Deployment
+        </h2>
+        <span class="status-badge status-offline" id="connection-status">
+            <span class="spinner" style="display: none;"></span>
+            <span class="status-text">Checking...</span>
+        </span>
+    </div>
+    
+    <div class="deployment-grid">
+        <!-- Remote System Status -->
+        <div class="deploy-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="server"></i>
+                </div>
+                <h3>Remote System</h3>
+            </div>
+            
+            <div class="system-info" id="system-info">
+                <div class="info-item">
+                    <span class="info-label">Hostname</span>
+                    <span class="info-value" id="remote-hostname">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">GPU</span>
+                    <span class="info-value" id="remote-gpu">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Memory</span>
+                    <span class="info-value" id="remote-memory">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Disk</span>
+                    <span class="info-value" id="remote-disk">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">API Status</span>
+                    <span class="info-value" id="remote-api">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frontend</span>
+                    <span class="info-value" id="remote-frontend">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Ollama</span>
+                    <span class="info-value" id="remote-ollama">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Deploy</span>
+                    <span class="info-value" id="remote-last-deploy">--</span>
+                </div>
+            </div>
+            
+            <div class="deploy-actions">
+                <button class="deploy-btn deploy-btn-secondary" onclick="refreshSystemInfo()">
+                    <i data-lucide="refresh-cw"></i>
+                    Refresh
+                </button>
+                <button class="deploy-btn deploy-btn-secondary" onclick="testConnection()">
+                    <i data-lucide="wifi"></i>
+                    Test Connection
+                </button>
+            </div>
+        </div>
+        
+        <!-- Deploy Actions -->
+        <div class="deploy-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="upload-cloud"></i>
+                </div>
+                <h3>Deploy</h3>
+            </div>
+            
+            <p style="color: var(--text-secondary, #888); font-size: 0.9rem; margin: 0;">
+                Push your local changes to the remote system. Quick deploy syncs only changed files, 
+                full deploy reinstalls all dependencies.
+            </p>
+            
+            <div class="deploy-actions">
+                <button class="deploy-btn deploy-btn-primary" onclick="deployQuick()" id="btn-quick-deploy">
+                    <i data-lucide="zap"></i>
+                    Quick Deploy
+                </button>
+                <button class="deploy-btn deploy-btn-secondary" onclick="deployFull()" id="btn-full-deploy">
+                    <i data-lucide="package"></i>
+                    Full Deploy
+                </button>
+                <button class="deploy-btn deploy-btn-secondary" onclick="restartServices()" id="btn-restart">
+                    <i data-lucide="rotate-cw"></i>
+                    Restart Services
+                </button>
+            </div>
+            
+            <!-- Progress Section -->
+            <div class="progress-section" id="progress-section" style="display: none;">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="deploy-progress" style="width: 0%;"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Preparing deployment...</p>
+            </div>
+        </div>
+        
+        <!-- Configuration -->
+        <div class="deploy-card" style="grid-column: span 2;">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="settings"></i>
+                </div>
+                <h3>Remote Access Configuration</h3>
+            </div>
+            
+            <p style="color: var(--text-secondary, #888); font-size: 0.85rem; margin: 0 0 1rem 0;">
+                Configure how to reach your remote system. Choose the method that works for your network setup.
+            </p>
+            
+            <!-- Access Method Tabs -->
+            <div class="access-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <button class="access-tab active" data-method="direct" onclick="selectAccessMethod('direct')">
+                    <i data-lucide="wifi"></i>
+                    Direct SSH
+                </button>
+                <button class="access-tab" data-method="tailscale" onclick="selectAccessMethod('tailscale')">
+                    <i data-lucide="shield"></i>
+                    Tailscale
+                </button>
+                <button class="access-tab" data-method="cloudflare" onclick="selectAccessMethod('cloudflare')">
+                    <i data-lucide="cloud"></i>
+                    Cloudflare Tunnel
+                </button>
+                <button class="access-tab" data-method="jumphost" onclick="selectAccessMethod('jumphost')">
+                    <i data-lucide="git-branch"></i>
+                    Jump Host
+                </button>
+            </div>
+            
+            <style>
+                .access-tabs {
+                    border-bottom: 1px solid var(--border-color, #333);
+                    padding-bottom: 1rem;
+                }
+                .access-tab {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.6rem 1rem;
+                    background: var(--bg-tertiary, #2a2a2a);
+                    border: 1px solid var(--border-color, #333);
+                    border-radius: 8px;
+                    color: var(--text-secondary, #888);
+                    cursor: pointer;
+                    font-size: 0.85rem;
+                    transition: all 0.2s ease;
+                }
+                .access-tab:hover {
+                    border-color: var(--accent-color, #4ecdc4);
+                    color: var(--text-primary, #fff);
+                }
+                .access-tab.active {
+                    background: linear-gradient(135deg, rgba(78, 205, 196, 0.2) 0%, rgba(68, 160, 141, 0.2) 100%);
+                    border-color: var(--accent-color, #4ecdc4);
+                    color: var(--accent-color, #4ecdc4);
+                }
+                .access-panel {
+                    display: none;
+                }
+                .access-panel.active {
+                    display: block;
+                }
+                .config-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 1rem;
+                }
+                .help-text {
+                    font-size: 0.75rem;
+                    color: var(--text-secondary, #666);
+                    margin-top: 0.25rem;
+                }
+                .setup-guide {
+                    background: var(--bg-tertiary, #2a2a2a);
+                    border: 1px solid var(--border-color, #333);
+                    border-radius: 8px;
+                    padding: 1rem;
+                    margin-top: 1rem;
+                }
+                .setup-guide h4 {
+                    margin: 0 0 0.75rem 0;
+                    color: var(--text-primary, #fff);
+                    font-size: 0.9rem;
+                }
+                .setup-guide code {
+                    background: #0d0d0d;
+                    padding: 0.2rem 0.5rem;
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                    color: #4ecdc4;
+                }
+                .setup-guide pre {
+                    background: #0d0d0d;
+                    padding: 0.75rem;
+                    border-radius: 6px;
+                    overflow-x: auto;
+                    font-size: 0.8rem;
+                    margin: 0.5rem 0;
+                }
+            </style>
+            
+            <!-- Direct SSH Panel -->
+            <div class="access-panel active" id="panel-direct">
+                <div class="config-grid">
+                    <div class="config-input">
+                        <label for="remote-host">Remote Host (user@ip or domain)</label>
+                        <input type="text" id="remote-host" value="brutally@brutallyhonest.io" placeholder="user@hostname.io">
+                        <span class="help-text">Local IP, public IP, or domain name</span>
+                    </div>
+                    <div class="config-input">
+                        <label for="ssh-port">SSH Port</label>
+                        <input type="number" id="ssh-port" value="22" placeholder="22">
+                        <span class="help-text">Default is 22, change if port-forwarded</span>
+                    </div>
+                    <div class="config-input">
+                        <label for="remote-dir">Remote Directory</label>
+                        <input type="text" id="remote-dir" value="/home/brutally/brutally-honest-ai" placeholder="/home/user/brutally-honest-ai">
+                    </div>
+                </div>
+                <div class="setup-guide">
+                    <h4>[CONNECT] Setup for External Access (Port Forwarding)</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary, #888); margin: 0;">
+                        1. Forward port 22 (or custom) on your router to your Jetson's local IP<br>
+                        2. Use a Dynamic DNS service (DuckDNS, No-IP) if your IP changes<br>
+                        3. Set the remote host to: <code>user@your-ddns.duckdns.org</code>
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Tailscale Panel -->
+            <div class="access-panel" id="panel-tailscale">
+                <div class="config-grid">
+                    <div class="config-input">
+                        <label for="tailscale-hostname">Tailscale Machine Name</label>
+                        <input type="text" id="tailscale-hostname" placeholder="brutally-jetson">
+                        <span class="help-text">The machine name shown in Tailscale admin</span>
+                    </div>
+                    <div class="config-input">
+                        <label for="tailscale-user">SSH Username</label>
+                        <input type="text" id="tailscale-user" value="brutally" placeholder="brutally">
+                    </div>
+                    <div class="config-input">
+                        <label for="remote-dir-ts">Remote Directory</label>
+                        <input type="text" id="remote-dir-ts" value="/home/brutally/brutally-honest-ai">
+                    </div>
+                </div>
+                <div class="setup-guide">
+                    <h4>Tailscale Setup (Secure) (Recommended - Most Secure)</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary, #888); margin: 0 0 0.5rem 0;">
+                        Tailscale creates a secure mesh VPN. Install on both machines:
+                    </p>
+                    <pre style="color: #a0a0a0;"># On your Jetson/remote device:
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+
+# On your local machine:
+# Download from https://tailscale.com/download</pre>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary, #888); margin: 0.5rem 0 0 0;">
+                        After setup, use the Tailscale machine name (e.g., <code>brutally-jetson</code>)
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Cloudflare Tunnel Panel -->
+            <div class="access-panel" id="panel-cloudflare">
+                <div class="config-grid">
+                    <div class="config-input">
+                        <label for="cloudflare-hostname">Cloudflare Tunnel Hostname</label>
+                        <input type="text" id="cloudflare-hostname" placeholder="ssh.yourdomain.com">
+                        <span class="help-text">The hostname configured in your tunnel</span>
+                    </div>
+                    <div class="config-input">
+                        <label for="cloudflare-user">SSH Username</label>
+                        <input type="text" id="cloudflare-user" value="brutally" placeholder="brutally">
+                    </div>
+                    <div class="config-input">
+                        <label for="remote-dir-cf">Remote Directory</label>
+                        <input type="text" id="remote-dir-cf" value="/home/brutally/brutally-honest-ai">
+                    </div>
+                </div>
+                <div class="setup-guide">
+                    <h4>Cloudflare Tunnel Setup (Free, No Port Forwarding)</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary, #888); margin: 0 0 0.5rem 0;">
+                        Cloudflare Tunnel exposes SSH without opening ports:
+                    </p>
+                    <pre style="color: #a0a0a0;"># On your Jetson (install cloudflared):
+curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -o cloudflared
+chmod +x cloudflared
+sudo mv cloudflared /usr/local/bin/
+
+# Login and create tunnel:
+cloudflared tunnel login
+cloudflared tunnel create brutally-ssh
+cloudflared tunnel route dns brutally-ssh ssh.yourdomain.com
+
+# Run tunnel (or create systemd service):
+cloudflared tunnel run brutally-ssh</pre>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary, #888); margin: 0.5rem 0 0 0;">
+                        On your local machine, also install <code>cloudflared</code> for the ProxyCommand
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Jump Host Panel -->
+            <div class="access-panel" id="panel-jumphost">
+                <div class="config-grid">
+                    <div class="config-input">
+                        <label for="jump-host">Jump Host (Bastion)</label>
+                        <input type="text" id="jump-host" placeholder="user@bastion.example.com">
+                        <span class="help-text">The intermediate server to jump through</span>
+                    </div>
+                    <div class="config-input">
+                        <label for="final-host">Final Destination Host</label>
+                        <input type="text" id="final-host" value="brutally@brutallyhonest.io" placeholder="user@internal-ip">
+                    </div>
+                    <div class="config-input">
+                        <label for="remote-dir-jh">Remote Directory</label>
+                        <input type="text" id="remote-dir-jh" value="/home/brutally/brutally-honest-ai">
+                    </div>
+                </div>
+                <div class="setup-guide">
+                    <h4>🔀 Jump Host / Bastion Setup</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary, #888); margin: 0;">
+                        Use a publicly accessible server as a jump point to reach internal hosts.<br>
+                        SSH will connect: <code>Your Machine → Jump Host → Target Device</code>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="deploy-actions" style="margin-top: 1.5rem;">
+                <button class="deploy-btn deploy-btn-primary" onclick="saveConfig()">
+                    <i data-lucide="save"></i>
+                    Save & Test Configuration
+                </button>
+            </div>
+        </div>
+        
+        <!-- Backups & Rollback -->
+        <div class="deploy-card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="history"></i>
+                </div>
+                <h3>Backups & Rollback</h3>
+            </div>
+            
+            <p style="color: var(--text-secondary, #888); font-size: 0.9rem; margin: 0;">
+                Rollback to a previous deployment if something goes wrong.
+            </p>
+            
+            <div class="backup-list" id="backup-list">
+                <p style="color: var(--text-secondary, #888); font-size: 0.85rem; text-align: center;">
+                    Loading backups...
+                </p>
+            </div>
+            
+            <div class="deploy-actions">
+                <button class="deploy-btn deploy-btn-secondary" onclick="loadBackups()">
+                    <i data-lucide="refresh-cw"></i>
+                    Refresh Backups
+                </button>
+                <button class="deploy-btn deploy-btn-danger" onclick="rollbackLatest()" id="btn-rollback">
+                    <i data-lucide="rotate-ccw"></i>
+                    Rollback Latest
+                </button>
+            </div>
+        </div>
+        
+        <!-- Remote Logs -->
+        <div class="deploy-card" style="grid-column: span 2;">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="terminal"></i>
+                </div>
+                <h3>Remote Logs</h3>
+            </div>
+            
+            <div class="deploy-actions" style="margin-top: 0;">
+                <button class="deploy-btn deploy-btn-secondary" onclick="loadLogs('api')">
+                    <i data-lucide="server"></i>
+                    API Logs
+                </button>
+                <button class="deploy-btn deploy-btn-secondary" onclick="loadLogs('frontend')">
+                    <i data-lucide="layout"></i>
+                    Frontend Logs
+                </button>
+            </div>
+            
+            <div class="logs-section">
+                <div class="logs-container" id="logs-container">
+                    <pre id="logs-content">Click a button above to load logs...</pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Deployment History -->
+        <div class="deploy-card" style="grid-column: span 2;">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="clock"></i>
+                </div>
+                <h3>Deployment History</h3>
+            </div>
+            
+            <div class="history-list" id="history-list">
+                <p style="color: var(--text-secondary, #888); font-size: 0.85rem; text-align: center;">
+                    Loading history...
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    let pollingInterval = null;
+    let isDeploying = false;
+    
+    // API helper function
+    async function apiCall(endpoint, method = 'GET', body = null) {
+        const options = {
+            method,
+            headers: { 'Content-Type': 'application/json' }
+        };
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(`/api${endpoint}`, options);
+        return response.json();
+    }
+    
+    // Refresh system info
+    async function refreshSystemInfo() {
+        try {
+            const data = await apiCall('/ota/remote-info');
+            
+            const statusBadge = document.getElementById('connection-status');
+            const statusText = statusBadge.querySelector('.status-text');
+            
+            if (data.success && data.system_info) {
+                const info = data.system_info;
+                
+                document.getElementById('remote-hostname').textContent = info.hostname || '--';
+                document.getElementById('remote-gpu').textContent = info.gpu_info || 'N/A';
+                document.getElementById('remote-memory').textContent = 
+                    info.memory_total ? `${info.memory_available} / ${info.memory_total}` : '--';
+                document.getElementById('remote-disk').textContent = info.disk_usage || '--';
+                document.getElementById('remote-api').textContent = info.api_running ? '✓ Running' : '✗ Stopped';
+                document.getElementById('remote-frontend').textContent = info.frontend_running ? '✓ Running' : '✗ Stopped';
+                document.getElementById('remote-ollama').textContent = info.ollama_running ? '✓ Running' : '✗ Stopped';
+                document.getElementById('remote-last-deploy').textContent = info.last_deployment || 'Never';
+                
+                if (info.hostname === 'OFFLINE') {
+                    statusBadge.className = 'status-badge status-offline';
+                    statusText.textContent = 'Offline';
+                } else {
+                    statusBadge.className = 'status-badge status-online';
+                    statusText.textContent = 'Connected';
+                }
+            } else {
+                statusBadge.className = 'status-badge status-offline';
+                statusText.textContent = 'Offline';
+            }
+        } catch (error) {
+            console.error('Failed to get system info:', error);
+            document.getElementById('connection-status').className = 'status-badge status-offline';
+            document.querySelector('#connection-status .status-text').textContent = 'Error';
+        }
+    }
+    
+    // Test connection
+    async function testConnection() {
+        try {
+            const data = await apiCall('/ota/test-connection', 'POST');
+            if (data.connected) {
+                showNotification('Connection successful! Connected to ' + data.hostname, 'success');
+            } else {
+                showNotification('Connection failed. Check SSH configuration.', 'error');
+            }
+        } catch (error) {
+            showNotification('Connection test failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Deploy quick
+    async function deployQuick() {
+        if (isDeploying) return;
+        
+        try {
+            setDeploying(true);
+            showNotification('Starting quick deployment...', 'info');
+            
+            const data = await apiCall('/ota/deploy/quick', 'POST');
+            
+            if (data.success) {
+                startProgressPolling();
+            } else {
+                setDeploying(false);
+                showNotification(data.message || 'Deployment failed', 'error');
+            }
+        } catch (error) {
+            setDeploying(false);
+            showNotification('Deployment failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Deploy full
+    async function deployFull() {
+        if (isDeploying) return;
+        
+        if (!confirm('Full deployment will reinstall all dependencies. This may take several minutes. Continue?')) {
+            return;
+        }
+        
+        try {
+            setDeploying(true);
+            showNotification('Starting full deployment...', 'info');
+            
+            const data = await apiCall('/ota/deploy/full', 'POST');
+            
+            if (data.success) {
+                startProgressPolling();
+            } else {
+                setDeploying(false);
+                showNotification(data.message || 'Deployment failed', 'error');
+            }
+        } catch (error) {
+            setDeploying(false);
+            showNotification('Deployment failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Restart services
+    async function restartServices() {
+        try {
+            showNotification('Restarting services...', 'info');
+            const data = await apiCall('/ota/restart-services', 'POST');
+            
+            if (data.success) {
+                showNotification('Services restarted successfully', 'success');
+            } else {
+                showNotification(data.message || 'Restart failed', 'error');
+            }
+            
+            await refreshSystemInfo();
+        } catch (error) {
+            showNotification('Restart failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Set deploying state
+    function setDeploying(state) {
+        isDeploying = state;
+        
+        document.getElementById('btn-quick-deploy').disabled = state;
+        document.getElementById('btn-full-deploy').disabled = state;
+        document.getElementById('btn-restart').disabled = state;
+        document.getElementById('btn-rollback').disabled = state;
+        
+        document.getElementById('progress-section').style.display = state ? 'block' : 'none';
+        
+        const statusBadge = document.getElementById('connection-status');
+        const statusText = statusBadge.querySelector('.status-text');
+        const spinner = statusBadge.querySelector('.spinner');
+        
+        if (state) {
+            statusBadge.className = 'status-badge status-deploying';
+            statusText.textContent = 'Deploying...';
+            spinner.style.display = 'inline-block';
+        } else {
+            spinner.style.display = 'none';
+            refreshSystemInfo();
+        }
+    }
+    
+    // Start progress polling
+    function startProgressPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+        
+        pollingInterval = setInterval(async () => {
+            try {
+                const data = await apiCall('/ota/status');
+                
+                document.getElementById('deploy-progress').style.width = data.progress + '%';
+                document.getElementById('progress-text').textContent = data.message || 'Processing...';
+                
+                if (data.status === 'completed' || data.status === 'failed') {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                    setDeploying(false);
+                    
+                    if (data.status === 'completed') {
+                        showNotification('Deployment completed successfully!', 'success');
+                    } else {
+                        showNotification('Deployment failed: ' + data.message, 'error');
+                    }
+                    
+                    loadHistory();
+                }
+            } catch (error) {
+                console.error('Progress polling error:', error);
+            }
+        }, 1000);
+    }
+    
+    // Load backups
+    async function loadBackups() {
+        try {
+            const data = await apiCall('/ota/backups');
+            const container = document.getElementById('backup-list');
+            
+            if (data.success && data.backups && data.backups.length > 0) {
+                container.innerHTML = data.backups.map(backup => `
+                    <div class="backup-item">
+                        <div class="backup-info">
+                            <span class="backup-name">${backup.name}</span>
+                            <span class="backup-date">${backup.timestamp}</span>
+                        </div>
+                        <button class="deploy-btn deploy-btn-secondary" onclick="rollbackTo('${backup.name}')" style="padding: 0.5rem 0.75rem;">
+                            <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+                            Restore
+                        </button>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } else {
+                container.innerHTML = '<p style="color: var(--text-secondary, #888); font-size: 0.85rem; text-align: center;">No backups available</p>';
+            }
+        } catch (error) {
+            console.error('Failed to load backups:', error);
+        }
+    }
+    
+    // Rollback to specific backup
+    async function rollbackTo(backupName) {
+        if (!confirm(`Rollback to ${backupName}? This will restore the remote system to that version.`)) {
+            return;
+        }
+        
+        try {
+            showNotification('Starting rollback...', 'info');
+            const data = await apiCall('/ota/rollback', 'POST', { backup_name: backupName });
+            
+            if (data.success) {
+                showNotification('Rollback completed successfully', 'success');
+                await refreshSystemInfo();
+            } else {
+                showNotification(data.message || 'Rollback failed', 'error');
+            }
+        } catch (error) {
+            showNotification('Rollback failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Rollback to latest backup
+    async function rollbackLatest() {
+        if (!confirm('Rollback to the most recent backup?')) {
+            return;
+        }
+        
+        try {
+            showNotification('Starting rollback...', 'info');
+            const data = await apiCall('/ota/rollback', 'POST');
+            
+            if (data.success) {
+                showNotification('Rollback completed successfully', 'success');
+                await refreshSystemInfo();
+            } else {
+                showNotification(data.message || 'Rollback failed', 'error');
+            }
+        } catch (error) {
+            showNotification('Rollback failed: ' + error.message, 'error');
+        }
+    }
+    
+    // Load logs
+    async function loadLogs(service) {
+        try {
+            document.getElementById('logs-content').textContent = 'Loading logs...';
+            const data = await apiCall(`/ota/logs/${service}?lines=100`);
+            
+            if (data.success) {
+                document.getElementById('logs-content').textContent = data.logs || 'No logs available';
+            } else {
+                document.getElementById('logs-content').textContent = 'Failed to load logs: ' + (data.error || 'Unknown error');
+            }
+        } catch (error) {
+            document.getElementById('logs-content').textContent = 'Error: ' + error.message;
+        }
+    }
+    
+    // Load deployment history
+    async function loadHistory() {
+        try {
+            const data = await apiCall('/ota/history');
+            const container = document.getElementById('history-list');
+            
+            if (data.success && data.history && data.history.length > 0) {
+                container.innerHTML = data.history.map(item => `
+                    <div class="history-item">
+                        <div class="history-icon ${item.success ? 'success' : 'failed'}">
+                            <i data-lucide="${item.success ? 'check' : 'x'}" style="width: 18px; height: 18px;"></i>
+                        </div>
+                        <div class="history-details">
+                            <span class="history-type">${item.deployment_type.toUpperCase()} Deploy</span>
+                            <span class="history-time">${new Date(item.started_at).toLocaleString()}</span>
+                        </div>
+                        <span class="history-duration">${item.duration_seconds.toFixed(1)}s</span>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } else {
+                container.innerHTML = '<p style="color: var(--text-secondary, #888); font-size: 0.85rem; text-align: center;">No deployment history</p>';
+            }
+        } catch (error) {
+            console.error('Failed to load history:', error);
+        }
+    }
+    
+    // Current access method
+    let currentAccessMethod = 'direct';
+    
+    // Select access method
+    function selectAccessMethod(method) {
+        currentAccessMethod = method;
+        
+        // Update tabs
+        document.querySelectorAll('.access-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.method === method);
+        });
+        
+        // Update panels
+        document.querySelectorAll('.access-panel').forEach(panel => {
+            panel.classList.toggle('active', panel.id === `panel-${method}`);
+        });
+        
+        // Re-initialize icons
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+    
+    // Save configuration
+    async function saveConfig() {
+        let config = {};
+        
+        switch (currentAccessMethod) {
+            case 'direct':
+                config = {
+                    remote_host: document.getElementById('remote-host').value,
+                    remote_dir: document.getElementById('remote-dir').value,
+                    ssh_port: parseInt(document.getElementById('ssh-port').value) || 22,
+                    use_tailscale: false,
+                    use_cloudflare_tunnel: false
+                };
+                break;
+                
+            case 'tailscale':
+                const tsUser = document.getElementById('tailscale-user').value || 'brutally';
+                const tsHostname = document.getElementById('tailscale-hostname').value;
+                config = {
+                    remote_host: `${tsUser}@${tsHostname}`,
+                    remote_dir: document.getElementById('remote-dir-ts').value,
+                    use_tailscale: true,
+                    tailscale_hostname: tsHostname,
+                    use_cloudflare_tunnel: false
+                };
+                break;
+                
+            case 'cloudflare':
+                const cfUser = document.getElementById('cloudflare-user').value || 'brutally';
+                const cfHostname = document.getElementById('cloudflare-hostname').value;
+                config = {
+                    remote_host: `${cfUser}@${cfHostname}`,
+                    remote_dir: document.getElementById('remote-dir-cf').value,
+                    use_tailscale: false,
+                    use_cloudflare_tunnel: true,
+                    cloudflare_hostname: cfHostname
+                };
+                break;
+                
+            case 'jumphost':
+                config = {
+                    remote_host: document.getElementById('final-host').value,
+                    remote_dir: document.getElementById('remote-dir-jh').value,
+                    jump_host: document.getElementById('jump-host').value,
+                    use_tailscale: false,
+                    use_cloudflare_tunnel: false
+                };
+                break;
+        }
+        
+        try {
+            showNotification('Testing connection...', 'info');
+            const data = await apiCall('/ota/configure', 'POST', config);
+            
+            if (data.success) {
+                const status = data.connection_test === 'passed' ? 'success' : 'warning';
+                const msg = data.connection_test === 'passed' 
+                    ? `Connected to ${data.effective_host}` 
+                    : 'Configuration saved but connection failed. Check your settings.';
+                showNotification(msg, status);
+                await refreshSystemInfo();
+            } else {
+                showNotification('Failed to save configuration', 'error');
+            }
+        } catch (error) {
+            showNotification('Error: ' + error.message, 'error');
+        }
+    }
+    
+    // Show notification helper
+    function showNotification(message, type = 'info') {
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(message, type);
+        } else {
+            console.log(`[${type}] ${message}`);
+            alert(message);
+        }
+    }
+    
+    // Check admin access
+    async function checkAdminAccess() {
+        try {
+            const response = await fetch('/api/auth/status');
+            const data = await response.json();
+            
+            if (!data.authenticated || !data.user || data.user.role !== 'admin') {
+                // Not admin - show access denied, hide main content
+                document.getElementById('admin-access-denied').style.display = 'block';
+                document.getElementById('deployment-main').style.display = 'none';
+                lucide.createIcons();
+                return false;
+            }
+            return true;
+        } catch (e) {
+            console.error('Auth check failed:', e);
+            return false;
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', async () => {
+        // First check admin access
+        const isAdmin = await checkAdminAccess();
+        if (!isAdmin) return;
+        
+        // Initialize deployment page
+        refreshSystemInfo();
+        loadBackups();
+        loadHistory();
+        
+        // Auto-refresh system info every 30 seconds
+        setInterval(refreshSystemInfo, 30000);
+    });
+</script>
+

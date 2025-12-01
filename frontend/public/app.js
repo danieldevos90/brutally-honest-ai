@@ -234,7 +234,7 @@ class VoiceInsightApp {
             const otherPorts = data.ports.filter(port => !port.description || !port.description.includes('XIAO'));
             if (otherPorts.length > 0) {
                 output += `<br><details style="margin-top: 15px;">`;
-                output += `<summary style="cursor: pointer; font-weight: bold;">📋 Other Available Ports (${otherPorts.length})</summary>`;
+                output += `<summary style="cursor: pointer; font-weight: bold;">[LIST] Other Available Ports (${otherPorts.length})</summary>`;
                 output += `<div style="margin-left: 20px; margin-top: 10px;">`;
                 otherPorts.forEach(port => {
                     output += `<p>• <strong>${port.device}</strong></p>`;
@@ -252,7 +252,7 @@ class VoiceInsightApp {
             this.updateOutput('omi-output', output);
             
         } catch (error) {
-            this.updateOutput('omi-output', `<p style="color: red;">❌ Failed to scan OMI: ${error.message}</p>`);
+            this.updateOutput('omi-output', `<p style="color: red;">[ERROR] Failed to scan OMI: ${error.message}</p>`);
         } finally {
             this.showLoading(false);
         }
@@ -266,9 +266,9 @@ class VoiceInsightApp {
             
             let output = `<div style="font-family: monospace;">`;
             output += `<p><strong>OMI Connection Test:</strong></p>`;
-            output += `<p>• Device Found: ${data.device_found ? '✅' : '❌'} ${data.device_found}</p>`;
-            output += `<p>• Connection Successful: ${data.connection_successful ? '✅' : '❌'} ${data.connection_successful}</p>`;
-            output += `<p>• Streaming Ready: ${data.streaming_ready ? '✅' : '❌'} ${data.streaming_ready}</p>`;
+            output += `<p>• Device Found: ${data.device_found ? '[OK]' : '[ERROR]'} ${data.device_found}</p>`;
+            output += `<p>• Connection Successful: ${data.connection_successful ? '[OK]' : '[ERROR]'} ${data.connection_successful}</p>`;
+            output += `<p>• Streaming Ready: ${data.streaming_ready ? '[OK]' : '[ERROR]'} ${data.streaming_ready}</p>`;
             
             if (data.device_path) {
                 output += `<p>• Device Path: ${data.device_path}</p>`;
@@ -280,7 +280,7 @@ class VoiceInsightApp {
             this.updateOutput('omi-output', this.updateOutput('omi-output', '').innerHTML + '<br>' + output);
             
         } catch (error) {
-            this.updateOutput('omi-output', this.updateOutput('omi-output', '').innerHTML + `<br><p style="color: red;">❌ Test failed: ${error.message}</p>`);
+            this.updateOutput('omi-output', this.updateOutput('omi-output', '').innerHTML + `<br><p style="color: red;">[ERROR] Test failed: ${error.message}</p>`);
         } finally {
             this.showLoading(false);
         }
@@ -363,7 +363,7 @@ class VoiceInsightApp {
             this.updateOutput('audio-output', output);
             
         } catch (error) {
-            this.updateOutput('audio-output', `<p style="color: red;">❌ Upload failed: ${error.message}</p>`);
+            this.updateOutput('audio-output', `<p style="color: red;">[ERROR] Upload failed: ${error.message}</p>`);
         } finally {
             this.showLoading(false);
         }
@@ -418,7 +418,7 @@ class VoiceInsightApp {
         };
         
         this.websocket.onerror = (error) => {
-            this.addStreamMessage(`❌ Connection error: ${error}`, 'error');
+            this.addStreamMessage(`[ERROR] Connection error: ${error}`, 'error');
         };
     }
     
@@ -436,9 +436,9 @@ class VoiceInsightApp {
         let prefix = '📨';
         switch (type) {
             case 'connection': prefix = '🔗'; break;
-            case 'error': prefix = '❌'; break;
-            case 'transcript': prefix = '🎙️'; break;
-            case 'analysis': prefix = '🧠'; break;
+            case 'error': prefix = '[ERROR]'; break;
+            case 'transcript': prefix = '[MIC]'; break;
+            case 'analysis': prefix = '[AI]'; break;
         }
         
         const messageElement = document.createElement('p');
@@ -467,7 +467,7 @@ class VoiceInsightApp {
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Step 2: Scan OMI
-            this.addStreamMessage('🔍 Scanning for OMI DevKit 2...', 'connection');
+            this.addStreamMessage('[SCAN] Scanning for OMI DevKit 2...', 'connection');
             await this.scanOMI();
             await new Promise(resolve => setTimeout(resolve, 1000));
             
@@ -477,7 +477,7 @@ class VoiceInsightApp {
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Step 4: Connect WebSocket
-            this.addStreamMessage('📡 Connecting to real-time stream...', 'connection');
+            this.addStreamMessage('[CONNECT] Connecting to real-time stream...', 'connection');
             this.connectWebSocket();
             
             this.showSuccess('Full demo completed! All systems tested.');
@@ -527,7 +527,7 @@ class VoiceInsightApp {
             this.selectedFile = null;
             document.getElementById('upload-btn').disabled = true;
             document.querySelector('.upload-content').innerHTML = `
-                <div class="upload-icon">🎵</div>
+                <div class="upload-icon">[AUDIO]</div>
                 <p>Drag & drop audio file here</p>
                 <p class="upload-subtitle">or click to select</p>
             `;
@@ -556,10 +556,10 @@ class VoiceInsightApp {
             // Connect to WebSocket for live streaming
             this.connectDemoWebSocket();
             
-            this.addDemoLog('✅ Demo connected! Use Start/Stop Recording buttons to control transcription.');
+            this.addDemoLog('[OK] Demo connected! Use Start/Stop Recording buttons to control transcription.');
             
         } catch (error) {
-            this.addDemoLog(`❌ Failed to start demo: ${error.message}`);
+            this.addDemoLog(`[ERROR] Failed to start demo: ${error.message}`);
             this.stopLiveDemo();
         }
     }
@@ -595,7 +595,7 @@ class VoiceInsightApp {
         }
         
         if (!this.demoWebSocket || !this.liveDemoActive) {
-            this.addDemoLog('❌ Unable to establish connection');
+            this.addDemoLog('[ERROR] Unable to establish connection');
             return;
         }
         
@@ -641,7 +641,7 @@ class VoiceInsightApp {
             action: 'stop_recording'
         }));
         
-        this.addDemoLog('⏹️ Recording stopped - processing...');
+        this.addDemoLog('[STOP] Recording stopped - processing...');
         
         // Reset status after a delay
         setTimeout(() => {
@@ -670,22 +670,22 @@ class VoiceInsightApp {
             
             // Don't throw errors - just log warnings and continue with demo
             if (!omiConnected) {
-                this.addDemoLog('⚠️ OMI DevKit 2 not detected - using simulation mode');
+                this.addDemoLog('[WARN] OMI DevKit 2 not detected - using simulation mode');
             }
             
             if (!systemData.audio_processor) {
-                this.addDemoLog('⚠️ Audio processor not ready - using basic mode');
+                this.addDemoLog('[WARN] Audio processor not ready - using basic mode');
             }
             
             if (!systemData.llm_analyzer) {
-                this.addDemoLog('⚠️ LLM analyzer not ready - using simulation');
+                this.addDemoLog('[WARN] LLM analyzer not ready - using simulation');
             }
             
             // Always allow demo to continue
-            this.addDemoLog('✅ Demo ready - you can start recording');
+            this.addDemoLog('[OK] Demo ready - you can start recording');
             
         } catch (error) {
-            this.addDemoLog(`⚠️ Status check failed: ${error.message} - continuing anyway`);
+            this.addDemoLog(`[WARN] Status check failed: ${error.message} - continuing anyway`);
         }
     }
     
@@ -694,7 +694,7 @@ class VoiceInsightApp {
             this.demoWebSocket.close();
         }
         
-        this.addDemoLog('📡 Connecting to live audio stream...');
+        this.addDemoLog('[CONNECT] Connecting to live audio stream...');
         
         this.demoWebSocket = new WebSocket('ws://localhost:8000/ws');
         
@@ -734,7 +734,7 @@ class VoiceInsightApp {
         };
         
         this.demoWebSocket.onerror = (error) => {
-            this.addDemoLog(`❌ Connection error: ${error}`);
+            this.addDemoLog(`[ERROR] Connection error: ${error}`);
         };
     }
     
@@ -749,13 +749,13 @@ class VoiceInsightApp {
                 this.addDemoLog(`[${timestamp}] 🔗 ${data.data}`);
                 break;
             case 'info':
-                this.addDemoLog(`[${timestamp}] ℹ️ ${data.data.message}`);
+                this.addDemoLog(`[${timestamp}] [INFO] ${data.data.message}`);
                 break;
             case 'recording_start':
                 this.addDemoLog(`[${timestamp}] 🎤 ${data.data.message}`);
                 break;
             case 'recording_stop':
-                this.addDemoLog(`[${timestamp}] ⏹️ ${data.data.message}`);
+                this.addDemoLog(`[${timestamp}] [STOP] ${data.data.message}`);
                 break;
             case 'transcript':
                 // Handle transcript - data.data is the transcript string
@@ -771,10 +771,10 @@ class VoiceInsightApp {
                 this.handleAudioEnd(timestamp);
                 break;
             case 'demo_complete':
-                this.addDemoLog(`[${timestamp}] 🎉 ${data.data.message}`);
+                this.addDemoLog(`[${timestamp}] [SUCCESS] ${data.data.message}`);
                 break;
             case 'error':
-                this.addDemoLog(`[${timestamp}] ❌ ${data.data.message}`);
+                this.addDemoLog(`[${timestamp}] [ERROR] ${data.data.message}`);
                 break;
             default:
                 this.addDemoLog(`[${timestamp}] 📨 ${data.type}: ${JSON.stringify(data.data)}`);
@@ -831,7 +831,7 @@ class VoiceInsightApp {
             }, 2000);
             
         } catch (error) {
-            this.addDemoLog(`❌ Fact-checking failed: ${error.message}`);
+            this.addDemoLog(`[ERROR] Fact-checking failed: ${error.message}`);
         }
     }
     
@@ -863,7 +863,7 @@ class VoiceInsightApp {
             honestyContent.classList.remove('brutal-active');
         }, 500);
         
-        this.addDemoLog(`[${timestamp}] 🧠 Llama: ${analysis.brutal_response || 'Brutal analysis complete'}`);
+        this.addDemoLog(`[${timestamp}] [AI] Llama: ${analysis.brutal_response || 'Brutal analysis complete'}`);
     }
     
     handleAudioStart(timestamp) {
@@ -929,7 +929,7 @@ class VoiceInsightApp {
                 const omiPort = data.ports.find(port => port.description && port.description.includes('XIAO'));
                 if (omiPort) {
                     detailsHtml += `<div style="text-align: center; padding: 15px;">`;
-                    detailsHtml += `<p style="font-size: 1.2em;">🎙️</p>`;
+                    detailsHtml += `<p style="font-size: 1.2em;">[MIC]</p>`;
                     detailsHtml += `<p><strong>OMI DevKit 2</strong></p>`;
                     detailsHtml += `<p style="font-size: 0.9em; color: #666;">${omiPort.device}</p>`;
                     detailsHtml += `<p><span class="status-tag status-online">Ready</span></p>`;
@@ -937,7 +937,7 @@ class VoiceInsightApp {
                 }
             } else {
                 detailsHtml += `<div style="text-align: center; padding: 15px; color: #666;">`;
-                detailsHtml += `<p>🔍</p>`;
+                detailsHtml += `<p>[SCAN]</p>`;
                 detailsHtml += `<p>No OMI DevKit 2 detected</p>`;
                 detailsHtml += `<p style="font-size: 0.9em;">Connect device and click Scan</p>`;
                 detailsHtml += `</div>`;
@@ -947,7 +947,7 @@ class VoiceInsightApp {
             document.getElementById('omi-details').innerHTML = detailsHtml;
         } catch (error) {
             document.getElementById('omi-audio-status').innerHTML = `<p><span class="status-tag status-offline">Connection Error</span></p>`;
-            document.getElementById('omi-details').innerHTML = `<div style="text-align: center; padding: 15px; color: #666;"><p>❌</p><p>Unable to scan ports</p></div>`;
+            document.getElementById('omi-details').innerHTML = `<div style="text-align: center; padding: 15px; color: #666;"><p>[ERROR]</p><p>Unable to scan ports</p></div>`;
         }
     }
 
@@ -957,9 +957,9 @@ class VoiceInsightApp {
             const data = await response.json();
             
             let html = '<h4>Connection Test Results:</h4>';
-            html += `<p><strong>Device Found:</strong> ${data.device_found ? '✅' : '❌'} ${data.device_found}</p>`;
-            html += `<p><strong>Connection:</strong> ${data.connection_successful ? '✅' : '❌'} ${data.connection_successful}</p>`;
-            html += `<p><strong>Streaming Ready:</strong> ${data.streaming_ready ? '✅' : '❌'} ${data.streaming_ready}</p>`;
+            html += `<p><strong>Device Found:</strong> ${data.device_found ? '[OK]' : '[ERROR]'} ${data.device_found}</p>`;
+            html += `<p><strong>Connection:</strong> ${data.connection_successful ? '[OK]' : '[ERROR]'} ${data.connection_successful}</p>`;
+            html += `<p><strong>Streaming Ready:</strong> ${data.streaming_ready ? '[OK]' : '[ERROR]'} ${data.streaming_ready}</p>`;
             html += `<p><strong>Test Time:</strong> ${data.test_timestamp}</p>`;
             
             document.getElementById('omi-details').innerHTML += html;
@@ -979,13 +979,13 @@ class VoiceInsightApp {
 
     async startOMIDemo() {
         try {
-            document.getElementById('omi-demo-status').innerHTML = '<p>🔄 Starting demo...</p>';
+            document.getElementById('omi-demo-status').innerHTML = '<p>[REFRESH] Starting demo...</p>';
             // Simulate demo start - replace with actual API call
             setTimeout(() => {
                 document.getElementById('omi-demo-status').innerHTML = `
                     <p><span class="status-tag status-online">Demo Active</span></p>
-                    <p>🎙️ Listening for audio input</p>
-                    <p>🧠 AI analysis running</p>
+                    <p>[MIC] Listening for audio input</p>
+                    <p>[AI] AI analysis running</p>
                 `;
             }, 1000);
         } catch (error) {
@@ -1038,7 +1038,7 @@ class VoiceInsightApp {
             
             // Update output box with minimal view
             let output = `<div style="font-family: monospace; text-align: center;">`;
-            output += `<p style="font-size: 1.1rem; margin: 20px 0;">🚀 <strong>System Ready</strong></p>`;
+            output += `<p style="font-size: 1.1rem; margin: 20px 0;">[READY] <strong>System Ready</strong></p>`;
             output += `<p style="color: #666;">All components initialized and operational</p>`;
             output += `</div>`;
             this.updateOutput('system-output', output);
@@ -1049,7 +1049,7 @@ class VoiceInsightApp {
             if (statusContainer) {
                 statusContainer.innerHTML = `<span class="status-tag status-offline">System Error</span>`;
             }
-            this.updateOutput('system-output', `<p style="color: red;">❌ Failed to connect to platform: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">[ERROR] Failed to connect to platform: ${error.message}</p>`);
         } finally {
             this.showLoading(false);
         }
@@ -1068,16 +1068,16 @@ class VoiceInsightApp {
             const data = await response.json();
             
             if (data.success) {
-                this.updateOutput('system-output', `<p style="color: green;">✅ BLE Connected: ${data.message}</p>`);
+                this.updateOutput('system-output', `<p style="color: green;">[OK] BLE Connected: ${data.message}</p>`);
                 this.updateBLEStatus('connected');
                 await this.getBLEInfo();
                 await this.getBLERecordings();
             } else {
-                this.updateOutput('system-output', `<p style="color: red;">❌ BLE Connection Failed: ${data.message}</p>`);
+                this.updateOutput('system-output', `<p style="color: red;">[ERROR] BLE Connection Failed: ${data.message}</p>`);
                 this.updateBLEStatus('disconnected');
             }
         } catch (error) {
-            this.updateOutput('system-output', `<p style="color: red;">❌ BLE Error: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">[ERROR] BLE Error: ${error.message}</p>`);
             this.updateBLEStatus('error');
         } finally {
             this.showLoading(false);
@@ -1096,16 +1096,16 @@ class VoiceInsightApp {
             const data = await response.json();
             
             if (data.success) {
-                this.updateOutput('system-output', `<p style="color: green;">✅ USB Connected: ${data.message}</p>`);
+                this.updateOutput('system-output', `<p style="color: green;">[OK] USB Connected: ${data.message}</p>`);
                 this.updateBLEStatus('connected');
                 await this.getBLEInfo();
                 await this.getBLERecordings();
             } else {
-                this.updateOutput('system-output', `<p style="color: red;">❌ USB Connection Failed: ${data.message}</p>`);
+                this.updateOutput('system-output', `<p style="color: red;">[ERROR] USB Connection Failed: ${data.message}</p>`);
                 this.updateBLEStatus('disconnected');
             }
         } catch (error) {
-            this.updateOutput('system-output', `<p style="color: red;">❌ USB Error: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">[ERROR] USB Error: ${error.message}</p>`);
             this.updateBLEStatus('error');
         } finally {
             this.showLoading(false);
@@ -1118,7 +1118,7 @@ class VoiceInsightApp {
             const data = await response.json();
             
             if (data.error) {
-                this.updateOutput('system-output', `<p style="color: orange;">⚠️ Device Info: ${data.error}</p>`);
+                this.updateOutput('system-output', `<p style="color: orange;">[WARN] Device Info: ${data.error}</p>`);
                 return;
             }
             
@@ -1144,7 +1144,7 @@ class VoiceInsightApp {
             this.updateOutput('system-output', info);
             
         } catch (error) {
-            this.updateOutput('system-output', `<p style="color: red;">❌ Failed to get device info: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">[ERROR] Failed to get device info: ${error.message}</p>`);
         }
     }
     
@@ -1154,12 +1154,12 @@ class VoiceInsightApp {
             const data = await response.json();
             
             if (data.error) {
-                this.updateOutput('system-output', `<p style="color: orange;">⚠️ Recordings: ${data.error}</p>`);
+                this.updateOutput('system-output', `<p style="color: orange;">[WARN] Recordings: ${data.error}</p>`);
                 return;
             }
             
             let recordingsHtml = `<div style="font-family: monospace;">`;
-            recordingsHtml += `<h4>📁 Recordings (${data.total_files} files, ${(data.total_size_mb || 0).toFixed(2)} MB)</h4>`;
+            recordingsHtml += `<h4>[FILE] Recordings (${data.total_files} files, ${(data.total_size_mb || 0).toFixed(2)} MB)</h4>`;
             
             if (data.recordings && data.recordings.length > 0) {
                 recordingsHtml += `<div class="recordings-grid">`;
@@ -1226,7 +1226,7 @@ class VoiceInsightApp {
             }
             
         } catch (error) {
-            this.updateOutput('system-output', `<p style="color: red;">❌ Failed to get recordings: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">[ERROR] Failed to get recordings: ${error.message}</p>`);
         }
     }
     
@@ -1348,7 +1348,7 @@ class VoiceInsightApp {
         
         playerArea.innerHTML = `
             <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
-                <h4 style="margin: 0; color: #333;">🎵 Now Playing</h4>
+                <h4 style="margin: 0; color: #333;">[AUDIO] Now Playing</h4>
                 <button onclick="this.parentElement.parentElement.style.display='none'" 
                         style="background: none; border: none; font-size: 18px; cursor: pointer;">✕</button>
             </div>
@@ -1393,7 +1393,7 @@ class VoiceInsightApp {
             await this.getBLERecordings();
             
         } catch (error) {
-            this.updateOutput('system-output', `<p style="color: red;">❌ Refresh Error: ${error.message}</p>`);
+            this.updateOutput('system-output', `<p style="color: red;">[ERROR] Refresh Error: ${error.message}</p>`);
         } finally {
             this.showLoading(false);
         }
@@ -1435,7 +1435,7 @@ class VoiceInsightApp {
     showLoading(show, message = 'Loading...') {
         // Simple loading indicator - you can enhance this
         if (show) {
-            console.log(`🔄 ${message}`);
+            console.log(`[REFRESH] ${message}`);
         }
     }
     

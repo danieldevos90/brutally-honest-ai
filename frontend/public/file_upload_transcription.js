@@ -261,7 +261,7 @@ async function transcribeUploadedFiles() {
     
     // Initialize logs
     clearProcessLogs();
-    addProcessLog(`📁 Processing ${files.length} uploaded file(s)`);
+    addProcessLog(`[FILE] Processing ${files.length} uploaded file(s)`);
     
     let allResults = [];
     
@@ -270,7 +270,7 @@ async function transcribeUploadedFiles() {
         const file = files[i];
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
         
-        addProcessLog(`⬆️ Uploading ${i + 1}/${files.length}: ${file.name} (${sizeMB} MB)`);
+        addProcessLog(`[UP] Uploading ${i + 1}/${files.length}: ${file.name} (${sizeMB} MB)`);
         
         try {
             // Create FormData for upload
@@ -292,7 +292,7 @@ async function transcribeUploadedFiles() {
             const submitResult = await submitResponse.json();
             const jobId = submitResult.job_id;
             
-            addProcessLog(`🚀 Job submitted: ${jobId} - Processing in background...`);
+            addProcessLog(`[READY] Job submitted: ${jobId} - Processing in background...`);
             
             // Poll for job completion
             let jobComplete = false;
@@ -311,7 +311,7 @@ async function transcribeUploadedFiles() {
                 // Update progress if changed
                 if (jobStatus.progress !== lastProgress) {
                     lastProgress = jobStatus.progress;
-                    addProcessLog(`⏳ ${file.name}: ${jobStatus.progress}% - ${jobStatus.progress_message}`);
+                    addProcessLog(`[WAIT] ${file.name}: ${jobStatus.progress}% - ${jobStatus.progress_message}`);
                     
                     // Update button text with progress
                     transcribeBtn.innerHTML = `<i data-lucide="loader-2" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>${jobStatus.progress}% - ${jobStatus.progress_message}`;
@@ -322,11 +322,11 @@ async function transcribeUploadedFiles() {
                     const result = jobStatus.result;
                     result.filename = file.name;
                     allResults.push(result);
-                    addProcessLog(`✅ Completed ${file.name}`);
+                    addProcessLog(`[OK] Completed ${file.name}`);
                     
                 } else if (jobStatus.status === 'failed') {
                     jobComplete = true;
-                    addProcessLog(`❌ Failed ${file.name}: ${jobStatus.error}`);
+                    addProcessLog(`[ERROR] Failed ${file.name}: ${jobStatus.error}`);
                     allResults.push({
                         filename: file.name,
                         success: false,
@@ -337,7 +337,7 @@ async function transcribeUploadedFiles() {
             
         } catch (error) {
             console.error(`Error processing ${file.name}:`, error);
-            addProcessLog(`❌ Error ${file.name}: ${error.message}`);
+            addProcessLog(`[ERROR] Error ${file.name}: ${error.message}`);
             
             allResults.push({
                 filename: file.name,
@@ -422,7 +422,7 @@ function displayUploadTranscriptionResults(results) {
                     </div>
                     
                     <div style="border-top: 1px solid #eee; padding-top: 12px;">
-                        <strong style="color: #333;">🔥 Brutal Honest Reply:</strong>
+                        <strong style="color: #333;">[HOT] Brutal Honest Reply:</strong>
                         <div style="color: #555; margin-top: 6px; line-height: 1.5; background: #fffbf0; padding: 10px; border-radius: 6px; border-left: 3px solid #f59e0b;">
                             ${result.brutal_honesty || '<em style="color: #999;">Analysis not available</em>'}
                         </div>
@@ -439,7 +439,7 @@ function displayUploadTranscriptionResults(results) {
                     
                     ${result.document_validation ? `
                         <div style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px;">
-                            <strong style="color: #333;">📚 Document Validation:</strong>
+                            <strong style="color: #333;">[DOCS] Document Validation:</strong>
                             <div style="color: #555; margin-top: 4px;">
                                 ${result.document_validation}
                             </div>
@@ -495,10 +495,10 @@ function showNotification(typeOrMessage, message) {
     // Use notification system if available
     if (typeof window.notificationSystem !== 'undefined' && window.notificationSystem) {
         const titleMap = {
-            success: '✅ Success',
-            error: '❌ Error',
-            warning: '⚠️ Warning',
-            info: 'ℹ️ Info'
+            success: '[OK] Success',
+            error: '[ERROR] Error',
+            warning: '[WARN] Warning',
+            info: '[INFO] Info'
         };
         window.notificationSystem[type](titleMap[type], msg.replace(/<br>/g, '\n'));
         return;
@@ -603,14 +603,20 @@ async function startRecording() {
         startRecordingTimer();
         
     } catch (error) {
-        console.error('Error starting recording:', error);
+        console.error('Error starting recording:', error.name, error.message, error);
         
         if (error.name === 'NotAllowedError') {
             showNotification('error', 'Microphone access denied. Please allow microphone access to record.');
         } else if (error.name === 'NotFoundError') {
             showNotification('error', 'No microphone found. Please connect a microphone.');
+        } else if (error.name === 'NotSupportedError') {
+            showNotification('error', 'Audio format not supported. Try a different browser.');
+        } else if (error.name === 'NotReadableError') {
+            showNotification('error', 'Microphone is in use by another application.');
+        } else if (error.name === 'AbortError') {
+            showNotification('error', 'Recording was aborted. Please try again.');
         } else {
-            showNotification('error', `Recording error: ${error.message}`);
+            showNotification('error', `Recording error: ${error.name || 'Unknown'} - ${error.message || 'Please check microphone permissions'}`);
         }
     }
 }

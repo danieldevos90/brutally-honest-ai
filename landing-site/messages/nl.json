@@ -1,0 +1,177 @@
+{
+  "metadata": {
+    "title": "Brutally Honest - Waarheidsvinding AI",
+    "description": "AI-gestuurde spraakanalyse die de waarheid onthult. Haal echte inzichten uit vergaderingen, valideer beweringen tegen de realiteit en ontdek wat mensen werkelijk denken versus wat ze zeggen."
+  },
+  "navbar": {
+    "benefits": "Voordelen",
+    "howItWorks": "Hoe het werkt",
+    "pricing": "Prijzen",
+    "faq": "FAQ",
+    "launchApp": "Start App"
+  },
+  "hero": {
+    "badge": "Privacy-First AI • 100% Lokale Verwerking",
+    "headline1": "Ontdek Wat",
+    "headline2": "Mensen Echt Denken",
+    "subheadline": "AI-gestuurde waarheidsvinding uit vergaderingen en interviews. Valideer beweringen tegen de realiteit, ontmasker inconsistenties en onthul het verschil tussen wat mensen {say} versus wat ze {do}.",
+    "say": "zeggen",
+    "do": "doen",
+    "startTrial": "Start Gratis Proef",
+    "seeHow": "Bekijk Hoe Het Werkt",
+    "gdpr": "AVG Conform",
+    "realtime": "Real-time Analyse",
+    "noDataLeaves": "Geen Data Verlaat Je Server",
+    "liveTranscription": "Live Transcriptie",
+    "liveQuote": "\"Klanttevredenheid heeft altijd onze hoogste prioriteit gehad...\"",
+    "inconsistencyDetected": "⚠️ Inconsistentie Gedetecteerd",
+    "inconsistencyDetail": "Bewering conflicteert met Q3 rapport met 40% toename in supporttickets en 2.1★ gemiddelde beoordeling.",
+    "truthScore": "Waarheidsscore",
+    "factVerified": "✓ Feit Geverifieerd",
+    "claimsAnalyzed": "🎯 3 Beweringen Geanalyseerd",
+    "appUrl": "app.brutallyhonest.io"
+  },
+  "benefits": {
+    "sectionLabel": "Waarom Brutally Honest?",
+    "headline": "Stop Met Gissen.",
+    "headlineHighlight": "Begin Met Weten.",
+    "subheadline": "In een wereld van gepolijste presentaties en zorgvuldig geformuleerde boodschappen, helpt Brutally Honest je het signaal in de ruis te vinden.",
+    "seeWhatOthersMiss": "Zie Wat Anderen Missen",
+    "seeWhatOthersMissDesc": "Onze AI vangt subtiele inconsistenties op tussen wat mensen beweren en hun daadwerkelijke gedragspatronen.",
+    "analyzing": "Gesprek analyseren...",
+    "consistency": "Consistentie",
+    "confidence": "Vertrouwen",
+    "claims": "Beweringen",
+    "realTimeAnalysis": "Real-Time Analyse",
+    "realTimeAnalysisDesc": "Live transcriptie met directe analyse terwijl gesprekken plaatsvinden.",
+    "processingAudio": "Audio verwerken...",
+    "realTimeQuote": "\"We hebben altijd op tijd geleverd...\"",
+    "realTimeWarning": "⚠️ Tegenstrijdig met Q3 leveringsdata",
+    "sayVsDo": "Zeggen vs Doen",
+    "sayVsDoDesc": "Vergelijk woorden met acties.",
+    "factCheck": "Feitencheck",
+    "factCheckDesc": "Valideer tegen je kennisbank.",
+    "missionAlignment": "Missie Uitlijning",
+    "missionAlignmentDesc": "Zie hoe uitspraken aansluiten bij bedrijfswaarden en doelstellingen.",
+    "gaps": "Hiaten",
+    "verified": "Geverifieerd",
+    "extractSignals": "Signalen Extraheren",
+    "extractSignalsDesc": "Analyseer spraakpatronen en markers.",
+    "privacyLocal": "100% Privé & Lokaal",
+    "privacyLocalDesc": "Alle verwerking op JOUW hardware. Geen cloud, geen datadeling.",
+    "secure": "Beveiligd",
+    "truthProfiles": "Waarheidsprofielen",
+    "truthProfilesDesc": "Volg geloofwaardigheid over tijd.",
+    "poweredByAI": "AI",
+    "poweredByAIDesc": "Aangedreven door lokale LLMs"
+  },
+  "howItWorks": {
+    "sectionLabel": "Eenvoudig Proces",
+    "headline": "Hoe Het Werkt",
+    "subheadline": "Ga van gesprek naar waarheid in drie eenvoudige stappen. Geen complexe setup, geen cloud-afhankelijkheden.",
+    "step1Title": "Verbind Je Bron",
+    "step1Desc": "Upload opnames, verbind via Bluetooth-apparaat of schakel live transcriptie in. Ondersteuning voor vergaderingen, interviews, gesprekken en elke audiobron.",
+    "step2Title": "AI Analyseert Lokaal",
+    "step2Desc": "Onze lokale AI transcribeert spraak, extraheert beweringen, vergelijkt met je kennisbank en identificeert inconsistenties—alles op je eigen hardware.",
+    "step3Title": "Krijg Bruikbare Waarheid",
+    "step3Desc": "Ontvang een uitgebreid waarheidsrapport met feitenchecks, inconsistentiewaarschuwingen, sentimentanalyse en een geloofwaardigheidsscore per spreker.",
+    "worksOffline": "Werkt offline",
+    "gpuAccelerated": "NVIDIA GPU versneld",
+    "selfHosted": "Zelf gehost"
+  },
+  "pricing": {
+    "headline": "Eén Plan, Onbeperkte Waarheid",
+    "description": "Krijg volledige toegang tot Brutally Honest's complete suite van waarheidsvindingstools. Van real-time transcriptie tot geavanceerde feitencontrole, alles wat je nodig hebt om te ontdekken wat mensen echt denken—alles in één plan.",
+    "getQuote": "Offerte Aanvragen",
+    "custom": "Op Maat",
+    "pricingLabel": "prijzen",
+    "tailored": "Afgestemd op je teamgrootte en behoeften",
+    "features": {
+      "transcription": "Onbeperkte transcriptie-uren",
+      "factChecking": "Geavanceerde feitencontrole & validatie",
+      "inconsistency": "Real-time inconsistentiedetectie",
+      "knowledgeBases": "Onbeperkte kennisbanken",
+      "profileManagement": "Profielbeheer & tracking",
+      "api": "API-toegang & integraties",
+      "support": "Prioriteitsondersteuning"
+    }
+  },
+  "faq": {
+    "sectionLabel": "FAQ",
+    "headline": "Veelgestelde Vragen",
+    "subheadline": "Alles wat je moet weten over Brutally Honest.",
+    "questions": {
+      "privacy": {
+        "q": "Hoe zorgt Brutally Honest ervoor dat mijn data privé blijft?",
+        "a": "Alle AI-verwerking gebeurt lokaal op je hardware met Ollama en lokale Whisper-modellen. Je audio, transcripties en analyses verlaten nooit je server. We gebruiken geen cloud-API's zoals OpenAI of Google—alles draait op je eigen machine. Dit is fundamenteel voor onze architectuur, niet slechts een feature."
+      },
+      "truthExtraction": {
+        "q": "Wat betekent 'waarheidsvinding' eigenlijk?",
+        "a": "Waarheidsvinding is ons proces om gesprekken te analyseren en te identificeren: (1) Feitelijke beweringen die geverifieerd kunnen worden tegen je kennisbank, (2) Inconsistenties tussen wat iemand nu zegt vs. wat ze eerder zeiden, (3) Hiaten tussen genoemde intenties en gedocumenteerde acties, en (4) Taalpatronen die onzekerheid of misleiding aangeven. Het is geen gedachtenlezen—het is systematische verificatie."
+      },
+      "hardware": {
+        "q": "Welke hardware heb ik nodig om dit te draaien?",
+        "a": "Voor optimale prestaties raden we een NVIDIA GPU aan met minimaal 8GB VRAM (RTX 3060 of beter). Het systeem draait ook op NVIDIA Jetson-apparaten, Apple Silicon Macs en CPU-only setups (langzamer). Minimum: 16GB RAM, 50GB opslag. We bieden installatiehandleidingen voor alle configuraties."
+      },
+      "consent": {
+        "q": "Kan ik dit gebruiken voor het opnemen van vergaderingen zonder toestemming?",
+        "a": "We adviseren sterk om je lokale wetgeving te controleren betreffende opnametoestemming. Veel rechtsgebieden vereisen toestemming van alle partijen. Brutally Honest is ontworpen voor legitieme gebruikssituaties zoals: interview-analyse (met toestemming), het beoordelen van je eigen opgenomen vergaderingen, het verwerken van geüploade audio waar je rechten op hebt, en onderzoeksdoeleinden met juiste ethische goedkeuring."
+      },
+      "accuracy": {
+        "q": "Hoe nauwkeurig is de feitencontrole?",
+        "a": "Nauwkeurigheid hangt af van de kwaliteit van je kennisbank. De AI vergelijkt beweringen met documenten die je hebt geüpload—contracten, rapporten, e-mails, bedrijfsbeleid. Het is slechts zo goed als je referentiemateriaal. We raden aan uitgebreide kennisbanken op te bouwen voor elke use case. Het systeem markeert ook betrouwbaarheidsniveaus zodat je weet wanneer handmatige verificatie nodig is."
+      },
+      "humanJudgment": {
+        "q": "Vervangt dit menselijk oordeel?",
+        "a": "Nee. Brutally Honest is een augmentatietool. Het brengt informatie naar boven die gemakkelijk te missen is in de stroom van een gesprek. Een bewering gemarkeerd als 'inconsistent' moet je eigen onderzoek triggeren—de AI biedt aanknopingspunten, geen vonnissen. Zie het als een zeer oplettende assistent die nooit vergeet wat er gezegd is."
+      },
+      "export": {
+        "q": "Kan ik de analyseresultaten exporteren?",
+        "a": "Ja. Exporteer naar JSON, PDF-rapporten of integreer via API. De Professional en Enterprise plannen bevatten uitgebreide rapportage met tijdgestempelde beweringen, bronverwijzingen en geloofwaardigheidsscores. Alle data blijft op je server."
+      },
+      "difference": {
+        "q": "Hoe verschilt dit van reguliere transcriptiediensten?",
+        "a": "Standaard transcriptie converteert alleen spraak naar tekst. Brutally Honest voegt toe: real-time beweringextractie, kruisverwijzing met je kennisbank, inconsistentiedetectie over meerdere gesprekken, sprekerprofilering, missie/visie-uitlijningsscore en trendanalyse. Het is het verschil tussen een transcript en een inlichtingenrapport."
+      }
+    }
+  },
+  "cta": {
+    "headline": "Klaar om de",
+    "headlineHighlight": "Waarheid te Zien?",
+    "subheadline": "Stop met je afvragen wat mensen echt bedoelen. Begin vandaag je waarheidsvindingsreis—volledig gratis, volledig privé.",
+    "launchApp": "Start Applicatie",
+    "viewGithub": "Bekijk op GitHub",
+    "noCC": "Geen creditcard nodig • Zelf gehost • Je data blijft van jou"
+  },
+  "footer": {
+    "tagline": "AI-gestuurde waarheidsvinding. Onthul wat mensen echt denken. Privacy-first, alleen lokaal.",
+    "emailPlaceholder": "Voer je e-mail in",
+    "subscribe": "Abonneren",
+    "product": "Product",
+    "features": "Functies",
+    "pricing": "Prijzen",
+    "howItWorks": "Hoe het werkt",
+    "company": "Bedrijf",
+    "about": "Over Ons",
+    "contact": "Contact",
+    "legal": "Juridisch",
+    "privacy": "Privacy",
+    "terms": "Voorwaarden",
+    "rights": "Alle rechten voorbehouden."
+  },
+  "logos": {
+    "headline": "Vertrouwd door professionals die de waarheid nodig hebben",
+    "enterprise": "Enterprise Teams",
+    "dueDiligence": "Due Diligence Bureaus",
+    "hr": "HR Afdelingen",
+    "journalists": "Journalisten",
+    "researchers": "Onderzoekers",
+    "legal": "Juridische Teams",
+    "consultancies": "Adviesbureaus",
+    "investors": "Investeerders"
+  },
+  "languageSwitcher": {
+    "label": "Taal"
+  }
+}
+

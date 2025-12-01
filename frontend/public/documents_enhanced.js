@@ -191,7 +191,7 @@ async function uploadSingleFile(file, tags, category, context, profiles, current
             xhr.onload = () => {
                 if (xhr.status === 200) {
                     const result = JSON.parse(xhr.responseText);
-                    showNotification(`✅ Uploaded: ${file.name}`, 'success');
+                    showNotification(`[OK] Uploaded: ${file.name}`, 'success');
                     resolve(result);
                 } else {
                     reject(new Error(`Upload failed: ${xhr.status}`));
@@ -203,7 +203,7 @@ async function uploadSingleFile(file, tags, category, context, profiles, current
         
     } catch (error) {
         console.error('Upload error:', error);
-        showNotification(`❌ Failed to upload ${file.name}`, 'error');
+        showNotification(`[ERROR] Failed to upload ${file.name}`, 'error');
     }
 }
 

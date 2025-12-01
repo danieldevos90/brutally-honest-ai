@@ -22,7 +22,7 @@ class DynamicPortal {
         this.startActivityMonitoring();
         this.addAnimations();
         
-        console.log('🚀 Dynamic Portal initialized');
+        console.log('[READY] Dynamic Portal initialized');
     }
     
     createDynamicElements() {
@@ -146,7 +146,7 @@ class DynamicPortal {
     
     addAnimations() {
         // Minimal animations - just enhance what's already there
-        console.log('✨ Minimal dynamic enhancements active');
+        console.log('[MAGIC] Minimal dynamic enhancements active');
     }
 }
 

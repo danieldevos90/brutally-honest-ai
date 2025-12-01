@@ -1,590 +1,141 @@
-<!-- Knowledge Base Status -->
-<div style="display: flex; justify-content: center; margin-bottom: 20px;">
-    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 16px; font-size: 12px; color: #666;">
-        <span style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i><span id="kb-documents" style="font-weight: 600; color: #333;">0</span> docs</span>
-        <span style="color: #ccc;">·</span>
-        <span style="display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="users" style="width: 12px; height: 12px;"></i><span id="kb-profiles" style="font-weight: 600; color: #333;">0</span> profiles</span>
-        <span style="color: #ccc;">·</span>
-        <span style="display: inline-flex; align-items: center; gap: 4px; color: #22c55e;"><i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>Ready</span>
-    </div>
+<% 
+  layout = 'layout';
+  pageTitle = 'Validation';
+  extraScripts = ['shared.js'];
+%>
+
+<!-- Status Bar -->
+<div class="flex justify-between items-center mb-4" style="justify-content: center;">
+  <div class="flex gap-4 text-xs text-muted">
+    <span><span id="kb-documents" class="font-medium">0</span> docs</span>
+    <span><span id="kb-profiles" class="font-medium">0</span> profiles</span>
+    <span class="badge badge-success">Ready</span>
+  </div>
 </div>
 
-<!-- Quick Test Section -->
-<div class="section">
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 5px;">
-        <h2 style="margin-bottom: 0;">Quick Validation Test</h2>
-    </div>
-    <p style="color: var(--text-muted); margin-bottom: 15px; text-align: center;">Enter text to validate against your knowledge base</p>
-    <form onsubmit="validateText(event)">
-        <div style="display: grid; gap: 15px;">
-            <textarea id="test-text" rows="4" placeholder="Enter text to validate (e.g., 'Praxis has 200 stores across Europe')"></textarea>
-            <button type="submit" class="btn" style="width: 100%;">
-                <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
-                Validate Now
-            </button>
-        </div>
-    </form>
+<!-- Quick Validation -->
+<div class="card mb-4">
+  <div class="card-header">
+    <span class="font-medium">Quick Validation Test</span>
+  </div>
+  <form onsubmit="validateText(event)" class="flex flex-col gap-4">
+    <textarea id="test-text" class="input" rows="4" placeholder="Enter text to validate (e.g., 'Praxis has 200 stores across Europe')"></textarea>
+    <button type="submit" class="btn btn-primary w-full">Validate Now</button>
+  </form>
 </div>
 
 <!-- Validation Results -->
-<div class="section" id="validation-results-section" style="display: none;">
-    <h2>Validation Results</h2>
-    <div id="validation-results">
-        <!-- Results will appear here -->
-    </div>
+<div id="validation-results-section" class="card mb-4" style="display: none;">
+  <div class="card-header">
+    <span class="font-medium">Validation Results</span>
+  </div>
+  <div id="validation-results" class="flex flex-col gap-3">
+  </div>
 </div>
 
 <!-- How It Works -->
-<div class="section">
-    <h2>How Validation Works</h2>
-    <div class="validation-steps">
-        <div class="validation-step">
-            <div class="validation-step-icon info">
-                <i data-lucide="search"></i>
-            </div>
-            <div class="validation-step-content">
-                <h3>1. Claim Extraction</h3>
-                <p>AI extracts factual claims from your transcription text</p>
-            </div>
-        </div>
-        
-        <div class="validation-step">
-            <div class="validation-step-icon warning">
-                <i data-lucide="database"></i>
-            </div>
-            <div class="validation-step-content">
-                <h3>2. Knowledge Base Search</h3>
-                <p>Each claim is checked against documents and profile facts</p>
-            </div>
-        </div>
-        
-        <div class="validation-step">
-            <div class="validation-step-icon success">
-                <i data-lucide="brain"></i>
-            </div>
-            <div class="validation-step-content">
-                <h3>3. AI Validation</h3>
-                <p>LLM analyzes evidence and determines if claims are confirmed, contradicted, or uncertain</p>
-            </div>
-        </div>
-        
-        <div class="validation-step">
-            <div class="validation-step-icon error">
-                <i data-lucide="alert-triangle"></i>
-            </div>
-            <div class="validation-step-content">
-                <h3>4. Results & Warnings</h3>
-                <p>Get a detailed report with credibility score and warnings for contradictions</p>
-            </div>
-        </div>
+<div class="card">
+  <div class="card-header">
+    <span class="font-medium">How Validation Works</span>
+  </div>
+  <div class="flex flex-col gap-4">
+    <div class="flex gap-3 items-center">
+      <div class="badge">1</div>
+      <div>
+        <div class="font-medium text-sm">Claim Extraction</div>
+        <div class="text-xs text-muted">AI extracts factual claims from your text</div>
+      </div>
     </div>
+    <div class="flex gap-3 items-center">
+      <div class="badge">2</div>
+      <div>
+        <div class="font-medium text-sm">Knowledge Base Search</div>
+        <div class="text-xs text-muted">Each claim is checked against documents and profiles</div>
+      </div>
+    </div>
+    <div class="flex gap-3 items-center">
+      <div class="badge">3</div>
+      <div>
+        <div class="font-medium text-sm">AI Validation</div>
+        <div class="text-xs text-muted">LLM analyzes evidence to confirm or contradict claims</div>
+      </div>
+    </div>
+    <div class="flex gap-3 items-center">
+      <div class="badge">4</div>
+      <div>
+        <div class="font-medium text-sm">Results & Warnings</div>
+        <div class="text-xs text-muted">Get credibility score and warnings for contradictions</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<style>
-    .validation-steps {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-    }
-    
-    .validation-step {
-        border-radius: var(--radius-md);
-        padding: 24px 16px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 12px;
-    }
-    
-    .validation-step-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-    
-    .validation-step-icon svg {
-        width: 24px;
-        height: 24px;
-    }
-    
-    .validation-step-icon.info {
-        background: var(--info-bg);
-        color: var(--info);
-    }
-    
-    .validation-step-icon.warning {
-        background: var(--warning-bg);
-        color: var(--warning);
-    }
-    
-    .validation-step-icon.success {
-        background: var(--success-bg);
-        color: var(--success);
-    }
-    
-    .validation-step-icon.error {
-        background: var(--error-bg);
-        color: var(--error);
-    }
-    
-    .validation-step-content h3 {
-        margin: 0 0 8px 0;
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--text-primary);
-    }
-    
-    .validation-step-content p {
-        margin: 0;
-        color: var(--text-tertiary);
-        font-size: 14px;
-        line-height: 1.5;
-    }
-    
-    .kb-status-bar {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 14px;
-        background: #f8f8f8;
-        border: 1px solid #e5e5e5;
-        border-radius: 20px;
-        font-size: 12px;
-        color: #888;
-        margin-top: 8px;
-    }
-
-    .kb-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-
-    .kb-item svg {
-        width: 13px !important;
-        height: 13px !important;
-        stroke-width: 2;
-    }
-
-    .kb-item span {
-        font-weight: 600;
-        color: #333;
-    }
-
-    .kb-divider {
-        color: #ccc;
-        font-size: 10px;
-    }
-
-    .kb-ready {
-        color: #22c55e;
-    }
-
-    .kb-ready svg {
-        color: #22c55e;
-    }
-    
-    /* Results styling */
-    .credibility-card {
-        background: var(--bg-elevated);
-        border: 2px solid var(--border-primary);
-        border-radius: var(--radius-md);
-        padding: 28px;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    
-    .credibility-score {
-        font-size: 56px;
-        font-weight: 700;
-        margin-bottom: 8px;
-    }
-    
-    .credibility-label {
-        font-size: 18px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        margin-bottom: 8px;
-    }
-    
-    .credibility-summary {
-        color: var(--text-tertiary);
-        font-size: 14px;
-    }
-    
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    
-    .stat-box {
-        border-radius: var(--radius-sm);
-        padding: 16px;
-        text-align: center;
-    }
-    
-    .stat-box.confirmed { background: var(--success-bg); }
-    .stat-box.contradicted { background: var(--error-bg); }
-    .stat-box.uncertain { background: var(--warning-bg); }
-    .stat-box.nodata { background: var(--bg-tertiary); }
-    
-    .stat-box .value {
-        font-size: 28px;
-        font-weight: 700;
-    }
-    
-    .stat-box.confirmed .value { color: var(--success); }
-    .stat-box.contradicted .value { color: var(--error); }
-    .stat-box.uncertain .value { color: var(--warning); }
-    .stat-box.nodata .value { color: var(--text-muted); }
-    
-    .stat-box .label {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 4px;
-    }
-    
-    .warning-box {
-        background: var(--warning-bg);
-        border-left: 4px solid var(--warning);
-        border-radius: var(--radius-sm);
-        padding: 16px;
-        margin-bottom: 20px;
-    }
-    
-    .warning-box h4 {
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: var(--text-primary);
-    }
-    
-    .warning-box li {
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-    }
-    
-    .claim-card {
-        background: var(--bg-elevated);
-        border: 1px solid var(--border-primary);
-        border-radius: var(--radius-sm);
-        padding: 20px;
-        margin-bottom: 12px;
-    }
-    
-    .claim-text {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 12px;
-    }
-    
-    .claim-tags {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-    
-    .claim-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 12px;
-        border-radius: var(--radius-full);
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    .claim-tag svg {
-        width: 12px;
-        height: 12px;
-    }
-    
-    .claim-tag.confirmed { background: var(--success-bg); color: var(--success); }
-    .claim-tag.contradicted { background: var(--error-bg); color: var(--error); }
-    .claim-tag.uncertain { background: var(--warning-bg); color: var(--warning); }
-    .claim-tag.nodata { background: var(--bg-tertiary); color: var(--text-muted); }
-    .claim-tag.meta { background: var(--bg-tertiary); color: var(--text-tertiary); }
-    
-    .claim-analysis {
-        background: var(--bg-tertiary);
-        border-radius: var(--radius-sm);
-        padding: 12px;
-        margin-top: 12px;
-    }
-    
-    .claim-analysis h5 {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin-bottom: 6px;
-    }
-    
-    .claim-analysis p {
-        font-size: 14px;
-        color: var(--text-secondary);
-        margin: 0;
-    }
-    
-    .evidence-section {
-        margin-top: 16px;
-    }
-    
-    .evidence-section h5 {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin-bottom: 8px;
-    }
-    
-    .evidence-item {
-        background: var(--bg-tertiary);
-        border-radius: var(--radius-sm);
-        padding: 10px;
-        margin-bottom: 8px;
-    }
-    
-    .evidence-meta {
-        font-size: 11px;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
-    
-    .evidence-content {
-        font-size: 13px;
-        color: var(--text-secondary);
-    }
-    
-    @media (max-width: 1024px) {
-        .validation-steps {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-    
-    @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-    
-    @media (max-width: 600px) {
-        .validation-steps {
-            grid-template-columns: 1fr;
-        }
-    }
-</style>
-
 <script>
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-        loadKnowledgeBaseStats();
-    });
+var API_BASE = window.API_BASE || 'http://localhost:8000';
 
-    async function validateText(event) {
-        event.preventDefault();
-        
-        const text = document.getElementById('test-text').value.trim();
-        if (!text) {
-            showNotification('Please enter text to validate', 'error');
-            return;
+document.addEventListener('DOMContentLoaded', function() {
+    loadKnowledgeBaseStats();
+});
+
+async function loadKnowledgeBaseStats() {
+    try {
+        var response = await fetch(API_BASE + '/api/documents');
+        var result = await response.json();
+        if (result.success) {
+            document.getElementById('kb-documents').textContent = result.documents ? result.documents.length : 0;
         }
-        
-        try {
-            showNotification('Validating...', 'info');
-            
-            const transcriptionId = 'test_' + Date.now();
-            
-            const formData = new URLSearchParams();
-            formData.append('transcription', text);
-            formData.append('transcription_id', transcriptionId);
-            formData.append('extract_claims', 'true');
-            
-            const response = await fetch(`${API_BASE}/validation/validate-transcription?${formData.toString()}`, {
-                method: 'POST'
-            });
-            
-            const result = await response.json();
-            
-            if (result.success && result.report) {
-                displayValidationResults(result.report);
-                showNotification('Validation complete!', 'success');
-            } else {
-                showNotification('Validation failed', 'error');
-            }
-        } catch (error) {
-            console.error('Validation error:', error);
-            showNotification('Error during validation', 'error');
-        }
+    } catch (e) {
+        console.error('Error loading stats:', e);
     }
-
-    function displayValidationResults(report) {
-        const section = document.getElementById('validation-results-section');
-        const resultsEl = document.getElementById('validation-results');
-        
-        const confirmedCount = report.validations.filter(v => v.status === 'confirmed').length;
-        const contradictedCount = report.validations.filter(v => v.status === 'contradicted').length;
-        const uncertainCount = report.validations.filter(v => v.status === 'uncertain').length;
-        const noDataCount = report.validations.filter(v => v.status === 'no_data').length;
-        
-        const credibilityPercent = Math.round(report.overall_credibility * 100);
-        let credibilityColor = 'var(--success)';
-        if (credibilityPercent < 50) credibilityColor = 'var(--error)';
-        else if (credibilityPercent < 75) credibilityColor = 'var(--warning)';
-        
-        let html = `
-            <div class="credibility-card" style="border-color: ${credibilityColor};">
-                <div class="credibility-score" style="color: ${credibilityColor};">${credibilityPercent}%</div>
-                <div class="credibility-label">Overall Credibility</div>
-                <div class="credibility-summary">${report.summary}</div>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-box confirmed">
-                    <div class="value">${confirmedCount}</div>
-                    <div class="label">Confirmed</div>
-                </div>
-                <div class="stat-box contradicted">
-                    <div class="value">${contradictedCount}</div>
-                    <div class="label">Contradicted</div>
-                </div>
-                <div class="stat-box uncertain">
-                    <div class="value">${uncertainCount}</div>
-                    <div class="label">Uncertain</div>
-                </div>
-                <div class="stat-box nodata">
-                    <div class="value">${noDataCount}</div>
-                    <div class="label">No Data</div>
-                </div>
-            </div>
-            
-            ${report.warnings && report.warnings.length > 0 ? `
-                <div class="warning-box">
-                    <h4>⚠️ Warnings</h4>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        ${report.warnings.map(warning => `<li>${warning}</li>`).join('')}
-                    </ul>
-                </div>
-            ` : ''}
-            
-            <div>
-                <h3 style="margin-bottom: 16px; color: var(--text-primary);">Extracted Claims</h3>
-                ${report.claims.length > 0 ? report.claims.map((claim, index) => {
-                    const validation = report.validations[index];
-                    return getClaimHTML(claim, validation);
-                }).join('') : '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No claims extracted</p>'}
-            </div>
-        `;
-        
-        resultsEl.innerHTML = html;
-        section.style.display = 'block';
-        lucide.createIcons();
-    }
-
-    function getClaimHTML(claim, validation) {
-        let statusClass, statusIcon, statusText;
-        
-        switch (validation.status) {
-            case 'confirmed':
-                statusClass = 'confirmed';
-                statusIcon = 'check-circle';
-                statusText = 'CONFIRMED';
-                break;
-            case 'contradicted':
-                statusClass = 'contradicted';
-                statusIcon = 'x-circle';
-                statusText = 'CONTRADICTED';
-                break;
-            case 'uncertain':
-                statusClass = 'uncertain';
-                statusIcon = 'help-circle';
-                statusText = 'UNCERTAIN';
-                break;
-            default:
-                statusClass = 'nodata';
-                statusIcon = 'minus-circle';
-                statusText = 'NO DATA';
+    try {
+        var response = await fetch(API_BASE + '/profiles/clients');
+        var result = await response.json();
+        if (result.success) {
+            document.getElementById('kb-profiles').textContent = result.profiles ? result.profiles.length : 0;
         }
-        
-        return `
-            <div class="claim-card" style="border-left: 4px solid var(--${statusClass === 'confirmed' ? 'success' : statusClass === 'contradicted' ? 'error' : statusClass === 'uncertain' ? 'warning' : 'text-muted'});">
-                <div class="claim-text">"${escapeHtml(claim.text)}"</div>
-                <div class="claim-tags">
-                    <span class="claim-tag ${statusClass}">
-                        <i data-lucide="${statusIcon}"></i>
-                        ${statusText}
-                    </span>
-                    <span class="claim-tag meta">Type: ${claim.type}</span>
-                    <span class="claim-tag meta">Confidence: ${Math.round(validation.confidence * 100)}%</span>
-                </div>
-                
-                ${validation.recommendation ? `
-                    <div class="claim-analysis">
-                        <h5>💡 Analysis</h5>
-                        <p>${escapeHtml(validation.recommendation)}</p>
-                    </div>
-                ` : ''}
-                
-                ${validation.evidence && validation.evidence.length > 0 ? `
-                    <div class="evidence-section">
-                        <h5>📚 Evidence (${validation.evidence.length})</h5>
-                        ${validation.evidence.slice(0, 2).map(evidence => `
-                            <div class="evidence-item">
-                                <div class="evidence-meta">${evidence.source_type} • ${Math.round(evidence.similarity_score * 100)}% match</div>
-                                <div class="evidence-content">"${escapeHtml(evidence.content.substring(0, 150))}${evidence.content.length > 150 ? '...' : ''}"</div>
-                            </div>
-                        `).join('')}
-                        ${validation.evidence.length > 2 ? `<div style="text-align: center; color: var(--text-muted); font-size: 12px;">+${validation.evidence.length - 2} more</div>` : ''}
-                    </div>
-                ` : ''}
-            </div>
-        `;
+    } catch (e) {
+        console.error('Error loading profiles:', e);
     }
+}
 
-    async function loadKnowledgeBaseStats() {
-        try {
-            const docResponse = await fetch(`${API_BASE}/documents/stats`);
-            const docResult = await docResponse.json();
-            if (docResult.success && docResult.stats) {
-                document.getElementById('kb-documents').textContent = docResult.stats.total_chunks || 0;
-            }
-            
-            let totalProfiles = 0;
-            for (const type of ['clients', 'brands', 'persons']) {
-                const profileResponse = await fetch(`${API_BASE}/profiles/${type}`);
-                const profileResult = await profileResponse.json();
-                if (profileResult.success && profileResult.count) {
-                    totalProfiles += profileResult.count;
-                }
-            }
-            document.getElementById('kb-profiles').textContent = totalProfiles;
-        } catch (error) {
-            console.error('Error loading KB stats:', error);
-        }
+async function validateText(e) {
+    e.preventDefault();
+    var text = document.getElementById('test-text').value;
+    if (!text.trim()) {
+        showNotification('Please enter text to validate', 'error');
+        return;
     }
     
-    function showPageInfo() {
-        showInfoModal('✅ How Validation Works', `
-            <h3>1. Knowledge Base Matching</h3>
-            <p>Claims are compared against your uploaded documents using semantic search to find relevant evidence.</p>
-            
-            <h3>2. Confidence Scoring</h3>
-            <ul>
-                <li><span style="color: var(--success);">✅ Verified</span> - Evidence strongly supports the claim (>70%)</li>
-                <li><span style="color: var(--warning);">⚠️ Partially Verified</span> - Some supporting evidence (40-70%)</li>
-                <li><span style="color: var(--error);">❌ Not Verified</span> - No supporting evidence found (<40%)</li>
-                <li><span style="color: var(--info);">🔄 Contradiction</span> - Evidence contradicts the claim</li>
-            </ul>
-            
-            <h3>3. Evidence Trail</h3>
-            <p>Each validation shows the source documents and specific passages used to evaluate the claim.</p>
-            
-            <p style="margin-top: 20px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 13px;">
-                <strong>Best Practice:</strong> Upload comprehensive, up-to-date documents to ensure accurate validation results.
-            </p>
-        `);
+    var resultsSection = document.getElementById('validation-results-section');
+    var resultsDiv = document.getElementById('validation-results');
+    resultsSection.style.display = 'block';
+    resultsDiv.innerHTML = '<p class="text-center text-muted">Validating...</p>';
+    
+    try {
+        var response = await fetch(API_BASE + '/validation/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+        });
+        var result = await response.json();
+        
+        if (result.success && result.results) {
+            resultsDiv.innerHTML = result.results.map(function(r) {
+                var statusClass = r.status === 'confirmed' ? 'badge-success' : (r.status === 'contradicted' ? 'badge-warning' : '');
+                return '<div class="card">' +
+                    '<div class="flex justify-between items-center mb-2">' +
+                    '<span class="text-sm font-medium">' + r.claim + '</span>' +
+                    '<span class="badge ' + statusClass + '">' + r.status + '</span>' +
+                    '</div>' +
+                    '<p class="text-xs text-muted">' + (r.explanation || 'No explanation') + '</p>' +
+                    '</div>';
+            }).join('');
+        } else {
+            resultsDiv.innerHTML = '<p class="text-muted">No claims found to validate.</p>';
+        }
+    } catch (error) {
+        console.error('Validation error:', error);
+        resultsDiv.innerHTML = '<p style="color: var(--color-danger);">Validation failed: ' + error.message + '</p>';
     }
+}
 </script>

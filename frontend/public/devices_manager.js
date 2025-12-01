@@ -3,7 +3,7 @@
  * Handles scanning, connecting, and managing multiple ESP32S3 devices
  */
 
-console.log('🔧 Device manager loading...');
+console.log('Device manager loading...');
 
 // Global variables for device management
 let detectedDevices = [];
@@ -13,18 +13,20 @@ let isConnected = false;
 
 // Scan for ESP32S3 devices
 async function scanForDevices() {
-    const devicesList = document.getElementById('devices-list');
     const scanButton = document.getElementById('scan-devices-btn');
+    const devicesList = document.getElementById('devices-list');
     
     // Show loading state
+    if (devicesList) {
     devicesList.innerHTML = '<div class="loading-state">Scanning for ESP32S3 devices...</div>';
+    }
     if (scanButton) {
         scanButton.disabled = true;
         scanButton.innerHTML = '<i data-lucide="loader" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>Scanning...';
     }
     
     try {
-        console.log('🔍 Fetching devices from: /api/devices/status');
+        console.log('[DEVICES] Fetching devices from: /api/devices/status');
         const response = await fetch('/api/devices/status', {
             method: 'GET',
             headers: {
@@ -34,7 +36,7 @@ async function scanForDevices() {
             mode: 'cors'
         });
         
-        console.log('📡 Response status:', response.status, response.statusText);
+        console.log('Response status:', response.status, response.statusText);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -64,13 +66,17 @@ async function scanForDevices() {
                 showNotification(`Found ${connectedDevices.length} Brutally Honest AI device(s) connected!`, 'success');
             }
         } else {
+            if (devicesList) {
             devicesList.innerHTML = '<div class="empty-state">Failed to scan for devices. Check your connection.</div>';
+            }
             showNotification('Failed to scan for devices.', 'error');
         }
         
     } catch (error) {
         console.error('Device scan error:', error);
+        if (devicesList) {
         devicesList.innerHTML = '<div class="empty-state">Error scanning for devices. Please try again.</div>';
+        }
         showNotification(`Error scanning for devices: ${error.message}`, 'error');
     } finally {
         // Restore scan button
@@ -198,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Scan for devices in modal
 async function scanForDevicesInModal() {
-    const devicesList = document.getElementById('modal-devices-list');
+    const modalDevicesList = document.getElementById('modal-devices-list');
     const scanButton = document.getElementById('scan-devices-modal-btn');
     
     // Show loading state
@@ -209,7 +215,7 @@ async function scanForDevicesInModal() {
     devicesList.innerHTML = '<div class="devices-empty"><span class="loading-dots">Scanning for devices...</span></div>';
     
     try {
-        console.log('🔍 Modal: Fetching devices from: /api/devices/status');
+        console.log('[DEVICES] Modal: Fetching devices from: /api/devices/status');
         const response = await fetch('/api/devices/status', {
             method: 'GET',
             headers: {
@@ -219,7 +225,7 @@ async function scanForDevicesInModal() {
             mode: 'cors'
         });
         
-        console.log('📡 Modal: Response status:', response.status, response.statusText);
+        console.log('Modal: Response status:', response.status, response.statusText);
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -274,7 +280,7 @@ async function scanForDevicesInModal() {
 
 // Render devices list in modal
 function renderModalDevicesList() {
-    const devicesList = document.getElementById('modal-devices-list');
+    const modalDevicesList = document.getElementById('modal-devices-list');
     
     if (detectedDevices.length === 0) {
         devicesList.innerHTML = `
@@ -486,7 +492,7 @@ async function selectActiveDevice(deviceId) {
             throw new Error(result.message || 'Failed to select device');
         }
         
-        console.log(`✅ Selected device as active: ${deviceId}`);
+        console.log(`Selected device as active: ${deviceId}`);
         return true;
     } catch (error) {
         console.error('Error selecting active device:', error);
@@ -718,56 +724,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 1000);
 });
 
-// Notification function (reuse from database_functions.js)
+// Notification function - uses global notification system from home.js
 function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
-    
-    // Remove any existing notifications first
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(n => n.remove());
-    
-    // Style the notification - using CSS classes for better control
-    notification.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        padding: 12px 20px;
-        color: white;
-        font-weight: 500;
-        z-index: 10000;
-        text-align: center;
-        font-size: 14px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        margin: 0;
-        border-radius: 0;
-        animation: slideDown 0.3s ease-out;
-    `;
-    
-    // Set background color based on type
-    switch(type) {
-        case 'success':
-            notification.style.backgroundColor = '#10B981';
-            break;
-        case 'error':
-            notification.style.backgroundColor = '#EF4444';
-            break;
-        default:
-            notification.style.backgroundColor = '#3B82F6';
+    // Use global notification system if available
+    if (typeof window.showNotification === 'function' && window.showNotification !== showNotification) {
+        window.showNotification(message, type);
+        return;
     }
     
-    // Add to page
-    document.body.appendChild(notification);
+    // Fallback: use addNotification from home.js if available
+    if (typeof window.addNotification === 'function') {
+        window.addNotification(type, message);
+        return;
+    }
     
-    // Remove after 3 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 3000);
+    // Last resort fallback - simple alert-style notification
+    console.log(`[${type.toUpperCase()}] ${message}`);
 }
 
 // Add CSS for spinner animation and multi-device styles
@@ -912,7 +884,7 @@ function selectDevice(deviceIndex) {
     selectDeviceForStatus(deviceIndex);
 }
 
-console.log('✅ Device manager loaded successfully');
+console.log('Device manager loaded successfully');
 
 // Start device monitoring after device selection
 function startDeviceMonitoring() {

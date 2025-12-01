@@ -39,7 +39,7 @@ class FactCheckResult:
     claims_partial: int
     claims_unverifiable: int
     claims_opinion: int
-    credibility_score: float
+    credibility_score: Optional[float]  # None when no claims to verify
     verifications: List[ClaimVerification] = field(default_factory=list)
     summary: str = ""
     processing_time: float = 0.0
@@ -127,8 +127,8 @@ class IntelligentFactChecker:
                 claims_partial=0,
                 claims_unverifiable=0,
                 claims_opinion=0,
-                credibility_score=0.7,
-                summary="No factual claims detected in transcription.",
+                credibility_score=None,  # N/A when no claims to verify
+                summary="No verifiable factual claims detected. This transcription contains only conversational content, opinions, or questions - nothing to fact-check.",
                 processing_time=time.time() - start_time
             )
         
@@ -190,34 +190,36 @@ class IntelligentFactChecker:
         """Use LLAMA via Ollama to intelligently extract claims"""
         import aiohttp
         
-        prompt = f"""You are a fact-checker assistant. Analyze this text and identify ONLY verifiable factual claims.
+        prompt = f"""Extract ALL factual claims from this text. A factual claim is ANY statement that can be checked as TRUE or FALSE.
 
-RULES:
-1. A FACTUAL CLAIM is a statement that can be objectively verified as TRUE or FALSE
-2. IGNORE: opinions, feelings, questions, greetings, conversational filler, meta-talk about recording
-3. IGNORE: subjective statements like "it's annoying", "I want", "I think"
-4. INCLUDE: statements with numbers, dates, names, locations, scientific facts, historical events
-5. Keep claims in the original language
-6. Maximum 5 claims
+Text: "{text}"
 
-TEXT TO ANALYZE:
-"{text}"
+IMPORTANT RULES:
+1. Extract EVERY verifiable statement - about animals, people, companies, stores, products, facts
+2. Include claims about businesses (e.g., "Store X has no products" is a claim)
+3. Include claims about animals (e.g., "Fish can fly" is a claim)
+4. Keep claims in the ORIGINAL LANGUAGE (Dutch stays Dutch)
+5. Return ONLY a JSON array of strings, nothing else
 
-Respond with ONLY a JSON array. Examples:
-- If text is "The Earth is flat and 2+2=5" → ["The Earth is flat", "2+2=5"]
-- If text is "I think it's annoying, want to test" → []
-- If text is "Apple was founded in 1976 by Steve Jobs" → ["Apple was founded in 1976", "Apple was founded by Steve Jobs"]
+Examples:
+- "De vis kan vliegen en Praxis heeft geen spullen" → ["De vis kan vliegen", "Praxis heeft geen spullen"]
+- "Apple was founded in 1976" → ["Apple was founded in 1976"]
+- "I think it is nice" → []
 
-JSON ARRAY (or empty [] if no factual claims):"""
+JSON array:"""
 
         try:
             # Try using the initialized LLM client first
             if self.llm:
                 response = await self.llm.generate(prompt)
+                logger.debug(f"🔍 LLAMA raw response: {response[:200]}...")
                 claims = self._parse_claims_json(response)
+                logger.debug(f"🔍 Parsed claims: {claims}")
                 if claims is not None:
                     logger.info(f"✅ LLAMA extracted {len(claims)} claims via LLM client")
                     return claims
+                else:
+                    logger.warning(f"⚠️ Failed to parse claims from LLAMA response: {response[:100]}...")
             
             # Direct Ollama call as backup
             ollama_url = "http://localhost:11434/api/generate"
@@ -249,21 +251,30 @@ JSON ARRAY (or empty [] if no factual claims):"""
         return None
     
     def _parse_claims_json(self, response: str) -> Optional[List[str]]:
-        """Parse JSON array from LLAMA response"""
+        """Parse JSON array from LLAMA response - handles both string arrays and object arrays"""
         try:
             # Try to find JSON array in response
-            json_match = re.search(r'\[.*?\]', response, re.DOTALL)
+            json_match = re.search(r'\[.*\]', response, re.DOTALL)
             if json_match:
-                claims = json.loads(json_match.group())
-                if isinstance(claims, list):
-                    # Filter and clean claims
-                    valid_claims = [
-                        c.strip() for c in claims 
-                        if isinstance(c, str) and len(c.strip()) > 10
-                    ]
+                claims_data = json.loads(json_match.group())
+                if isinstance(claims_data, list):
+                    valid_claims = []
+                    for item in claims_data:
+                        claim_text = None
+                        # Handle string items: ["claim1", "claim2"]
+                        if isinstance(item, str):
+                            claim_text = item.strip()
+                        # Handle object items: [{"claim": "..."}, {"claim": "..."}]
+                        elif isinstance(item, dict):
+                            claim_text = item.get("claim", item.get("text", item.get("statement", ""))).strip()
+                        
+                        # Add if valid (min 5 chars to catch short Dutch claims)
+                        if claim_text and len(claim_text) >= 5:
+                            valid_claims.append(claim_text)
+                    
                     return valid_claims[:5]  # Max 5 claims
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSON decode error parsing claims: {e}")
         return None
     
     def _config_based_claim_extraction(self, text: str) -> List[str]:
@@ -567,7 +578,7 @@ Respond with ONLY valid JSON in this format:
     async def _generate_summary(
         self,
         verifications: List[ClaimVerification],
-        credibility_score: float
+        credibility_score: Optional[float]
     ) -> str:
         """Generate a summary of the fact-check results"""
         
@@ -585,7 +596,8 @@ Respond with ONLY valid JSON in this format:
             parts.append(f"⚠️ {len(partial)} claim(s) partially true")
         
         summary = ", ".join(parts) if parts else "No claims to verify"
-        summary += f". Credibility score: {credibility_score:.0%}"
+        if credibility_score is not None:
+            summary += f". Credibility score: {credibility_score:.0%}"
         
         # Add specific false claims
         if false:

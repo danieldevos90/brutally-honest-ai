@@ -1,146 +1,107 @@
-<!-- Documentation Overview -->
-<div class="section">
-    <h2>Welcome to Brutally Honest AI</h2>
-    <p style="font-size: 16px; color: var(--text-tertiary); line-height: 1.6;">
-        Brutally Honest AI is a real-time voice validation platform that transcribes audio and fact-checks claims against your knowledge base.
-    </p>
+<% 
+  layout = 'layout';
+  pageTitle = 'Documentation';
+  extraScripts = ['shared.js'];
+%>
+
+<!-- Welcome -->
+<div class="card mb-4">
+  <div class="card-header">
+    <span class="font-medium">Welcome to Brutally Honest AI</span>
+  </div>
+  <p class="text-sm text-secondary">
+    Real-time voice validation platform that transcribes audio and fact-checks claims against your knowledge base.
+  </p>
 </div>
 
 <!-- Quick Start -->
-<div class="section">
-    <h2>🚀 Quick Start</h2>
-    <div style="display: grid; gap: 20px;">
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
-                <span style="background: var(--text-primary); color: var(--bg-primary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">1</span>
-                Upload Documents
-            </h3>
-            <p style="color: var(--text-tertiary); margin: 0;">Go to <a href="/documents" style="color: var(--accent-primary);">Documents</a> and upload your knowledge base files (TXT, PDF, DOC, DOCX). These will be used to validate spoken claims.</p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
-                <span style="background: var(--text-primary); color: var(--bg-primary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">2</span>
-                Connect Device or Upload Audio
-            </h3>
-            <p style="color: var(--text-tertiary); margin: 0;">On the <a href="/" style="color: var(--accent-primary);">Home</a> page, either connect an ESP32S3 device or upload audio files directly for transcription.</p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; color: var(--text-primary);">
-                <span style="background: var(--text-primary); color: var(--bg-primary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">3</span>
-                Transcribe & Validate
-            </h3>
-            <p style="color: var(--text-tertiary); margin: 0;">Select recordings or files, enable document validation, and transcribe. The AI will fact-check claims against your knowledge base.</p>
-        </div>
+<div class="card mb-4">
+  <div class="card-header">
+    <span class="font-medium">Quick Start</span>
+  </div>
+  <div class="flex flex-col gap-4">
+    <div class="flex gap-3 items-start">
+      <div class="badge" style="min-width: 24px; justify-content: center;">1</div>
+      <div>
+        <div class="font-medium text-sm">Upload Documents</div>
+        <div class="text-xs text-muted">Go to <a href="/documents" style="color: var(--text-primary); text-decoration: underline;">Documents</a> and upload your knowledge base files.</div>
+      </div>
     </div>
+    <div class="flex gap-3 items-start">
+      <div class="badge" style="min-width: 24px; justify-content: center;">2</div>
+      <div>
+        <div class="font-medium text-sm">Connect Device or Upload Audio</div>
+        <div class="text-xs text-muted">On <a href="/" style="color: var(--text-primary); text-decoration: underline;">Home</a>, connect an ESP32S3 or upload audio files directly.</div>
+      </div>
+    </div>
+    <div class="flex gap-3 items-start">
+      <div class="badge" style="min-width: 24px; justify-content: center;">3</div>
+      <div>
+        <div class="font-medium text-sm">Transcribe & Validate</div>
+        <div class="text-xs text-muted">Select recordings, enable validation, and the AI will fact-check claims.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- Features -->
-<div class="section">
-    <h2>✨ Features</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">🎤 Audio Transcription</h3>
-            <p style="color: var(--text-tertiary); margin: 0; font-size: 14px;">
-                Transcribe audio files using Whisper AI with automatic Dutch/English language detection.
-            </p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">✅ Fact Validation</h3>
-            <p style="color: var(--text-tertiary); margin: 0; font-size: 14px;">
-                Automatically verify claims against your uploaded documents and knowledge base.
-            </p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">💬 Brutal Honesty</h3>
-            <p style="color: var(--text-tertiary); margin: 0; font-size: 14px;">
-                Get unfiltered AI analysis of conversations with sentiment detection and honest feedback.
-            </p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">📱 ESP32S3 Support</h3>
-            <p style="color: var(--text-tertiary); margin: 0; font-size: 14px;">
-                Connect ESP32S3 devices via USB or Bluetooth to record and transcribe in real-time.
-            </p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">👥 Profile Management</h3>
-            <p style="color: var(--text-tertiary); margin: 0; font-size: 14px;">
-                Create client, brand, and person profiles to organize your validation context.
-            </p>
-        </div>
-        
-        <div style="background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 20px;">
-            <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">🔐 Multi-User Auth</h3>
-            <p style="color: var(--text-tertiary); margin: 0; font-size: 14px;">
-                Secure multi-user authentication with admin controls and session management.
-            </p>
-        </div>
+<!-- Features Grid -->
+<div class="card mb-4">
+  <div class="card-header">
+    <span class="font-medium">Features</span>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-4);">
+    <div class="border rounded p-4">
+      <div class="font-medium text-sm mb-2">Audio Transcription</div>
+      <div class="text-xs text-muted">Whisper AI with Dutch/English detection</div>
     </div>
+    <div class="border rounded p-4">
+      <div class="font-medium text-sm mb-2">Fact Checking</div>
+      <div class="text-xs text-muted">Validate claims against your documents</div>
+    </div>
+    <div class="border rounded p-4">
+      <div class="font-medium text-sm mb-2">ESP32 Integration</div>
+      <div class="text-xs text-muted">Connect BLE devices for live recording</div>
+    </div>
+    <div class="border rounded p-4">
+      <div class="font-medium text-sm mb-2">Profile Management</div>
+      <div class="text-xs text-muted">Manage clients, brands, and persons</div>
+    </div>
+  </div>
 </div>
 
 <!-- API Reference -->
-<div class="section">
-    <h2>🔗 API Reference</h2>
-    <div style="background: transparent; border-radius: 8px; padding: 20px; overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse; color: var(--text-secondary); font-family: monospace; font-size: 13px;">
-            <thead>
-                <tr style="border-bottom: 1px solid var(--border-primary);">
-                    <th style="text-align: left; padding: 10px; color: var(--text-muted);">Method</th>
-                    <th style="text-align: left; padding: 10px; color: var(--text-muted);">Endpoint</th>
-                    <th style="text-align: left; padding: 10px; color: var(--text-muted);">Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style="border-bottom: 1px solid var(--border-primary);">
-                    <td style="padding: 10px;"><span style="background: #22c55e; color: black; padding: 2px 8px; border-radius: 4px; font-size: 11px;">GET</span></td>
-                    <td style="padding: 10px;">/api/status</td>
-                    <td style="padding: 10px; color: var(--text-muted);">System status check</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border-primary);">
-                    <td style="padding: 10px;"><span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">POST</span></td>
-                    <td style="padding: 10px;">/api/ai/transcribe-file</td>
-                    <td style="padding: 10px; color: var(--text-muted);">Transcribe audio file</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border-primary);">
-                    <td style="padding: 10px;"><span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">POST</span></td>
-                    <td style="padding: 10px;">/documents/upload</td>
-                    <td style="padding: 10px; color: var(--text-muted);">Upload document to knowledge base</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border-primary);">
-                    <td style="padding: 10px;"><span style="background: #22c55e; color: black; padding: 2px 8px; border-radius: 4px; font-size: 11px;">GET</span></td>
-                    <td style="padding: 10px;">/documents/stats</td>
-                    <td style="padding: 10px; color: var(--text-muted);">Get document statistics</td>
-                </tr>
-                <tr style="border-bottom: 1px solid var(--border-primary);">
-                    <td style="padding: 10px;"><span style="background: #3b82f6; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">POST</span></td>
-                    <td style="padding: 10px;">/api/ai/process_with_validation</td>
-                    <td style="padding: 10px; color: var(--text-muted);">Process with fact validation</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px;"><span style="background: #22c55e; color: black; padding: 2px 8px; border-radius: 4px; font-size: 11px;">GET</span></td>
-                    <td style="padding: 10px;">/api/device/recordings</td>
-                    <td style="padding: 10px; color: var(--text-muted);">List device recordings</td>
-                </tr>
-            </tbody>
-        </table>
+<div class="card">
+  <div class="card-header">
+    <span class="font-medium">API Endpoints</span>
+  </div>
+  <div class="flex flex-col gap-3">
+    <div class="border rounded p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge badge-success">POST</span>
+        <code class="text-sm">/api/ai/transcribe-file</code>
+      </div>
+      <div class="text-xs text-muted">Upload and transcribe an audio file</div>
     </div>
+    <div class="border rounded p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge badge-success">POST</span>
+        <code class="text-sm">/api/ai/transcribe-file-async</code>
+      </div>
+      <div class="text-xs text-muted">Async transcription for long files</div>
+    </div>
+    <div class="border rounded p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge">GET</span>
+        <code class="text-sm">/api/transcription-history</code>
+      </div>
+      <div class="text-xs text-muted">Get transcription history</div>
+    </div>
+    <div class="border rounded p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="badge badge-success">POST</span>
+        <code class="text-sm">/validation/validate</code>
+      </div>
+      <div class="text-xs text-muted">Validate text against knowledge base</div>
+    </div>
+  </div>
 </div>
-
-<!-- Support -->
-<div class="section">
-    <h2>💡 Tips & Best Practices</h2>
-    <ul style="color: var(--text-tertiary); line-height: 1.8; padding-left: 20px;">
-        <li>Upload comprehensive, up-to-date documents for accurate fact validation</li>
-        <li>Use descriptive tags when uploading documents for better organization</li>
-        <li>Create profiles for frequently mentioned clients and brands</li>
-        <li>Enable document validation when transcribing important conversations</li>
-        <li>Regularly check the <a href="/validation" style="color: #0066cc;">Validation</a> page to test your knowledge base</li>
-    </ul>
-</div>
-

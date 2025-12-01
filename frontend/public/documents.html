@@ -12,6 +12,9 @@
     <link rel="apple-touch-icon" href="logo.svg">
     <link rel="manifest" href="manifest.json">
     
+    <!-- Design System (load first) -->
+    <link rel="stylesheet" href="design-system.css">
+    <!-- Application Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -36,26 +39,29 @@
             <div class="section">
                 <div class="upload-section">
                     <div id="upload-area" class="file-upload-dropzone" ondrop="handleDocumentDrop(event)" ondragover="handleDocumentDragOver(event)" ondragleave="handleDocumentDragLeave(event)" onclick="document.getElementById('file-input').click()">
-                        <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;" onchange="handleDocumentFileSelect(event)" onclick="event.stopPropagation()">
+                        <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" class="hidden" onchange="handleDocumentFileSelect(event)" onclick="event.stopPropagation()">
                         <div class="upload-content">
-                            <i data-lucide="upload-cloud" style="width: 24px; height: 24px; color: #999; margin-bottom: 8px;"></i>
-                            <p style="font-weight: 500; margin-bottom: 4px; font-size: 14px;">Drag & drop documents or <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-input').click()" style="font-size: 13px; padding: 6px 12px; margin: 0 4px;">browse</button></p>
-                            <p style="color: #999; font-size: 11px; margin-top: 4px;">TXT, PDF, DOC, DOCX (max 10MB)</p>
+                            <div class="flex items-center justify-center gap-3 flex-wrap">
+                                <i data-lucide="upload-cloud" class="text-muted"></i>
+                                <span class="font-medium">Drop documents or</span>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('file-input').click()">browse</button>
+                            </div>
+                            <p class="upload-hint">TXT, PDF, DOC, DOCX (max 10MB)</p>
                         </div>
                     </div>
                     
                     <!-- Enhanced Metadata Form -->
-                    <div id="metadata-form" style="display: none; margin-top: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
-                        <h3 style="margin: 0 0 15px 0;">Add Document Metadata</h3>
-                        <div style="display: grid; gap: 15px;">
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Tags (comma-separated)</label>
-                                <input type="text" id="doc-tags" placeholder="e.g., policy, brand, official, 2025" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-                                <small style="color: #666;">Use tags to organize and filter documents</small>
+                    <div id="metadata-form" class="hidden card mt-5">
+                        <h3 class="mb-4">Add Document Metadata</h3>
+                        <div class="flex flex-col gap-4">
+                            <div class="form-group">
+                                <label class="form-label">Tags (comma-separated)</label>
+                                <input type="text" id="doc-tags" class="form-input" placeholder="e.g., policy, brand, official, 2025">
+                                <small class="text-muted text-xs">Use tags to organize and filter documents</small>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Category</label>
-                                <select id="doc-category" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select id="doc-category" class="form-input">
                                     <option value="">Select category...</option>
                                     <option value="policy">Policy</option>
                                     <option value="contract">Contract</option>
@@ -65,23 +71,23 @@
                                     <option value="other">Other</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Context Description</label>
-                                <textarea id="doc-context" rows="3" placeholder="Describe what this document is about and why it's important..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                            <div class="form-group">
+                                <label class="form-label">Context Description</label>
+                                <textarea id="doc-context" rows="3" class="form-input" placeholder="Describe what this document is about and why it's important..."></textarea>
                             </div>
-                            <div>
-                                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Link to Profiles (optional)</label>
-                                <select id="doc-profiles" multiple style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; min-height: 80px;">
+                            <div class="form-group">
+                                <label class="form-label">Link to Profiles (optional)</label>
+                                <select id="doc-profiles" multiple class="form-input" style="min-height: 80px;">
                                     <!-- Will be populated with profiles -->
                                 </select>
-                                <small style="color: #666;">Hold Ctrl/Cmd to select multiple profiles</small>
+                                <small class="text-muted text-xs">Hold Ctrl/Cmd to select multiple profiles</small>
                             </div>
-                            <div style="display: flex; gap: 10px;">
-                                <button onclick="uploadWithMetadata()" class="btn-primary" style="flex: 1;">
-                                    <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                            <div class="flex gap-3">
+                                <button onclick="uploadWithMetadata()" class="btn btn-primary flex-1">
+                                    <i data-lucide="upload"></i>
                                     Upload Document
                                 </button>
-                                <button onclick="cancelUpload()" style="flex: 1; padding: 10px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer;">
+                                <button onclick="cancelUpload()" class="btn btn-tertiary flex-1">
                                     Cancel
                                 </button>
                             </div>
@@ -89,14 +95,14 @@
                     </div>
                     
                     <!-- Upload Progress -->
-                    <div id="upload-progress" style="display: none; margin-top: 15px;">
-                        <div style="background: #f5f5f5; border-radius: 10px; padding: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div id="upload-progress" class="hidden mt-4">
+                        <div class="bg-secondary rounded-lg p-4">
+                            <div class="flex justify-between items-center mb-3">
                                 <span id="upload-status">Uploading...</span>
                                 <span id="upload-percentage">0%</span>
                             </div>
-                            <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
-                                <div id="progress-bar" style="background: #000; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                            <div class="cred-bar">
+                                <div id="progress-bar" class="cred-bar-fill cred-bar-success" style="width: 0%;"></div>
                             </div>
                         </div>
                     </div>
@@ -104,20 +110,14 @@
             </div>
 
             <!-- Upload Status -->
-            <div id="upload-status-section" style="display: none; margin-top: 15px;">
-                <div id="upload-status-list" style="background: #f8f9fa; border-radius: 8px; padding: 15px;">
+            <div id="upload-status-section" class="hidden mt-4">
+                <div id="upload-status-list" class="bg-secondary rounded-lg p-4">
                     <!-- Upload status items will appear here -->
                 </div>
             </div>
 
         </div>
     </div>
-
-    <style>
-        .upload-section {
-            margin-bottom: 0;
-        }
-    </style>
 
     <script>
         // Initialize on page load
@@ -194,7 +194,7 @@
 
             try {
                 // Show progress
-                progressDiv.style.display = 'block';
+                progressDiv.classList.remove('hidden');
                 statusSpan.textContent = `Uploading ${file.name}...`;
                 percentageSpan.textContent = '0%';
                 progressBar.style.width = '0%';
@@ -218,17 +218,18 @@
                     if (xhr.status === 200) {
                         const response = JSON.parse(xhr.responseText);
                         if (response.success) {
-                            statusSpan.textContent = `✅ ${file.name} processed successfully`;
+                            statusSpan.textContent = `[OK] ${file.name} processed successfully`;
                             percentageSpan.textContent = '100%';
                             progressBar.style.width = '100%';
                             
                             // Show upload status
-                            statusSection.style.display = 'block';
+                            statusSection.classList.remove('hidden');
                             const statusItem = document.createElement('div');
-                            statusItem.style.cssText = 'margin-bottom: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #10b981;';
+                            statusItem.className = 'card mb-3';
+                            statusItem.style.borderLeft = '4px solid var(--color-success)';
                             statusItem.innerHTML = `
-                                <div style="font-weight: 500; color: #333;">${file.name}</div>
-                                <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                                <div class="font-medium text-primary">${file.name}</div>
+                                <div class="text-xs text-tertiary mt-1">
                                     ${response.document.text_length} characters • ${(response.document.file_size / 1024).toFixed(1)} KB • Processed and indexed
                                 </div>
                             `;
@@ -236,7 +237,7 @@
                             
                             // Hide progress after delay
                             setTimeout(() => {
-                                progressDiv.style.display = 'none';
+                                progressDiv.classList.add('hidden');
                             }, 2000);
                             
                             // Update stats
@@ -258,12 +259,14 @@
 
             } catch (error) {
                 console.error('Upload error:', error);
-                statusSpan.textContent = `❌ Upload failed: ${error.message}`;
-                progressBar.style.backgroundColor = '#ef4444';
+                statusSpan.textContent = `[ERROR] Upload failed: ${error.message}`;
+                progressBar.classList.remove('cred-bar-success');
+                progressBar.classList.add('cred-bar-error');
                 
                 setTimeout(() => {
-                    progressDiv.style.display = 'none';
-                    progressBar.style.backgroundColor = '#000';
+                    progressDiv.classList.add('hidden');
+                    progressBar.classList.remove('cred-bar-error');
+                    progressBar.classList.add('cred-bar-success');
                 }, 3000);
             }
         }
@@ -278,84 +281,6 @@
             // Stats removed for minimal design
         }
 
-        // Documentation modal function
-        function showDocumentation() {
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.5);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
-            `;
-            
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                max-width: 600px;
-                width: 90%;
-                max-height: 80vh;
-                overflow-y: auto;
-                position: relative;
-            `;
-            
-            content.innerHTML = `
-                <button onclick="this.closest('.modal').remove()" style="
-                    position: absolute;
-                    top: 15px;
-                    right: 20px;
-                    background: none;
-                    border: none;
-                    font-size: 24px;
-                    cursor: pointer;
-                    color: #666;
-                ">&times;</button>
-                
-                <h2 style="margin-top: 0; color: #000; font-family: 'Open Sans', sans-serif;">Documentation</h2>
-                
-                <div style="font-family: 'Open Sans', sans-serif; line-height: 1.6; color: #333;">
-                    <h3>🎤 Audio Processing</h3>
-                    <p>Upload WAV files or connect Bluetooth devices for real-time transcription and AI analysis.</p>
-                    
-                    <h3>📄 Document Knowledge Base</h3>
-                    <p>Upload TXT, PDF, DOC, DOCX files to build a searchable knowledge base. Enable document validation to fact-check transcriptions against your uploaded content.</p>
-                    
-                    <h3>🤖 AI Features</h3>
-                    <ul>
-                        <li><strong>Transcription:</strong> Convert audio to text using Whisper AI</li>
-                        <li><strong>Brutal Honesty:</strong> Get unfiltered AI analysis of conversations</li>
-                        <li><strong>Document Validation:</strong> Cross-reference claims with your knowledge base</li>
-                    </ul>
-                    
-                    <h3>🔗 API Endpoints</h3>
-                    <ul>
-                        <li><code>POST /api/ai/process</code> - Process audio files</li>
-                        <li><code>POST /documents/upload</code> - Upload documents</li>
-                        <li><code>GET /documents/stats</code> - Get knowledge base stats</li>
-                    </ul>
-                    
-                    <h3>📱 Device Support</h3>
-                    <p>Connect Bluetooth devices, USB microphones, or upload audio files directly.</p>
-                </div>
-            `;
-            
-            modal.className = 'modal';
-            modal.appendChild(content);
-            document.body.appendChild(modal);
-            
-            // Close on background click
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.remove();
-            });
-        }
-        
         // Info Modal - How Documents Work
         function showPageInfo() {
             const modal = document.createElement('div');
@@ -363,7 +288,7 @@
             modal.innerHTML = `
                 <div class="info-modal-content">
                     <button class="info-modal-close" onclick="this.closest('.info-modal').remove()">&times;</button>
-                    <h2>📄 Document Knowledge Base</h2>
+                    <h2>[DOC] Document Knowledge Base</h2>
                     
                     <h3>Supported Formats</h3>
                     <ul>
@@ -374,7 +299,7 @@
                     
                     <h3>How It Works</h3>
                     <p>Documents are processed through several stages:</p>
-                    <ol style="padding-left: 20px;">
+                    <ol style="padding-left: var(--space-5);">
                         <li>Text extraction from uploaded files</li>
                         <li>Chunking into searchable segments</li>
                         <li>Vector embedding for semantic search</li>
@@ -384,7 +309,7 @@
                     <h3>Using Tags & Categories</h3>
                     <p>Organize documents with tags and categories for better searchability. Use tags like <code>policy</code>, <code>brand</code>, or <code>2024</code> to filter results.</p>
                     
-                    <p style="margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 13px;">
+                    <p class="info-tip">
                         <strong>Tip:</strong> Upload official documents like brand guidelines, policies, and manuals to validate spoken claims against authoritative sources.
                     </p>
                 </div>
@@ -433,9 +358,9 @@
     
     <footer class="site-footer">
         <div class="footer-content">
-            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <a href="https://altfawesome.com" target="_blank" class="footer-link">altfawesome.com</a>
             <span class="footer-divider">·</span>
-            <span class="footer-copyright">© 2025 All rights reserved</span>
+            <span>© 2025</span>
         </div>
     </footer>
 </body>

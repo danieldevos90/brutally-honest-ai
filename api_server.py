@@ -25,17 +25,55 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import json
 from enum import Enum
+# Recording storage
+RECORDINGS_DIR = Path(__file__).parent / "recordings"
+HISTORY_FILE = Path(__file__).parent / "data" / "transcription_history.json"
+RECORDINGS_DIR.mkdir(exist_ok=True)
+(Path(__file__).parent / "data").mkdir(exist_ok=True)
+if not HISTORY_FILE.exists():
+    HISTORY_FILE.write_text("[]")
 
+
+def save_transcription_result(filename: str, audio_data: bytes, result: dict):
+    """Save audio file and transcription result for history"""
+    try:
+        import json
+        from datetime import datetime
+        import uuid
+        
+        # Save audio file with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_filename = f"{timestamp}_{filename}"
+        audio_path = RECORDINGS_DIR / safe_filename
+        audio_path.write_bytes(audio_data)
+        logger.info(f"Saved recording: {audio_path}")
+        
+        # Add to history
+        history = json.loads(HISTORY_FILE.read_text())
+        history.append({
+            "id": str(uuid.uuid4()),
+            "timestamp": datetime.now().isoformat(),
+            "originalFilename": filename,
+            "savedFilename": safe_filename,
+            "filePath": str(audio_path),
+            "result": result
+        })
+        HISTORY_FILE.write_text(json.dumps(history, indent=2))
+        logger.info(f"Updated transcription history: {len(history)} entries")
+    except Exception as e:
+        logger.error(f"Failed to save transcription result: {e}")
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from audio.unified_connector import UnifiedESP32S3Connector, ConnectionType
 from audio.multi_device_manager import get_device_manager, MultiDeviceManager
+from audio.voice_analyzer import VoiceFeatures, get_voice_analyzer
 from models.schemas import RecordingInfo
 from ai.llama_processor import get_processor
 from ai.enhanced_processor import get_enhanced_processor
 from documents.processor import get_document_processor, DocumentInfo
 from documents.vector_store import get_vector_store
+from analysis.interview_analyzer import get_interview_analyzer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -1094,7 +1132,8 @@ async def transcribe_uploaded_file(
 # ============================================
 
 async def process_transcription_job(job_id: str, audio_data: bytes, filename: str, validate_documents: bool):
-    """Background task to process transcription"""
+    """Background task to process transcription with voice analysis"""
+    temp_audio_path = None
     try:
         update_job_status(job_id, JobStatus.PROCESSING, 10, "Loading AI models...")
         
@@ -1114,7 +1153,31 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
         else:
             result = await processor.process_audio(audio_data, filename)
         
-        update_job_status(job_id, JobStatus.PROCESSING, 80, "Generating analysis...")
+        update_job_status(job_id, JobStatus.PROCESSING, 70, "Analyzing voice characteristics...")
+        
+        # Voice analysis - save audio temporarily
+        voice_analysis = None
+        try:
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
+                tmp.write(audio_data)
+                temp_audio_path = tmp.name
+            
+            voice_analyzer = get_voice_analyzer()
+            word_count = len(result.transcription.split()) if result.transcription else 0
+            voice_features = await voice_analyzer.analyze_audio(
+                temp_audio_path,
+                transcript=result.transcription,
+                word_count=word_count
+            )
+            voice_analysis = voice_features.to_dict()
+            logger.info(f"Voice analysis: pitch={voice_features.pitch_mean_hz:.1f}Hz, "
+                       f"rate={voice_features.speaking_rate_wpm:.0f}wpm, "
+                       f"confidence={voice_features.confidence_score:.2f}")
+        except Exception as e:
+            logger.warning(f"Voice analysis failed (non-critical): {e}")
+        
+        update_job_status(job_id, JobStatus.PROCESSING, 90, "Generating analysis...")
         
         if result.success:
             response_data = {
@@ -1135,6 +1198,40 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
                 "source": "file_upload_async"
             }
             
+            # Add voice analysis if available
+            if voice_analysis:
+                response_data["voice_analysis"] = {
+                    "pitch_hz": round(voice_analysis.get('pitch_mean_hz', 0), 1),
+                    "pitch_variation": round(voice_analysis.get('pitch_std_hz', 0), 1),
+                    "speaking_rate_wpm": round(voice_analysis.get('speaking_rate_wpm', 0), 0),
+                    "pause_ratio": round(voice_analysis.get('pause_ratio', 0), 2),
+                    "pause_count": voice_analysis.get('pause_count', 0),
+                    "speech_rhythm": voice_analysis.get('speech_rhythm', 'unknown'),
+                    "confidence_indicator": round(voice_analysis.get('confidence_score', 0.5), 2),
+                    "stress_indicator": round(voice_analysis.get('stress_indicator', 0.5), 2),
+                    "engagement_indicator": round(voice_analysis.get('engagement_indicator', 0.5), 2),
+                    "energy_mean_db": round(voice_analysis.get('energy_mean', 0), 1),
+                    "duration_seconds": round(voice_analysis.get('duration_seconds', 0), 1)
+                }
+            
+            # Add mood analysis per sentence
+            try:
+                from src.audio.voice_analyzer import get_mood_analyzer
+                mood_analyzer = get_mood_analyzer()
+                sentence_moods = mood_analyzer.analyze_text_moods(result.transcription or "")
+                response_data["sentence_moods"] = [m.to_dict() for m in sentence_moods]
+            except Exception as e:
+                logger.warning(f"Mood analysis failed: {e}")
+                response_data["sentence_moods"] = []
+            
+            # Add agents used
+            agents_used = ["Whisper STT", "LLAMA Analysis"]
+            if voice_analysis:
+                agents_used.append("Voice Analyzer")
+            if validate_documents:
+                agents_used.append("Document Validator")
+            response_data["agents_used"] = agents_used
+            
             if validate_documents and hasattr(result, 'document_validation'):
                 response_data.update({
                     "document_validation": result.document_validation,
@@ -1145,14 +1242,23 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
                 })
             
             update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
-            logger.info(f"✅ Job {job_id} completed successfully")
+            # Save recording and result for history
+            save_transcription_result(filename, audio_data, response_data)
+            logger.info(f"Job {job_id} completed successfully")
         else:
             update_job_status(job_id, JobStatus.FAILED, 100, "Transcription failed", error=result.error)
-            logger.error(f"❌ Job {job_id} failed: {result.error}")
+            logger.error(f"Job {job_id} failed: {result.error}")
             
     except Exception as e:
-        logger.error(f"❌ Job {job_id} error: {e}")
+        logger.error(f"Job {job_id} error: {e}")
         update_job_status(job_id, JobStatus.FAILED, 100, f"Error: {str(e)}", error=str(e))
+    finally:
+        # Clean up temp file
+        if temp_audio_path and os.path.exists(temp_audio_path):
+            try:
+                os.unlink(temp_audio_path)
+            except:
+                pass
 
 @app.post("/ai/transcribe-file-async", tags=["AI Processing - Async"])
 async def transcribe_file_async(
@@ -2164,3 +2270,193 @@ if __name__ == "__main__":
         reload=False,
         log_level="info"
     )
+# ===== Transcription History Endpoint =====
+@app.get("/api/transcription-history")
+async def get_transcription_history():
+    """Get all transcription history with saved recordings"""
+    try:
+        import json
+        history = json.loads(HISTORY_FILE.read_text())
+        return {"success": True, "history": list(reversed(history))}  # Most recent first
+    except Exception as e:
+        logger.error(f"Failed to get transcription history: {e}")
+        return {"success": False, "error": str(e)}
+
+@app.get("/api/recordings/{filename}")
+async def get_recording(filename: str):
+    """Download a saved recording"""
+    from fastapi.responses import FileResponse
+    file_path = RECORDINGS_DIR / filename
+    if file_path.exists():
+        return FileResponse(file_path, media_type="audio/webm", filename=filename)
+    return {"success": False, "error": "Recording not found"}
+
+@app.post("/api/save-recording")
+async def save_recording_only(
+    file: UploadFile = File(...),
+    title: str = Form(None)
+):
+    """
+    Save a recording WITHOUT transcription.
+    The recording will be stored and can be transcribed later via re-analyze.
+    """
+    try:
+        # Read file data
+        audio_data = await file.read()
+        
+        if len(audio_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        original_ext = Path(file.filename).suffix if file.filename else ".webm"
+        safe_filename = f"recording_{timestamp}{original_ext}"
+        
+        # Save audio file
+        audio_path = RECORDINGS_DIR / safe_filename
+        audio_path.write_bytes(audio_data)
+        logger.info(f"💾 Saved recording (no transcription): {audio_path}")
+        
+        # Create history entry with pending status
+        entry_id = str(int(datetime.now().timestamp() * 1000))
+        history = json.loads(HISTORY_FILE.read_text())
+        
+        new_entry = {
+            "id": entry_id,
+            "timestamp": datetime.now().isoformat(),
+            "originalFilename": file.filename or safe_filename,
+            "savedFilename": safe_filename,
+            "filePath": str(audio_path),
+            "title": title or f"Recording {timestamp}",
+            "status": "saved",  # Not transcribed yet
+            "result": None  # No transcription result yet
+        }
+        
+        history.append(new_entry)
+        HISTORY_FILE.write_text(json.dumps(history, indent=2))
+        
+        # Also save to frontend history
+        frontend_history_file = Path(__file__).parent / "frontend" / "data" / "transcription_history.json"
+        if frontend_history_file.exists():
+            try:
+                frontend_history = json.loads(frontend_history_file.read_text())
+                frontend_history.append(new_entry)
+                frontend_history_file.write_text(json.dumps(frontend_history, indent=2))
+            except Exception as fe_err:
+                logger.warning(f"Could not update frontend history: {fe_err}")
+        
+        return {
+            "success": True,
+            "id": entry_id,
+            "filename": safe_filename,
+            "size": len(audio_data),
+            "message": "Recording saved. Use Re-analyze to transcribe later."
+        }
+        
+    except Exception as e:
+        logger.error(f"Save recording error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/reanalyze/{id}")
+async def reanalyze_transcription(id: str):
+    """Re-analyze an existing transcription with updated fact-checker, or transcribe if not done yet."""
+    try:
+        # Load history
+        history = json.loads(HISTORY_FILE.read_text())
+        entry = next((e for e in history if e["id"] == id), None)
+        
+        if not entry:
+            raise HTTPException(status_code=404, detail="Entry not found")
+        
+        # Check if we need to transcribe first
+        result = entry.get("result") or {}
+        transcription = result.get("transcription", "")
+        
+        if not transcription:
+            # No transcription yet - do full transcription
+            file_path = entry.get("filePath")
+            if not file_path or not Path(file_path).exists():
+                raise HTTPException(status_code=400, detail="Audio file not found")
+            
+            logger.info(f"Transcribing file: {file_path}")
+            
+            # Read audio file and transcribe
+            from src.ai.llama_processor import LLAMAProcessor
+            processor = LLAMAProcessor()
+            await processor.initialize()
+            
+            try:
+                audio_data = Path(file_path).read_bytes()
+                filename = Path(file_path).name
+                proc_result = await processor.process_audio(audio_data, filename)
+                
+                if proc_result.success:
+                    result = {
+                        "transcription": proc_result.transcription,
+                        "analysis": proc_result.analysis,
+                        "summary": proc_result.summary,
+                        "sentiment": proc_result.sentiment,
+                        "keywords": proc_result.keywords,
+                        "fact_check": proc_result.fact_check,
+                        "brutal_honesty": proc_result.brutal_honesty,
+                        "credibility_score": proc_result.credibility_score,
+                        "confidence": proc_result.confidence,
+                        "processing_time": proc_result.processing_time
+                    }
+                    transcription = proc_result.transcription
+                else:
+                    raise HTTPException(status_code=500, detail=f"Transcription failed: {proc_result.error}")
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Transcription error: {e}")
+                raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+        
+        if not transcription:
+            raise HTTPException(status_code=400, detail="Could not transcribe audio")
+        
+        # Re-run fact checking using IntelligentFactChecker (LLAMA-powered)
+        from src.ai.intelligent_fact_checker import IntelligentFactChecker
+        
+        fact_checker = IntelligentFactChecker()
+        await fact_checker.initialize()
+        fact_result = await fact_checker.check_facts(transcription)
+        
+        if fact_result.claims_found > 0:
+            brutal_honesty = f"*Claim Analysis ({fact_result.claims_verified}/{fact_result.claims_found} verified):*\n{fact_result.summary}"
+            credibility = fact_result.credibility_score
+        else:
+            brutal_honesty = "*No verifiable claims detected* - Only conversational content, opinions, or questions found."
+            credibility = None  # N/A when nothing to verify
+        
+        # Update the entry
+        if entry.get("result") is None:
+            entry["result"] = result
+        entry["result"]["brutal_honesty"] = brutal_honesty
+        entry["result"]["credibility_score"] = credibility
+        entry["result"]["fact_check"] = f"Re-analyzed: {fact_result.claims_false} false claims out of {fact_result.claims_found}"
+        entry["status"] = "completed"
+        
+        # Save to both API and frontend history files
+        HISTORY_FILE.write_text(json.dumps(history, indent=2))
+        
+        # Also update frontend history
+        frontend_history_file = Path(__file__).parent / "frontend" / "data" / "transcription_history.json"
+        if frontend_history_file.exists():
+            try:
+                frontend_history = json.loads(frontend_history_file.read_text())
+                for fe in frontend_history:
+                    if fe["id"] == id:
+                        fe["result"] = entry["result"]
+                        fe["status"] = "completed"
+                        break
+                frontend_history_file.write_text(json.dumps(frontend_history, indent=2))
+            except Exception as fe_err:
+                logger.warning(f"Could not update frontend history: {fe_err}")
+        
+        return {"success": True, "result": entry["result"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Re-analyze error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

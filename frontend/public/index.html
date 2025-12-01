@@ -12,6 +12,9 @@
     <link rel="apple-touch-icon" href="logo.svg">
     <link rel="manifest" href="manifest.json">
     
+    <!-- Design System (load first) -->
+    <link rel="stylesheet" href="design-system.css">
+    <!-- Application Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -65,190 +68,194 @@
                 <div class="transcription-section">
                     
                     <!-- Transcription Source Tabs -->
-                    <div style="display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 2px solid #e5e5e5;">
-                        <button id="tab-device" class="transcription-tab active" onclick="switchTranscriptionTab('device')">
-                            <i data-lucide="hard-drive" style="width: 16px; height: 16px;"></i>
+                    <div class="tabs">
+                        <button id="tab-device" class="tab active" onclick="switchTranscriptionTab('device')">
+                            <i data-lucide="hard-drive"></i>
                             Device Recordings
                         </button>
-                        <button id="tab-upload" class="transcription-tab" onclick="switchTranscriptionTab('upload')">
-                            <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                        <button id="tab-upload" class="tab" onclick="switchTranscriptionTab('upload')">
+                            <i data-lucide="upload"></i>
                             Upload File
                         </button>
                     </div>
                     
                     <!-- Tab Content: Device Recordings -->
                     <div id="tab-content-device">
-                        <p style="text-align: center; margin-bottom: 15px; color: #666;">
+                        <p class="text-center text-tertiary mb-4">
                             Select one or more recordings from below and transcribe them with Whisper AI (Dutch/English auto-detection)
                         </p>
                     
                         <!-- Selected Files Display (Device mode) -->
-                        <div id="selected-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div style="font-weight: 500;">Selected Recordings:</div>
-                                <button onclick="clearSelectedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all selections">
-                                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                        <div id="selected-files-display" class="selected-files-display hidden">
+                            <div class="selected-files-header">
+                                <div class="font-medium">Selected Recordings:</div>
+                                <button onclick="clearSelectedFiles()" class="clear-btn" title="Clear all selections">
+                                    <i data-lucide="x"></i>
                                 </button>
                             </div>
-                            <div id="selected-files-list" style="max-height: 120px; overflow-y: auto;">
+                            <div id="selected-files-list" class="selected-files-list">
                                 <!-- Selected files will appear here -->
                             </div>
-                            <div id="selected-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;">
+                            <div id="selected-files-summary" class="selected-files-summary">
                                 <!-- Summary will appear here -->
                             </div>
                         </div>
                         
                         <!-- Document Validation Toggle -->
-                        <div style="text-align: center; margin-bottom: 15px;">
-                            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
-                                <input type="checkbox" id="enable-document-validation" style="margin: 0;">
-                                <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
+                        <div class="validation-toggle">
+                            <label class="flex items-center justify-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="enable-document-validation">
+                                <i data-lucide="file-check"></i>
                                 Validate transcription against uploaded documents
                             </label>
-                            <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                            <div class="validation-toggle-hint">
                                 Uses your document knowledge base to fact-check transcribed content
                             </div>
                         </div>
                         
                         <!-- Action Buttons -->
-                        <div style="text-align: center; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <div class="action-buttons">
                             <button id="transcribe-btn" class="btn btn-primary" onclick="transcribeSelectedFiles()" disabled>
                                 Select recordings to transcribe
                             </button>
-                            <button id="clear-results-btn" class="btn btn-secondary" onclick="clearTranscriptionResults()" style="display: none;">
-                                <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                            <button id="clear-results-btn" class="btn btn-secondary hidden" onclick="clearTranscriptionResults()">
+                                <i data-lucide="trash-2"></i>
                                 Clear Results
                             </button>
                         </div>
                     </div>
                     
                     <!-- Tab Content: File Upload -->
-                    <div id="tab-content-upload" style="display: none;">
-                        <p style="text-align: center; margin-bottom: 15px; color: #666;">
+                    <div id="tab-content-upload" class="hidden">
+                        <p class="text-center text-tertiary mb-4">
                             Upload audio files directly from your computer for transcription - no device required
                         </p>
                         
                         <!-- File Upload Area -->
                         <div id="file-upload-area" class="file-upload-dropzone" ondrop="handleFileDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" onclick="document.getElementById('file-upload-input').click()">
-                            <input type="file" id="file-upload-input" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" multiple style="display: none;" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
+                            <input type="file" id="file-upload-input" accept="audio/*,.wav,.mp3,.m4a,.ogg,.flac,.webm" multiple class="hidden" onchange="handleFileSelect(event)" onclick="event.stopPropagation()">
                             <div class="upload-content">
-                                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
-                                    <i data-lucide="upload-cloud" style="width: 20px; height: 20px; color: #999;"></i>
-                                    <span style="font-weight: 500; font-size: 14px;">Drop audio or</span>
-                                    <button class="btn btn-secondary" onclick="event.stopPropagation(); document.getElementById('file-upload-input').click()" style="font-size: 13px; padding: 6px 12px;">browse</button>
-                                    <span style="color: #999; font-size: 13px;">or</span>
-                                    <button id="record-btn" class="btn btn-secondary" onclick="event.stopPropagation(); toggleRecording()" style="font-size: 13px; padding: 6px 12px; display: flex; align-items: center; gap: 6px;">
-                                        <i id="record-icon" data-lucide="mic" style="width: 14px; height: 14px;"></i>
+                                <div class="flex items-center justify-center gap-3 flex-wrap">
+                                    <i data-lucide="upload-cloud" class="text-muted"></i>
+                                    <span class="font-medium">Drop audio or</span>
+                                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('file-upload-input').click()">browse</button>
+                                    <span class="text-muted text-sm">or</span>
+                                    <button id="record-btn" class="btn btn-secondary btn-sm flex items-center gap-2" onclick="event.stopPropagation(); toggleRecording()">
+                                        <i id="record-icon" data-lucide="mic"></i>
                                         <span id="record-text">Record</span>
-                                        <span id="record-timer" style="display: none; font-family: monospace; font-size: 12px;"></span>
+                                        <span id="record-timer" class="hidden text-mono text-xs"></span>
                                     </button>
                                 </div>
-                                <p style="color: #999; font-size: 11px; margin-top: 8px;">WAV, MP3, M4A, OGG, FLAC (max 100MB)</p>
+                                <p class="upload-hint">WAV, MP3, M4A, OGG, FLAC (max 100MB)</p>
                             </div>
                         </div>
                         
                         <!-- Uploaded Files List -->
-                        <div id="uploaded-files-display" style="display: none; background: #f5f5f5; padding: 15px; border-radius: 10px; margin-top: 15px; margin-bottom: 15px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div style="font-weight: 500;">Files to Transcribe:</div>
-                                <button onclick="clearUploadedFiles()" style="background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px;" title="Clear all files">
-                                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                        <div id="uploaded-files-display" class="uploaded-files-display hidden">
+                            <div class="selected-files-header">
+                                <div class="font-medium">Files to Transcribe:</div>
+                                <button onclick="clearUploadedFiles()" class="clear-btn" title="Clear all files">
+                                    <i data-lucide="x"></i>
                                 </button>
                             </div>
-                            <div id="uploaded-files-list" style="max-height: 150px; overflow-y: auto;">
+                            <div id="uploaded-files-list" class="overflow-y-auto" style="max-height: 150px;">
                                 <!-- Uploaded files will appear here -->
                             </div>
-                            <div id="uploaded-files-summary" style="font-size: 0.9rem; color: #666; margin-top: 8px; text-align: center;">
+                            <div id="uploaded-files-summary" class="selected-files-summary">
                                 <!-- Summary will appear here -->
                             </div>
                         </div>
                         
                         <!-- Document Validation Toggle for Upload -->
-                        <div style="text-align: center; margin-bottom: 15px;">
-                            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: #666; cursor: pointer;">
-                                <input type="checkbox" id="upload-enable-document-validation" style="margin: 0;">
-                                <i data-lucide="file-check" style="width: 16px; height: 16px;"></i>
+                        <div class="validation-toggle">
+                            <label class="flex items-center justify-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="upload-enable-document-validation">
+                                <i data-lucide="file-check"></i>
                                 Validate against uploaded documents
                             </label>
                         </div>
                         
-                        <!-- Transcribe Button for Upload -->
-                        <div style="text-align: center; margin-bottom: 20px;">
+                        <!-- Action Buttons for Upload -->
+                        <div class="action-buttons" style="gap: 10px;">
                             <button id="upload-transcribe-btn" class="btn btn-primary" onclick="transcribeUploadedFiles()" disabled>
-                                <i data-lucide="wand-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>
+                                <i data-lucide="wand-2"></i>
                                 Select files to transcribe
+                            </button>
+                            <button id="upload-save-only-btn" class="btn btn-secondary" onclick="saveUploadedFilesOnly()" disabled>
+                                <i data-lucide="save"></i>
+                                Save Only (transcribe later)
                             </button>
                         </div>
                     </div>
                     
                     <!-- Transcription Results (shared between tabs) -->
-                    <div id="transcription-results" style="display: none;">
-                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0; color: #333;">Transcription Results</h3>
-                            <button onclick="toggleProcessLogs()" style="background: none; border: none; cursor: pointer; color: #666; margin-left: 8px; padding: 0;" title="Show processing logs">
-                                <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                    <div id="transcription-results" class="hidden">
+                        <div class="transcript-header">
+                            <h3 class="text-primary m-0">Transcription Results</h3>
+                            <button onclick="toggleProcessLogs()" class="info-btn" title="Show processing logs">
+                                <i data-lucide="info" class="info-icon"></i>
                             </button>
                         </div>
                         
                         <!-- Condensed Results -->
-                        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 14px;">
-                            <div style="margin-bottom: 8px;">
-                                <strong style="color: #333;">Transcript:</strong>
-                                <div id="transcript-text" style="color: #333; margin-top: 4px;">
+                        <div class="transcription-results">
+                            <div class="mb-2">
+                                <strong class="text-primary">Transcript:</strong>
+                                <div id="transcript-text" class="transcript-text mt-1">
                                     <!-- Transcript will appear here -->
                                 </div>
                             </div>
                             
-                            <div style="margin-bottom: 8px;">
-                                <strong style="color: #333;">Sentiment:</strong>
-                                <span id="transcript-sentiment" style="color: #555; margin-left: 8px;">
+                            <div class="mb-2">
+                                <strong class="text-primary">Sentiment:</strong>
+                                <span id="transcript-sentiment" class="text-secondary ml-2">
                                     <!-- Sentiment will appear here -->
                                 </span>
                             </div>
                             
                             <div>
-                                <strong style="color: #333;">Brutal Honest Reply:</strong>
-                                <div id="transcript-brutal-honesty" style="color: #555; margin-top: 4px; line-height: 1.4;">
+                                <strong class="text-primary">Brutal Honest Reply:</strong>
+                                <div id="transcript-brutal-honesty" class="text-secondary mt-1">
                                     <!-- Brutal honesty will appear here -->
                                 </div>
                             </div>
                             
                             <!-- Document Validation Results -->
-                            <div id="document-validation-section" style="display: none; border-top: 1px solid #e0e0e0; padding-top: 12px; margin-top: 12px;">
-                                <strong style="color: #333;">📚 Document Validation:</strong>
-                                <div id="document-validation-summary" style="color: #555; margin-top: 4px; line-height: 1.4;">
+                            <div id="document-validation-section" class="hidden border-t mt-3 pt-3">
+                                <strong class="text-primary">Document Validation:</strong>
+                                <div id="document-validation-summary" class="text-secondary mt-1">
                                     <!-- Document validation summary will appear here -->
                                 </div>
                                 
                                 <!-- Validation Score -->
-                                <div id="validation-score-section" style="margin-top: 8px; display: none;">
-                                    <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Validation Score:</div>
-                                    <div style="background: #e0e0e0; height: 4px; border-radius: 2px; overflow: hidden;">
-                                        <div id="validation-score-bar" style="background: #10b981; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                                <div id="validation-score-section" class="hidden mt-2">
+                                    <div class="text-xs text-tertiary mb-1">Validation Score:</div>
+                                    <div class="cred-bar-mini">
+                                        <div id="validation-score-bar" class="cred-bar-mini-fill cred-success" style="width: 0%;"></div>
                                     </div>
-                                    <div id="validation-score-text" style="font-size: 12px; color: #666; margin-top: 2px;">0%</div>
+                                    <div id="validation-score-text" class="cred-label">0%</div>
                                 </div>
                                 
                                 <!-- Supporting Evidence -->
-                                <div id="supporting-evidence-section" style="display: none; margin-top: 8px;">
-                                    <div style="font-size: 12px; font-weight: 500; color: #10b981; margin-bottom: 4px;">✅ Supporting Evidence:</div>
-                                    <div id="supporting-evidence-list" style="font-size: 11px; color: #666;">
+                                <div id="supporting-evidence-section" class="hidden mt-2">
+                                    <div class="text-xs font-medium text-success mb-1">Supporting Evidence:</div>
+                                    <div id="supporting-evidence-list" class="text-xs text-tertiary">
                                         <!-- Supporting evidence will appear here -->
                                     </div>
                                 </div>
                                 
                                 <!-- Contradictions -->
-                                <div id="contradictions-section" style="display: none; margin-top: 8px;">
-                                    <div style="font-size: 12px; font-weight: 500; color: #ef4444; margin-bottom: 4px;">⚠️ Contradictions Found:</div>
-                                    <div id="contradictions-list" style="font-size: 11px; color: #666;">
+                                <div id="contradictions-section" class="hidden mt-2">
+                                    <div class="text-xs font-medium text-error mb-1">Contradictions Found:</div>
+                                    <div id="contradictions-list" class="text-xs text-tertiary">
                                         <!-- Contradictions will appear here -->
                                     </div>
                                 </div>
                                 
                                 <!-- Fact Check Sources -->
-                                <div id="fact-check-sources-section" style="display: none; margin-top: 8px;">
-                                    <div style="font-size: 12px; font-weight: 500; color: #666; margin-bottom: 4px;">📄 Sources Checked:</div>
-                                    <div id="fact-check-sources-list" style="font-size: 11px; color: #666;">
+                                <div id="fact-check-sources-section" class="hidden mt-2">
+                                    <div class="text-xs font-medium text-tertiary mb-1">Sources Checked:</div>
+                                    <div id="fact-check-sources-list" class="text-xs text-tertiary">
                                         <!-- Fact check sources will appear here -->
                                     </div>
                                 </div>
@@ -256,30 +263,30 @@
                         </div>
                         
                         <!-- Expandable Logs Section for Results -->
-                        <div id="results-process-logs" style="display: none; margin-bottom: 15px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #ddd;">
-                            <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #333;">Processing Logs</div>
-                            <div id="results-log-content" style="color: #555; line-height: 1.4;">
+                        <div id="results-process-logs" class="hidden output-box mb-4">
+                            <div class="text-center font-semibold text-primary mb-2">Processing Logs</div>
+                            <div id="results-log-content" class="text-secondary">
                                 <!-- Logs will appear here -->
                             </div>
                         </div>
                     </div>
                     
                     <!-- Processing Indicator -->
-                    <div id="transcription-loading" style="display: none; text-align: center; padding: 20px;">
-                        <div style="margin-bottom: 10px;">
-                            <div style="display: inline-block; width: 20px; height: 20px; border: 2px solid #f3f3f3; border-top: 2px solid #333; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <div id="transcription-loading" class="hidden text-center p-6">
+                        <div class="mb-3">
+                            <div class="loading-spinner" style="width: 20px; height: 20px; margin: 0 auto;"></div>
                         </div>
-                        <div style="display: flex; align-items: center; justify-content: center; margin-top: 10px;">
-                            <span style="color: #666; margin-right: 8px;">Untangling the spaghetti of words you just threw at me...</span>
-                            <button onclick="toggleProcessLogs()" style="background: none; border: none; cursor: pointer; color: #666; padding: 0;" title="Show processing logs">
-                                <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                        <div class="flex items-center justify-center mt-3">
+                            <span class="text-tertiary mr-2">Untangling the spaghetti of words you just threw at me...</span>
+                            <button onclick="toggleProcessLogs()" class="info-btn" title="Show processing logs">
+                                <i data-lucide="info" class="info-icon"></i>
                             </button>
                         </div>
                         
                         <!-- Expandable Logs Section -->
-                        <div id="process-logs" style="display: none; margin-top: 15px; text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 14px; border: 1px solid #ddd;">
-                            <div style="text-align: center; margin-bottom: 10px; font-weight: bold; color: #333;">Processing Logs</div>
-                            <div id="log-content" style="color: #555; line-height: 1.4;">
+                        <div id="process-logs" class="hidden output-box mt-4 text-left">
+                            <div class="text-center font-semibold text-primary mb-2">Processing Logs</div>
+                            <div id="log-content" class="text-secondary">
                                 <!-- Logs will appear here -->
                             </div>
                         </div>
@@ -291,12 +298,12 @@
             <div class="section" id="device-selection-section">
                 <h2>Select ESP32S3 Device</h2>
                 <div class="device-selection">
-                    <p style="text-align: center; margin-bottom: 20px; color: #666;">
+                    <p class="text-center text-tertiary mb-5">
                         Choose which ESP32S3 device to monitor and manage
                     </p>
                     
                     <!-- Device Selection Controls -->
-                    <div class="device-selection-controls" style="text-align: center; margin-bottom: 20px;">
+                    <div class="action-buttons mb-5">
                         <button class="btn btn-primary" onclick="scanForDevices()" id="scan-devices-btn">
                             <i data-lucide="search" style="width: 16px; height: 16px; margin-right: 6px;"></i>
                             Scan for Devices
@@ -935,11 +942,11 @@
                     robotIndicator.className = 'robot-indicator complete';
                     break;
                 case 'ERROR':
-                    robotIndicator.textContent = '[ERROR]';
+                    robotIndicator.textContent = 'Error';
                     robotIndicator.className = 'robot-indicator error';
                     break;
                 default:
-                    robotIndicator.textContent = '[READY]';
+                    robotIndicator.textContent = 'Ready';
                     robotIndicator.className = 'robot-indicator ready';
             }
         }
@@ -973,7 +980,7 @@
         }
 
         async function refreshRecordings() {
-            console.log('🔄 Starting refreshRecordings...');
+            console.log('[REFRESH] Starting refreshRecordings...');
             
             // Check if device status section is visible (device selected)
             const deviceStatusSection = document.getElementById('device-status-section');
@@ -990,7 +997,7 @@
             
             try {
                 // First check if device is connected
-                console.log('📡 Checking device ports...');
+                console.log('[CONNECT] Checking device ports...');
                 const portsResponse = await fetch('/api/scan_ports');
                 
                 if (!portsResponse.ok) {
@@ -998,14 +1005,14 @@
                 }
                 
                 const portsData = await portsResponse.json();
-                console.log('📡 Ports data:', portsData);
+                console.log('[CONNECT] Ports data:', portsData);
                 
                 // Update device connection status
                 const connectionStatus = document.getElementById('connection-status');
                 const deviceStatus = document.getElementById('device-status');
                 
                 if (portsData.esp32s3_detected) {
-                    console.log('✅ ESP32S3 device detected');
+                    console.log('[OK] ESP32S3 device detected');
                     if (connectionStatus) {
                         connectionStatus.textContent = 'Connected';
                         connectionStatus.style.color = '#10b981';
@@ -1028,7 +1035,7 @@
                         console.log('🔌 Connect response:', connectData);
                         
                         if (connectData.success) {
-                            console.log('📁 Getting recordings...');
+                            console.log('[FILE] Getting recordings...');
                             const recordingsResponse = await fetch('/api/device/recordings');
                             
                             if (!recordingsResponse.ok) {
@@ -1036,10 +1043,10 @@
                             }
                             
                             const recordingsData = await recordingsResponse.json();
-                            console.log('📁 Recordings data:', recordingsData);
+                            console.log('[FILE] Recordings data:', recordingsData);
                             
                             if (recordingsData.success && recordingsData.recordings) {
-                                console.log(`✅ Found ${recordingsData.total_files} recordings`);
+                                console.log(`[OK] Found ${recordingsData.total_files} recordings`);
                                 updateRecordingsList({
                                     recordings: recordingsData.recordings,
                                     total_files: recordingsData.total_files,
@@ -1053,28 +1060,28 @@
                                     fileCountEl.textContent = recordingsData.total_files || '0';
                                 }
                             } else {
-                                console.log('📁 No recordings found');
+                                console.log('[FILE] No recordings found');
                                 document.getElementById('recordings-list').innerHTML = 
                                     '<div class="recordings-empty">No recordings found on SD card</div>';
                                 const fileCountEl = document.getElementById('file-count');
                                 if (fileCountEl) fileCountEl.textContent = '0';
                             }
                         } else {
-                            console.error('❌ Device connection failed:', connectData.message);
+                            console.error('[ERROR] Device connection failed:', connectData.message);
                             document.getElementById('recordings-list').innerHTML = 
                                 '<div class="recordings-empty">Device detected but connection failed</div>';
                             const fileCountEl = document.getElementById('file-count');
                             if (fileCountEl) fileCountEl.textContent = '--';
                         }
                     } catch (recordingsError) {
-                        console.error('❌ Recordings error:', recordingsError);
+                        console.error('[ERROR] Recordings error:', recordingsError);
                         document.getElementById('recordings-list').innerHTML = 
                             '<div class="recordings-empty">Error reading recordings. Try again.</div>';
                         const fileCountEl = document.getElementById('file-count');
                         if (fileCountEl) fileCountEl.textContent = '--';
                     }
                 } else {
-                    console.log('❌ No ESP32S3 device detected');
+                    console.log('[ERROR] No ESP32S3 device detected');
                     if (connectionStatus) {
                         connectionStatus.textContent = 'Disconnected';
                         connectionStatus.style.color = '#ef4444';
@@ -1089,7 +1096,7 @@
                     if (fileCountEl) fileCountEl.textContent = '0';
                 }
             } catch (error) {
-                console.error('❌ Error refreshing recordings:', error);
+                console.error('[ERROR] Error refreshing recordings:', error);
                 document.getElementById('recordings-list').innerHTML = 
                     '<div class="recordings-empty">Error connecting to device. Check console for details.</div>';
                 
@@ -1164,7 +1171,7 @@
                 if (data.success) {
                     document.getElementById('ble-status').textContent = 'Connected';
                     document.getElementById('ble-status').style.color = '#10b981';
-                    addDemoLog('[BLE] ✅ Connected to ' + data.device_name);
+                    addDemoLog('[BLE] [OK] Connected to ' + data.device_name);
                     
                     // Automatically get device info and recordings
                     await getBLEInfo();
@@ -1172,12 +1179,12 @@
                 } else {
                     document.getElementById('ble-status').textContent = 'Failed';
                     document.getElementById('ble-status').style.color = '#ef4444';
-                    addDemoLog('[BLE] ❌ Connection failed: ' + data.message);
+                    addDemoLog('[BLE] [ERROR] Connection failed: ' + data.message);
                 }
             } catch (error) {
                 document.getElementById('ble-status').textContent = 'Error';
                 document.getElementById('ble-status').style.color = '#ef4444';
-                addDemoLog('[BLE] ❌ Connection error: ' + error.message);
+                addDemoLog('[BLE] [ERROR] Connection error: ' + error.message);
             }
         }
 
@@ -1194,10 +1201,10 @@
                     
                     addDemoLog(`[BLE] Device info: Battery ${data.battery_level}%, ${data.recording_count} files, ${data.storage_used} used`);
                 } else {
-                    addDemoLog('[BLE] ❌ Failed to get device info: ' + data.details);
+                    addDemoLog('[BLE] [ERROR] Failed to get device info: ' + data.details);
                 }
             } catch (error) {
-                addDemoLog('[BLE] ❌ Info error: ' + error.message);
+                addDemoLog('[BLE] [ERROR] Info error: ' + error.message);
             }
         }
 
@@ -1213,14 +1220,14 @@
                     console.log('Failed to get recordings: ' + data.error);
                     const recordingsListEl = document.getElementById('recordings-list');
                     if (recordingsListEl) {
-                        recordingsListEl.innerHTML = '<div class="recordings-empty">❌ Failed to load recordings</div>';
+                        recordingsListEl.innerHTML = '<div class="recordings-empty">[ERROR] Failed to load recordings</div>';
                     }
                 }
             } catch (error) {
                 console.log('Recordings error: ' + error.message);
                 const recordingsListEl = document.getElementById('recordings-list');
                 if (recordingsListEl) {
-                    recordingsListEl.innerHTML = '<div class="recordings-empty">❌ Connection error</div>';
+                    recordingsListEl.innerHTML = '<div class="recordings-empty">[ERROR] Connection error</div>';
                 }
             }
         }
@@ -1737,12 +1744,12 @@
         
         // Simple fallback function to get recordings directly
         async function getRecordingsDirectly() {
-            console.log('🔄 Trying direct recordings fetch...');
+            console.log('[REFRESH] Trying direct recordings fetch...');
             try {
                 const response = await fetch('/api/device/recordings');
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('📁 Direct recordings data:', data);
+                    console.log('[FILE] Direct recordings data:', data);
                     
                     if (data.success && data.recordings) {
                         updateRecordingsList({
@@ -1755,7 +1762,7 @@
                     }
                 }
             } catch (error) {
-                console.error('❌ Direct recordings fetch failed:', error);
+                console.error('[ERROR] Direct recordings fetch failed:', error);
             }
             return false;
         }
@@ -1866,7 +1873,7 @@
                         processing_time: data.processing_time
                     };
                     displayTranscriptionResults(adaptedData);
-                    console.log(`✅ Transcription completed for ${filename}`);
+                    console.log(`[OK] Transcription completed for ${filename}`);
                 } else {
                     addProcessLog(`<i data-lucide="x-circle" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>Transcription failed: ${data.error}`);
                     throw new Error(data.error || 'Transcription failed');
@@ -1883,7 +1890,7 @@
                 document.getElementById('transcription-results').style.display = 'block';
                 document.getElementById('transcript-text').innerHTML = `
                     <div style="color: #ef4444; text-align: center; padding: 20px;">
-                        ❌ Transcription Failed<br>
+                        [ERROR] Transcription Failed<br>
                         <small>${error.message}</small>
                     </div>
                 `;
@@ -2022,7 +2029,7 @@
                     });
                     
                     sourcesList.innerHTML = Object.values(uniqueSources).map(source => 
-                        `<div style="margin-bottom: 4px;">📄 ${source.filename} (${(source.relevance_score * 100).toFixed(0)}% relevance)</div>`
+                        `<div style="margin-bottom: 4px;">[DOC] ${source.filename} (${(source.relevance_score * 100).toFixed(0)}% relevance)</div>`
                     ).join('');
                 }
             } else {
@@ -2116,7 +2123,7 @@
                     <h3>🎤 Audio Processing</h3>
                     <p>Upload WAV files or connect Bluetooth devices for real-time transcription and AI analysis.</p>
                     
-                    <h3>📄 Document Knowledge Base</h3>
+                    <h3>[DOC] Document Knowledge Base</h3>
                     <p>Upload TXT, PDF, DOC, DOCX files to build a searchable knowledge base. Enable document validation to fact-check transcriptions against your uploaded content.</p>
                     
                     <h3>🤖 AI Features</h3>
@@ -2155,7 +2162,7 @@
             modal.innerHTML = `
                 <div class="info-modal-content">
                     <button class="info-modal-close" onclick="this.closest('.info-modal').remove()">&times;</button>
-                    <h2>🎯 How Validation Works</h2>
+                    <h2>[TARGET] How Validation Works</h2>
                     
                     <h3>1. Upload Your Knowledge Base</h3>
                     <p>Go to the <strong>Documents</strong> section and upload PDFs, Word docs, or text files containing your reference information. These become your source of truth.</p>
@@ -2166,9 +2173,9 @@
                     <h3>3. Get Brutally Honest Analysis</h3>
                     <p>Enable <strong>Document Validation</strong> to cross-reference transcriptions with your knowledge base. The AI will highlight:</p>
                     <ul>
-                        <li>✅ Verified claims matching your documents</li>
-                        <li>⚠️ Unverified statements needing fact-check</li>
-                        <li>❌ Contradictions against your knowledge</li>
+                        <li>[OK] Verified claims matching your documents</li>
+                        <li>[WARN] Unverified statements needing fact-check</li>
+                        <li>[ERROR] Contradictions against your knowledge</li>
                     </ul>
                     
                     <h3>4. Build Voice Profiles</h3>

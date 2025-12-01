@@ -43,6 +43,18 @@
     <p class="record-hint" id="record-hint" style="color: var(--text-muted); font-size: 14px; max-width: 320px; margin: 0;">
       Press the button to start recording. Your recording will be automatically saved.
     </p>
+    
+    <!-- Quick Tips - inside centered container -->
+    <div class="tips-section" style="margin-top: 24px;">
+      <div class="tip-card" style="display: inline-flex; align-items: center; gap: 12px; padding: 14px 18px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-primary);">
+        <svg class="tip-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink: 0; stroke: var(--text-muted);">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span class="tip-text" style="color: var(--text-muted); font-size: 13px;">Speak clearly for better transcription accuracy</span>
+      </div>
+    </div>
   </div>
   
   <!-- Recent Recording (shows after recording) -->
@@ -64,18 +76,7 @@
     </div>
   </div>
   
-  <!-- Quick Tips -->
-  <div class="tips-section mt-4">
-    <div class="tip-card">
-      <svg class="tip-icon-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="16" x2="12" y2="12"/>
-        <line x1="12" y1="8" x2="12.01" y2="8"/>
-      </svg>
-      <span class="tip-text">Speak clearly for better transcription accuracy</span>
-    </div>
   </div>
-</div>
 
 <!-- TAB: UPLOAD -->
 <div id="tab-content-upload" class="tab-content" style="display: none;">
@@ -327,16 +328,18 @@
 /* Tips Section */
 .tips-section {
   width: 100%;
+  text-align: center;
 }
 
 .tip-card {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  background: var(--surface);
+  background: var(--bg-secondary, var(--surface));
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-primary, var(--border));
+  margin: 0 auto;
 }
 
 .tip-icon-svg {

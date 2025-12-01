@@ -12,10 +12,13 @@
     <link rel="apple-touch-icon" href="/logo.svg">
     <link rel="manifest" href="/manifest.json">
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" href="/dynamic-portal.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Design System (must load first) -->
+    <link rel="stylesheet" href="/design-system.css?v=<%= Date.now() %>">
+    <!-- Application Styles -->
+    <link rel="stylesheet" href="/styles.css?v=<%= Date.now() %>">
+    <link rel="stylesheet" href="/dynamic-portal.css?v=<%= Date.now() %>">
+    <!-- Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -26,13 +29,13 @@
     
     <% if (typeof extraScripts !== 'undefined' && extraScripts.length > 0) { %>
         <% extraScripts.forEach(script => { %>
-    <script src="/<%= script %>"></script>
+    <script src="/<%= script %>?v=<%= Date.now() %>"></script>
         <% }); %>
     <% } %>
     
     <% if (typeof extraStyles !== 'undefined' && extraStyles.length > 0) { %>
         <% extraStyles.forEach(style => { %>
-    <link rel="stylesheet" href="/<%= style %>">
+    <link rel="stylesheet" href="/<%= style %>?v=<%= Date.now() %>">
         <% }); %>
     <% } %>
     
@@ -43,9 +46,8 @@
     <% } %>
 </head>
 <body>
-    <div class="container">
-        <!-- Header with Logo and Navigation -->
-        <div class="header">
+    <!-- Header with Logo and Navigation (outside container) -->
+    <div class="header">
             <div class="logo-title">
                 <img src="/logo.svg" alt="Brutally Honest Logo" class="logo">
                 <h1>Brutally Honest</h1>
@@ -74,6 +76,10 @@
                     Documentation
                 </a>
                 
+            </nav>
+            
+            <!-- Header Icons (separate from nav) -->
+            <div class="header-icons">
                 <!-- Theme Toggle -->
                 <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode">
                     <i data-lucide="moon" id="theme-icon-dark"></i>
@@ -98,9 +104,10 @@
                         </button>
                     </div>
                 </div>
-            </nav>
-        </div>
-        
+            </div>
+    </div>
+    
+    <div class="container">
         <!-- Connection Info Panel -->
         <div class="connection-info" id="connection-info" style="display: none;">
             <div class="connection-item">
@@ -128,9 +135,11 @@
     
     <footer class="site-footer">
         <div class="footer-content">
-            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <a href="https://altfawesome.com" target="_blank" class="footer-link">altfawesome.com</a>
             <span class="footer-divider">·</span>
-            <span class="footer-copyright">© <%= new Date().getFullYear() %> All rights reserved</span>
+            <span>© <%= new Date().getFullYear() %></span>
+            <span class="footer-divider">·</span>
+            <span class="footer-version">v6.2.0</span>
         </div>
     </footer>
     

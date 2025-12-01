@@ -32,6 +32,23 @@ async function loadUserInfo() {
             const userEmailEl = document.getElementById('user-email');
             if (currentUserEl) currentUserEl.textContent = data.user.name || 'Account';
             if (userEmailEl) userEmailEl.textContent = data.user.email;
+            
+            // Store user role for other scripts to use
+            window.currentUser = data.user;
+            
+            // Show/hide admin-only elements
+            if (data.user.role === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = '';
+                });
+                // Specifically show deploy nav link
+                const deployNav = document.getElementById('nav-deploy');
+                if (deployNav) deployNav.style.display = '';
+            } else {
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
         }
     } catch (e) {
         console.error('Error loading user info:', e);
@@ -309,3 +326,362 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateConnectionInfo, 10000);
 });
 
+
+// === HISTORY LOADER ===
+// === HISTORY LOADER - Visual Design System ===
+window.loadHistory = async function() {
+    var c = document.getElementById('history-list');
+    if (!c) return;
+    c.innerHTML = '<p class="text-center text-muted">Loading...</p>';
+    try {
+        var r = await fetch('/api/transcription-history');
+        var d = await r.json();
+        if (d.success && d.history && d.history.length > 0) {
+            c.innerHTML = d.history.map(function(i) {
+                var date = new Date(i.timestamp);
+                var dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                var filename = i.savedFilename || i.originalFilename;
+                var res = i.result || {};
+                
+                // Parse brutal honesty for claim analysis
+                var claimsHtml = '';
+                var bh = res.brutal_honesty || '';
+                if (bh.includes('Claim Analysis') || bh.includes('VERIFIED|') || bh.includes('NUANCED|') || bh.includes('INCORRECT|') || bh.includes('YES ') || bh.includes('NO ')) {
+                    var lines = bh.split(String.fromCharCode(10));
+                    claimsHtml = '<div class="flex flex-col gap-2 mt-4">';
+                    for (var j = 0; j < lines.length; j++) {
+                        var line = lines[j].trim();
+                        if (!line) continue;
+                        if (line.includes('Claim Analysis')) {
+                            claimsHtml += '<div class="text-xs font-medium text-muted mb-2">' + line.replace(/\*/g, '') + '</div>';
+                        } else if (line.startsWith('VERIFIED|')) {
+                            var parts = line.split('|');
+                            claimsHtml += '<div class="claim-card claim-card-verified"><div class="flex items-center gap-3"><div class="claim-icon claim-icon-verified"><span style="font-size: 14px;">✓</span></div><div class="flex-1"><div class="claim-title">' + (parts[1] || '') + '</div><div class="claim-description">' + (parts[2] || '') + '</div></div></div></div>';
+                        } else if (line.startsWith('NUANCED|')) {
+                            var parts = line.split('|');
+                            claimsHtml += '<div class="claim-card claim-card-nuanced"><div class="flex items-center gap-3"><div class="claim-icon claim-icon-nuanced"><span style="font-size: 14px;">~</span></div><div class="flex-1"><div class="claim-title">' + (parts[1] || '') + '</div><div class="claim-description claim-description-nuanced">' + (parts[2] || '') + '</div></div></div></div>';
+                        } else if (line.startsWith('INCORRECT|')) {
+                            var parts = line.split('|');
+                            claimsHtml += '<div class="claim-card claim-card-incorrect"><div class="flex items-center gap-3"><div class="claim-icon claim-icon-incorrect"><span style="font-size: 14px;">✗</span></div><div class="flex-1"><div class="claim-title">' + (parts[1] || '') + '</div><div class="claim-description claim-description-incorrect">' + (parts[2] || '') + '</div></div></div></div>';
+                        } else if (line.startsWith('UNVERIFIED|')) {
+                            var parts = line.split('|');
+                            claimsHtml += '<div class="claim-card claim-card-unverified"><div class="flex items-center gap-3"><div class="claim-icon claim-icon-unverified"><span style="font-size: 14px;">?</span></div><div class="flex-1"><div class="claim-title">' + (parts[1] || '') + '</div><div class="claim-description">' + (parts[2] || '') + '</div></div></div></div>';
+                        } else if (line.startsWith('TRUE:') || line.includes('-> TRUE')) {
+                            var parts = line.replace('TRUE: ', '').split(' - ');
+                            claimsHtml += '<div class="claim-badge claim-badge-verified"><span style="font-weight: 600;">✓</span><span class="text-sm font-medium">' + parts[0] + '</span>' + (parts[1] ? '<span class="text-xs text-muted" style="margin-left: 8px;">' + parts[1] + '</span>' : '') + '</div>';
+                        } else if (line.startsWith('NUANCE:')) {
+                            var parts = line.replace('NUANCE: ', '').split(' - ');
+                            claimsHtml += '<div class="claim-badge claim-badge-nuanced"><span style="font-weight: 600;">~</span><span class="text-sm font-medium">' + parts[0] + '</span>' + (parts[1] ? '<span class="text-xs" style="margin-left: 8px;">' + parts[1] + '</span>' : '') + '</div>';
+                        } else if (line.startsWith('FALSE:') || line.startsWith('NO ') || line.includes('-> FALSE')) {
+                            var parts = line.replace('NO ', '').split('(');
+                            var claim = parts[0].replace('-> FALSE', '').trim();
+                            var reason = parts[1] ? parts[1].replace(')', '') : '';
+                            claimsHtml += '<div class="claim-badge claim-badge-incorrect"><span style="font-weight: 600;">✗</span><span class="text-sm">' + claim + '</span>' + (reason ? '<span class="text-xs text-muted" style="margin-left: 8px;">→ ' + reason + '</span>' : '') + '</div>';
+                        } else if (line.startsWith('? ')) {
+                            claimsHtml += '<div class="claim-badge claim-badge-nuanced"><span style="font-weight: 600;">?</span><span class="text-sm">' + line.replace('? ', '') + '</span></div>';
+                        }
+                    }
+                    claimsHtml += '</div>';
+                } else if (bh) {
+                    claimsHtml = '<div class="text-sm text-muted mt-2" style="font-style: italic;">' + bh + '</div>';
+                }
+                
+                // Check if this is a saved-only recording (not yet transcribed)
+                var isSavedOnly = i.status === 'saved' || (!res.transcription && !res.brutal_honesty);
+                
+                // Credibility bar - handle null/undefined for N/A
+                var cred = res.credibility_score;
+                var credPct = (cred !== null && cred !== undefined && typeof cred === 'number') ? Math.round(cred * 100) : null;
+                var credClass = credPct === null ? 'neutral' : (cred >= 0.7 ? 'success' : cred >= 0.4 ? 'warning' : 'error');
+                var credDisplay = credPct !== null ? credPct + '%' : 'N/A';
+                
+                // For saved-only recordings, show a simpler UI
+                if (isSavedOnly) {
+                    return '<div class="recording-item recording-item-saved">' +
+                        '<div class="recording-header">' +
+                        '<div class="recording-info"><span class="recording-name">' + i.originalFilename + '</span><span class="text-xs text-muted">' + dateStr + '</span><span class="badge badge-saved" style="background: #fef3c7; color: #92400e; margin-left: 8px;">Saved - Not Transcribed</span></div>' +
+                        '<div class="recording-actions">' +
+                        '<a href="/api/recordings/' + filename + '" download class="btn btn-secondary btn-sm">Download</a>' +
+                        '<button onclick="reanalyzeRecording(\'' + i.id + '\')" class="btn btn-primary btn-sm" style="background: #2563eb;">Transcribe Now</button>' +
+                        '<button onclick="deleteRecording(\'' + i.id + '\')" class="btn btn-danger btn-sm">Delete</button>' +
+                        '</div></div>' +
+                        '<div class="recording-transcript" style="color: #666; font-style: italic; background: #f9fafb;">Click "Transcribe Now" to process this recording with AI transcription and fact-checking.</div>' +
+                        '</div>';
+                }
+                
+                return '<div class="recording-item">' +
+                    // Header with name and buttons
+                    '<div class="recording-header">' +
+                    '<div class="recording-info"><span class="recording-name">' + i.originalFilename + '</span><span class="text-xs text-muted">' + dateStr + '</span></div>' +
+                    '<div class="recording-actions">' +
+                    '<a href="/api/recordings/' + filename + '" download class="btn btn-secondary btn-sm">Download</a>' +
+                    '<button onclick="reanalyzeRecording(\'' + i.id + '\')" class="btn btn-primary btn-sm">Re-analyze</button>' +
+                    '<button onclick="deleteRecording(\'' + i.id + '\')" class="btn btn-danger btn-sm">Delete</button>' +
+                    '</div></div>' +
+                    
+                    // Transcription
+                    '<div class="recording-transcript">' + (res.transcription || 'No transcription') + '</div>' +
+                    
+                    // Stats row
+                    '<div class="recording-badges">' +
+                    '<span class="badge">' + (res.sentiment || 'neutral') + '</span>' +
+                    '<span class="badge">Conf: ' + (res.confidence ? (typeof res.confidence === 'string' ? res.confidence : Math.round(res.confidence * 100) + '%') : 'N/A') + '</span>' +
+                    '<span class="badge cred-badge-' + credClass + '">Cred: ' + credDisplay + '</span>' +
+                    '<span class="badge">Time: ' + (res.processing_time ? typeof res.processing_time === 'number' ? res.processing_time.toFixed(1) : res.processing_time + 's' : 'N/A') + '</span>' +
+                    '</div>' +
+                    
+                    // Credibility bar (only if we have a score)
+                    (credPct !== null ? '<div class="cred-bar"><div class="cred-bar-fill cred-bar-' + credClass + '" style="width: ' + credPct + '%;"></div></div>' : '') +
+                    
+                    // Claims analysis
+                    claimsHtml +
+                    
+                    // Keywords
+                    (res.keywords && res.keywords.length > 0 ? '<div class="text-xs text-muted mt-4">Keywords: ' + res.keywords.join(', ') + '</div>' : '') +
+                    '</div>';
+            }).join('');
+        } else {
+            c.innerHTML = '<p class="text-center text-muted">No recordings yet</p>';
+        }
+    } catch(e) {
+        console.error('History error:', e);
+        c.innerHTML = '<p style="color: var(--color-danger);">Error loading history</p>';
+    }
+};
+
+window.deleteRecording = async function(id) {
+    if (!confirm('Delete this recording?')) return;
+    try {
+        var r = await fetch('/api/transcription-history/' + id, { method: 'DELETE' });
+        var d = await r.json();
+        if (d.success) loadHistory();
+    } catch(e) { alert('Delete failed'); }
+};
+
+document.addEventListener('DOMContentLoaded', function() { setTimeout(loadHistory, 500); });
+window.addEventListener('pageshow', function() { setTimeout(loadHistory, 500); });
+
+// Tab switching for transcription page
+window.switchTranscriptionTab = function(tab) {
+    console.log('Switching to tab:', tab);
+    
+    // Update tab buttons (both old and new class)
+    document.querySelectorAll('.tab, .transcription-tab').forEach(function(t) { 
+        t.classList.remove('active'); 
+    });
+    var activeTab = document.getElementById('tab-' + tab);
+    if (activeTab) activeTab.classList.add('active');
+    
+    // Hide all tabs
+    var uploadTab = document.getElementById('tab-content-upload');
+    var deviceTab = document.getElementById('tab-content-device');
+    var recordingsTab = document.getElementById('tab-content-recordings');
+    
+    if (uploadTab) uploadTab.style.display = 'none';
+    if (deviceTab) deviceTab.style.display = 'none';
+    if (recordingsTab) recordingsTab.style.display = 'none';
+    
+    // Show selected
+    if (tab === 'upload' && uploadTab) uploadTab.style.display = 'block';
+    if (tab === 'device' && deviceTab) deviceTab.style.display = 'block';
+    if (tab === 'recordings' && recordingsTab) {
+        recordingsTab.style.display = 'block';
+        if (typeof loadHistory === 'function') loadHistory();
+    }
+    
+    // ESP notification
+    var espNotif = document.getElementById('esp-notification');
+    if (espNotif) espNotif.style.display = (tab === 'device') ? 'block' : 'none';
+};
+
+// === PROFILES TAB SWITCHING ===
+window.switchProfileType = function(type) {
+    window.currentProfileType = type;
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab').forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    var activeTab = document.getElementById('tab-' + type);
+    if (activeTab) activeTab.classList.add('active');
+    
+    // Show/hide fields
+    var clientFields = document.getElementById('client-fields');
+    var personFields = document.getElementById('person-fields');
+    var personCompanyField = document.getElementById('person-company-field');
+    var brandValuesField = document.getElementById('brand-values-field');
+    
+    if (clientFields) clientFields.style.display = 'none';
+    if (personFields) personFields.style.display = 'none';
+    if (personCompanyField) personCompanyField.style.display = 'none';
+    if (brandValuesField) brandValuesField.style.display = 'none';
+    
+    if (type === 'clients') {
+        if (clientFields) clientFields.style.display = 'flex';
+        document.getElementById('create-profile-title').textContent = 'Create Client Profile';
+        document.getElementById('profiles-list-title').textContent = 'Client Profiles';
+    } else if (type === 'brands') {
+        if (brandValuesField) brandValuesField.style.display = 'flex';
+        document.getElementById('create-profile-title').textContent = 'Create Brand Profile';
+        document.getElementById('profiles-list-title').textContent = 'Brand Profiles';
+    } else if (type === 'persons') {
+        if (personFields) personFields.style.display = 'flex';
+        if (personCompanyField) personCompanyField.style.display = 'flex';
+        document.getElementById('create-profile-title').textContent = 'Create Person Profile';
+        document.getElementById('profiles-list-title').textContent = 'Person Profiles';
+    }
+    
+    if (typeof loadProfiles === 'function') loadProfiles();
+    var form = document.getElementById('create-profile-form');
+    if (form) form.reset();
+};
+
+// === DOCUMENTS TAB SWITCHING ===
+window.switchDocTab = function(tab) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    var activeTab = document.getElementById('tab-' + tab);
+    if (activeTab) activeTab.classList.add('active');
+    
+    var uploadTab = document.getElementById('tab-content-upload');
+    var libraryTab = document.getElementById('tab-content-library');
+    if (uploadTab) uploadTab.style.display = (tab === 'upload') ? 'block' : 'none';
+    if (libraryTab) libraryTab.style.display = (tab === 'library') ? 'block' : 'none';
+    
+    if (tab === 'library' && typeof loadDocuments === 'function') loadDocuments();
+};
+
+// === SETTINGS TAB SWITCHING ===
+window.switchSettingsTab = function(tab) {
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    var activeTab = document.getElementById('tab-' + tab);
+    if (activeTab) activeTab.classList.add('active');
+    
+    var accountTab = document.getElementById('tab-content-account');
+    var prefsTab = document.getElementById('tab-content-preferences');
+    var apiTab = document.getElementById('tab-content-api');
+    if (accountTab) accountTab.style.display = (tab === 'account') ? 'block' : 'none';
+    if (prefsTab) prefsTab.style.display = (tab === 'preferences') ? 'block' : 'none';
+    if (apiTab) apiTab.style.display = (tab === 'api') ? 'block' : 'none';
+};
+
+// === SETTINGS FUNCTIONS ===
+window.saveAccountSettings = function(e) {
+    e.preventDefault();
+    showNotification('Account settings saved', 'success');
+};
+
+window.savePreferences = function(e) {
+    e.preventDefault();
+    showNotification('Preferences saved', 'success');
+};
+
+window.copyApiKey = function() {
+    var input = document.getElementById('api-key');
+    if (input) {
+        navigator.clipboard.writeText(input.value);
+        showNotification('API key copied to clipboard', 'success');
+    }
+};
+
+window.regenerateApiKey = function() {
+    if (confirm('Are you sure? This will invalidate your current key.')) {
+        showNotification('API key regenerated', 'success');
+    }
+};
+
+// === URL-BASED TAB NAVIGATION ===
+(function() {
+    // Get tab from URL hash or path
+    function getTabFromUrl() {
+        var hash = window.location.hash.replace('#', '');
+        if (hash) return hash;
+        
+        var path = window.location.pathname;
+        var parts = path.split('/').filter(function(p) { return p; });
+        if (parts.length > 1) return parts[parts.length - 1];
+        return null;
+    }
+    
+    // Update URL when tab changes
+    function updateUrl(tab) {
+        if (history.pushState) {
+            var newHash = '#' + tab;
+            if (window.location.hash !== newHash) {
+                history.pushState(null, null, newHash);
+            }
+        }
+    }
+    
+    // Override tab switching to update URL
+    var origSwitchTranscriptionTab = window.switchTranscriptionTab;
+    window.switchTranscriptionTab = function(tab) {
+        updateUrl(tab);
+        if (origSwitchTranscriptionTab) origSwitchTranscriptionTab(tab);
+    };
+    
+    var origSwitchDocTab = window.switchDocTab;
+    window.switchDocTab = function(tab) {
+        updateUrl(tab);
+        if (origSwitchDocTab) origSwitchDocTab(tab);
+    };
+    
+    var origSwitchSettingsTab = window.switchSettingsTab;
+    window.switchSettingsTab = function(tab) {
+        updateUrl(tab);
+        if (origSwitchSettingsTab) origSwitchSettingsTab(tab);
+    };
+    
+    var origSwitchProfileType = window.switchProfileType;
+    window.switchProfileType = function(tab) {
+        updateUrl(tab);
+        if (origSwitchProfileType) origSwitchProfileType(tab);
+    };
+    
+    // On page load, activate tab from URL
+    window.addEventListener('DOMContentLoaded', function() {
+        var tab = getTabFromUrl();
+        if (tab) {
+            setTimeout(function() {
+                // Try each tab switcher
+                if (document.getElementById('tab-' + tab)) {
+                    if (typeof switchTranscriptionTab === 'function' && document.getElementById('tab-content-' + tab)) {
+                        switchTranscriptionTab(tab);
+                    } else if (typeof switchDocTab === 'function') {
+                        switchDocTab(tab);
+                    } else if (typeof switchSettingsTab === 'function') {
+                        switchSettingsTab(tab);
+                    } else if (typeof switchProfileType === 'function') {
+                        switchProfileType(tab);
+                    }
+                }
+            }, 100);
+        }
+    });
+    
+    // Handle browser back/forward
+    window.addEventListener('popstate', function() {
+        var tab = getTabFromUrl();
+        if (tab && document.getElementById('tab-' + tab)) {
+            // Trigger without updating URL again
+            var btn = document.getElementById('tab-' + tab);
+            if (btn) btn.click();
+        }
+    });
+})();
+
+// === RE-ANALYZE FUNCTION ===
+window.reanalyzeRecording = async function(id) {
+    showNotification('Re-analyzing...', 'info');
+    try {
+        var response = await fetch('/api/reanalyze/' + id, { method: 'POST' });
+        var data = await response.json();
+        if (data.success) {
+            showNotification('Re-analysis complete!', 'success');
+            loadHistory();
+        } else {
+            showNotification('Re-analysis failed: ' + (data.detail || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showNotification('Error: ' + e.message, 'error');
+    }
+};

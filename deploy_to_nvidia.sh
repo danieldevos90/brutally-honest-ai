@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Brutally Honest AI - Remote Nvidia Deployment Script
-# Deploys to: brutally@192.168.2.33
+# Deploys to: brutally@brutallyhonest.io
 
 set -e
 
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-REMOTE_HOST="brutally@192.168.2.33"
+REMOTE_HOST="brutally@brutallyhonest.io"
 REMOTE_DIR="/home/brutally/brutally-honest-ai"
 LOCAL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -282,21 +282,125 @@ echo "Services started!"
 REMOTE_SCRIPT
 echo -e "${GREEN}✓ Services started${NC}"
 
+# Step 10: Optional - Setup Nginx reverse proxy with SSL
+echo -e "\n${YELLOW}➤ Step 10: Setting up Nginx (optional)...${NC}"
+read -p "Do you want to set up Nginx with SSL for app.brutallyhonest.io? (y/N): " setup_nginx
+if [[ "$setup_nginx" =~ ^[Yy]$ ]]; then
+    ssh "$REMOTE_HOST" << 'REMOTE_SCRIPT'
+set -e
+
+# Install nginx and certbot
+echo "Installing nginx and certbot..."
+sudo apt-get install -y nginx certbot python3-certbot-nginx
+
+# Stop nginx to get certificate
+sudo systemctl stop nginx 2>/dev/null || true
+
+# Get SSL certificate (standalone mode)
+echo "Getting SSL certificate for app.brutallyhonest.io..."
+sudo certbot certonly --standalone -d app.brutallyhonest.io --non-interactive --agree-tos --email admin@brutallyhonest.io || echo "Certificate already exists or rate limited"
+
+# Create nginx config
+sudo tee /etc/nginx/sites-available/brutally-honest > /dev/null << 'NGINX'
+# HTTP redirect
+server {
+    listen 80;
+    server_name app.brutallyhonest.io;
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS server
+server {
+    listen 443 ssl http2;
+    server_name app.brutallyhonest.io;
+
+    ssl_certificate /etc/letsencrypt/live/app.brutallyhonest.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/app.brutallyhonest.io/privkey.pem;
+    
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket support
+        proxy_read_timeout 86400;
+    }
+
+    # API proxying
+    location /api/ {
+        proxy_pass http://localhost:8000/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Longer timeout for AI operations
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+}
+NGINX
+
+# Enable site
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -sf /etc/nginx/sites-available/brutally-honest /etc/nginx/sites-enabled/
+
+# Test and start nginx
+sudo nginx -t && sudo systemctl enable nginx && sudo systemctl restart nginx
+
+echo "Nginx configured with SSL!"
+REMOTE_SCRIPT
+    echo -e "${GREEN}✓ Nginx with SSL configured${NC}"
+else
+    echo -e "${YELLOW}⊘ Skipping Nginx setup${NC}"
+fi
+
 # Final summary
 echo -e "\n${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${GREEN}✓ DEPLOYMENT COMPLETE!${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
+echo -e "${BLUE}🌐 Domain Architecture:${NC}"
+echo -e "  • ${GREEN}brutallyhonest.io${NC}      → Vercel (Landing Page)"
+echo -e "  • ${GREEN}app.brutallyhonest.io${NC}  → This Server (Full App)"
+echo ""
 echo -e "${BLUE}Access your Brutally Honest AI:${NC}"
-echo -e "  • Frontend:  ${GREEN}http://192.168.2.33:3001${NC}"
-echo -e "  • API Docs:  ${GREEN}http://192.168.2.33:8000/docs${NC}"
-echo -e "  • Ollama:    ${GREEN}http://192.168.2.33:11434${NC}"
+if [[ "$setup_nginx" =~ ^[Yy]$ ]]; then
+    echo -e "  • Application: ${GREEN}https://app.brutallyhonest.io${NC}"
+else
+    echo -e "  • Frontend:    ${GREEN}http://app.brutallyhonest.io:3001${NC}"
+fi
+echo -e "  • API Docs:    ${GREEN}http://app.brutallyhonest.io:8000/docs${NC}"
+echo -e "  • Ollama:      ${GREEN}http://localhost:11434${NC} (local only)"
 echo ""
 echo -e "${YELLOW}Useful commands (on remote):${NC}"
 echo -e "  • Check API logs:      sudo journalctl -u brutally-honest-api -f"
 echo -e "  • Check frontend logs: sudo journalctl -u brutally-honest-frontend -f"
 echo -e "  • Restart API:         sudo systemctl restart brutally-honest-api"
 echo -e "  • Restart frontend:    sudo systemctl restart brutally-honest-frontend"
+echo -e "  • Check nginx:         sudo nginx -t && sudo systemctl status nginx"
+echo ""
+echo -e "${CYAN}📖 Next Steps:${NC}"
+echo -e "  1. Deploy landing page: cd landing-site && vercel --prod"
+echo -e "  2. Configure DNS: See docs/DEPLOYMENT_ARCHITECTURE.md"
 echo ""
 echo -e "${GREEN}Enjoy your Brutally Honest AI! 🎯${NC}"
 
