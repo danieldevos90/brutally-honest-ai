@@ -50,15 +50,6 @@
                             <input type="text" id="profile-name" required class="form-input">
                         </div>
                         
-                        <div id="client-fields" class="form-group">
-                            <label class="form-label">Type *</label>
-                            <select id="profile-type" required class="form-input">
-                                <option value="individual">Individual</option>
-                                <option value="company">Company</option>
-                                <option value="brand">Brand</option>
-                            </select>
-                        </div>
-                        
                         <div id="person-fields" class="form-group hidden">
                             <label class="form-label">Role</label>
                             <input type="text" id="profile-role" class="form-input">
@@ -126,18 +117,15 @@
             document.getElementById(`tab-${type}`).classList.add('active');
             
             // Update form fields
-            const clientFields = document.getElementById('client-fields');
             const personFields = document.getElementById('person-fields');
             const personCompanyField = document.getElementById('person-company-field');
             const brandValuesField = document.getElementById('brand-values-field');
             
-            clientFields.classList.add('hidden');
             personFields.classList.add('hidden');
             personCompanyField.classList.add('hidden');
             brandValuesField.classList.add('hidden');
             
             if (type === 'clients') {
-                clientFields.classList.remove('hidden');
                 document.getElementById('create-profile-title').textContent = 'Create Client Profile';
                 document.getElementById('profiles-list-title').textContent = 'Client Profiles';
             } else if (type === 'brands') {
@@ -173,8 +161,6 @@
                 
                 let endpoint = '';
                 if (currentProfileType === 'clients') {
-                    const type = document.getElementById('profile-type').value;
-                    formData.append('type', type);
                     endpoint = '/profiles/clients';
                 } else if (currentProfileType === 'brands') {
                     const values = document.getElementById('profile-values').value;
