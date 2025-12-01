@@ -6,6 +6,9 @@
     <title>Profile Management - Brutally Honest</title>
     
     <link rel="icon" type="image/svg+xml" href="logo.svg">
+    <!-- Design System (load first) -->
+    <link rel="stylesheet" href="design-system.css">
+    <!-- Application Styles -->
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="dynamic-portal.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -24,7 +27,7 @@
 
             <!-- Profile Type Selection -->
             <div class="section">
-                <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 20px;">
+                <div class="flex gap-3 justify-center mb-5">
                     <button class="icon-tab active" onclick="switchProfileType('clients')" id="tab-clients" title="Clients">
                         <i data-lucide="briefcase"></i>
                     </button>
@@ -41,50 +44,52 @@
             <div class="section">
                 <h2 id="create-profile-title">Create Client Profile</h2>
                 <form id="create-profile-form" onsubmit="createProfile(event)">
-                    <div style="display: grid; gap: 15px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Name *</label>
-                            <input type="text" id="profile-name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <div class="flex flex-col gap-4">
+                        <div class="form-group">
+                            <label class="form-label">Name *</label>
+                            <input type="text" id="profile-name" required class="form-input">
                         </div>
                         
-                        <div id="client-fields">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Type *</label>
-                            <select id="profile-type" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <div id="client-fields" class="form-group">
+                            <label class="form-label">Type *</label>
+                            <select id="profile-type" required class="form-input">
                                 <option value="individual">Individual</option>
                                 <option value="company">Company</option>
                                 <option value="brand">Brand</option>
                             </select>
                         </div>
                         
-                        <div id="person-fields" style="display: none;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Role</label>
-                            <input type="text" id="profile-role" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <div id="person-fields" class="form-group hidden">
+                            <label class="form-label">Role</label>
+                            <input type="text" id="profile-role" class="form-input">
                         </div>
                         
-                        <div id="person-company-field" style="display: none;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Company</label>
-                            <input type="text" id="profile-company" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <div id="person-company-field" class="form-group hidden">
+                            <label class="form-label">Company</label>
+                            <input type="text" id="profile-company" class="form-input">
                         </div>
                         
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Description *</label>
-                            <textarea id="profile-description" required rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;"></textarea>
+                        <div class="form-group">
+                            <label class="form-label">Description *</label>
+                            <textarea id="profile-description" required rows="3" class="form-input"></textarea>
                         </div>
                         
-                        <div id="brand-values-field" style="display: none;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Values (comma-separated)</label>
-                            <input type="text" id="profile-values" placeholder="e.g., quality, innovation, sustainability" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <div id="brand-values-field" class="form-group hidden">
+                            <label class="form-label">Values (comma-separated)</label>
+                            <input type="text" id="profile-values" placeholder="e.g., quality, innovation, sustainability" class="form-input">
                         </div>
                         
-                        <div>
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Tags (comma-separated)</label>
-                            <input type="text" id="profile-tags" placeholder="e.g., retail, DIY, europe" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <div class="form-group">
+                            <label class="form-label">Tags (comma-separated)</label>
+                            <input type="text" id="profile-tags" placeholder="e.g., retail, DIY, europe" class="form-input">
                         </div>
                         
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">
-                            <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
-                            Create Profile
-                        </button>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i data-lucide="plus"></i>
+                                Create Profile
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -92,9 +97,9 @@
             <!-- Profiles List -->
             <div class="section">
                 <h2 id="profiles-list-title">Client Profiles</h2>
-                <div id="profiles-list" style="display: grid; gap: 15px;">
-                    <div style="text-align: center; padding: 40px; color: #999;">
-                        <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 15px;"></i>
+                <div id="profiles-list" class="flex flex-col gap-4">
+                    <div class="empty-state">
+                        <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: var(--space-4);"></i>
                         <p>No profiles yet. Create your first profile above.</p>
                     </div>
                 </div>
@@ -117,7 +122,7 @@
             currentProfileType = type;
             
             // Update tabs
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.icon-tab').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`tab-${type}`).classList.add('active');
             
             // Update form fields
@@ -126,22 +131,22 @@
             const personCompanyField = document.getElementById('person-company-field');
             const brandValuesField = document.getElementById('brand-values-field');
             
-            clientFields.style.display = 'none';
-            personFields.style.display = 'none';
-            personCompanyField.style.display = 'none';
-            brandValuesField.style.display = 'none';
+            clientFields.classList.add('hidden');
+            personFields.classList.add('hidden');
+            personCompanyField.classList.add('hidden');
+            brandValuesField.classList.add('hidden');
             
             if (type === 'clients') {
-                clientFields.style.display = 'block';
+                clientFields.classList.remove('hidden');
                 document.getElementById('create-profile-title').textContent = 'Create Client Profile';
                 document.getElementById('profiles-list-title').textContent = 'Client Profiles';
             } else if (type === 'brands') {
-                brandValuesField.style.display = 'block';
+                brandValuesField.classList.remove('hidden');
                 document.getElementById('create-profile-title').textContent = 'Create Brand Profile';
                 document.getElementById('profiles-list-title').textContent = 'Brand Profiles';
             } else if (type === 'persons') {
-                personFields.style.display = 'block';
-                personCompanyField.style.display = 'block';
+                personFields.classList.remove('hidden');
+                personCompanyField.classList.remove('hidden');
                 document.getElementById('create-profile-title').textContent = 'Create Person Profile';
                 document.getElementById('profiles-list-title').textContent = 'Person Profiles';
             }
@@ -190,15 +195,15 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification('✅ Profile created successfully!', 'success');
+                    showNotification('[OK] Profile created successfully!', 'success');
                     document.getElementById('create-profile-form').reset();
                     loadProfiles();
                 } else {
-                    showNotification('❌ Failed to create profile', 'error');
+                    showNotification('[ERROR] Failed to create profile', 'error');
                 }
             } catch (error) {
                 console.error('Error creating profile:', error);
-                showNotification('❌ Error creating profile', 'error');
+                showNotification('[ERROR] Error creating profile', 'error');
             }
         }
 
@@ -220,30 +225,28 @@
                 
                 if (result.success && result.profiles && result.profiles.length > 0) {
                     listEl.innerHTML = result.profiles.map(profile => `
-                        <div style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
-                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                        <div class="card">
+                            <div class="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 style="margin: 0 0 5px 0;">${escapeHtml(profile.name)}</h3>
-                                    ${profile.type ? `<span style="display: inline-block; background: #f0f0f0; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: #666;">${escapeHtml(profile.type)}</span>` : ''}
-                                    ${profile.role ? `<span style="display: inline-block; background: #f0f0f0; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: #666;">${escapeHtml(profile.role)}</span>` : ''}
+                                    <h3 class="text-primary font-semibold mb-1">${escapeHtml(profile.name)}</h3>
+                                    ${profile.type ? `<span class="badge badge-neutral">${escapeHtml(profile.type)}</span>` : ''}
+                                    ${profile.role ? `<span class="badge badge-neutral">${escapeHtml(profile.role)}</span>` : ''}
                                 </div>
-                                <button onclick="deleteProfile('${profile.id}')" style="background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">
-                                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                                <button onclick="deleteProfile('${profile.id}')" class="btn btn-danger btn-sm">
+                                    <i data-lucide="trash-2"></i>
                                 </button>
                             </div>
-                            <p style="color: #666; margin: 10px 0;">${escapeHtml(profile.description)}</p>
+                            <p class="text-tertiary mb-3">${escapeHtml(profile.description)}</p>
                             ${profile.tags && profile.tags.length > 0 ? `
-                                <div style="margin-top: 10px;">
-                                    ${profile.tags.map(tag => `<span style="display: inline-block; background: #e7f3ff; color: #0066cc; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin-right: 5px;">${escapeHtml(tag)}</span>`).join('')}
+                                <div class="flex flex-wrap gap-2 mb-3">
+                                    ${profile.tags.map(tag => `<span class="badge badge-info">${escapeHtml(tag)}</span>`).join('')}
                                 </div>
                             ` : ''}
-                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-size: 14px; color: #666;">${profile.facts ? profile.facts.length : 0} facts</span>
-                                    <button onclick="viewProfile('${profile.id}')" style="background: #000; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 14px;">
-                                        View Details
-                                    </button>
-                                </div>
+                            <div class="flex justify-between items-center pt-4 border-t">
+                                <span class="text-sm text-tertiary">${profile.facts ? profile.facts.length : 0} facts</span>
+                                <button onclick="viewProfile('${profile.id}')" class="btn btn-primary btn-sm">
+                                    View Details
+                                </button>
                             </div>
                         </div>
                     `).join('');
@@ -251,8 +254,8 @@
                     lucide.createIcons();
                 } else {
                     listEl.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #999;">
-                            <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: 15px;"></i>
+                        <div class="empty-state">
+                            <i data-lucide="users" style="width: 48px; height: 48px; margin-bottom: var(--space-4);"></i>
                             <p>No profiles yet. Create your first profile above.</p>
                         </div>
                     `;
@@ -283,14 +286,14 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification('✅ Profile deleted successfully', 'success');
+                    showNotification('[OK] Profile deleted successfully', 'success');
                     loadProfiles();
                 } else {
-                    showNotification('❌ Failed to delete profile', 'error');
+                    showNotification('[ERROR] Failed to delete profile', 'error');
                 }
             } catch (error) {
                 console.error('Error deleting profile:', error);
-                showNotification('❌ Error deleting profile', 'error');
+                showNotification('[ERROR] Error deleting profile', 'error');
             }
         }
 
@@ -334,7 +337,7 @@
                     <h3>Brand Documents</h3>
                     <p>Attach documents to brand profiles to validate claims against official brand guidelines, policies, and marketing materials.</p>
                     
-                    <p style="margin-top: 20px; padding: 12px; background: #f5f5f5; border-radius: 8px; font-size: 13px;">
+                    <p class="info-tip">
                         <strong>Tip:</strong> Link person profiles to client or brand profiles for comprehensive tracking and analysis.
                     </p>
                 </div>
@@ -378,11 +381,11 @@
             width: 48px;
             height: 48px;
             border: none;
-            background: #000;
-            color: white;
-            border-radius: 12px;
+            background: var(--accent-primary);
+            color: var(--text-inverse);
+            border-radius: var(--radius-lg);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: var(--transition-normal);
         }
         
         .icon-tab i {
@@ -391,43 +394,26 @@
         }
         
         .icon-tab:hover {
-            background: #333;
+            background: var(--accent-secondary);
             transform: scale(1.05);
         }
         
         .icon-tab.active {
-            background: #000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            background: var(--accent-primary);
+            box-shadow: var(--shadow-md);
         }
         
-        .btn-primary {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            background: #000;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary:hover {
-            background: #333;
+        .border-t {
+            border-top: 1px solid var(--border-primary);
         }
     </style>
     
     <footer class="site-footer">
         <div class="footer-content">
-            <span class="footer-credit">Created by <a href="https://altfawesome.com" target="_blank" rel="noopener">altfawesome.com</a></span>
+            <a href="https://altfawesome.com" target="_blank" class="footer-link">altfawesome.com</a>
             <span class="footer-divider">·</span>
-            <span class="footer-copyright">© 2025 All rights reserved</span>
+            <span>© 2025</span>
         </div>
     </footer>
 </body>
 </html>
-
