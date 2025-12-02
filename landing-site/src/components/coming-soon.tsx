@@ -37,12 +37,6 @@ export function ComingSoon() {
     }
   };
 
-  const avatars = [
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-  ];
-
   return (
     <section className="py-16 lg:min-h-screen bg-white text-gray-900">
       <div className="container h-full">
@@ -111,31 +105,6 @@ export function ComingSoon() {
                 {status === "error" && (
                   <p className="text-red-500 text-sm">{message}</p>
                 )}
-
-                {/* Avatars */}
-                <div className="flex items-center">
-                  <div className="relative flex items-center">
-                    {avatars.map((avatar, index) => (
-                      <img
-                        key={`waitlist-avatar-${index}`}
-                        src={avatar}
-                        alt={`Joined person ${index + 1}`}
-                        style={{
-                          transform: `translateX(-${index * 10}px)`,
-                        }}
-                        className="bg-gray-100 size-8 rounded-full border-2 border-white object-cover object-top"
-                      />
-                    ))}
-                    <p
-                      style={{
-                        transform: `translateX(-${(avatars.length - 2) * 10}px)`,
-                      }}
-                      className="text-gray-500 text-xs"
-                    >
-                      50+ people already joined
-                    </p>
-                  </div>
-                </div>
 
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 mt-4">
