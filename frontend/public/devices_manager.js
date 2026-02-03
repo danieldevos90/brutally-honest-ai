@@ -92,6 +92,12 @@ async function scanForDevices() {
 function renderDevicesList() {
     const devicesList = document.getElementById('devices-list');
     
+    // Guard against null element (page may not have devices-list)
+    if (!devicesList) {
+        console.log('[DEVICES] devices-list element not found on this page');
+        return;
+    }
+    
     if (detectedDevices.length === 0) {
         devicesList.innerHTML = '<div class="empty-state">No ESP32S3 devices detected. Connect your devices and scan again.</div>';
         return;

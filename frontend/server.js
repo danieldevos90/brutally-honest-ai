@@ -5,10 +5,27 @@ const multer = require('multer');
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const expressLayouts = require('express-ejs-layouts');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+// Bcrypt for secure password hashing (async)
+let bcrypt;
+try {
+    bcrypt = require('bcrypt');
+} catch (e) {
+    console.warn('bcrypt not installed, falling back to crypto (run: npm install bcrypt)');
+    bcrypt = null;
+}
+
+const BCRYPT_SALT_ROUNDS = 12;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Trust proxy for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
 // API_BASE can be configured via environment variable for production
 // Default to localhost for development
 const API_BASE = process.env.API_BASE || 'http://localhost:8000';
@@ -160,11 +177,21 @@ function loadUsers() {
     } catch (e) {
         console.error('Error loading users:', e);
     }
+    
+    // Default admin user - use sync hash for initialization
+    // NOTE: Change this password immediately in production!
+    const defaultPassword = process.env.ADMIN_PASSWORD || 'brutallyhonest2024';
+    if (process.env.ADMIN_PASSWORD) {
+        console.log('✅ Using ADMIN_PASSWORD from environment');
+    } else {
+        console.warn('⚠️  Using default admin password - set ADMIN_PASSWORD env var in production!');
+    }
+    
     return {
         'admin': {
             id: 'admin',
             email: 'admin@brutallyhonest.io',
-            password: hashPassword('brutallyhonest2024'),
+            password: hashPasswordSync(defaultPassword),
             name: 'Admin',
             role: 'admin',
             created: new Date().toISOString()
@@ -180,7 +207,38 @@ function saveUsers(users) {
     }
 }
 
-function hashPassword(password) {
+// ============================================
+// SECURE PASSWORD HASHING (bcrypt with fallback)
+// ============================================
+
+async function hashPassword(password) {
+    if (bcrypt) {
+        return bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+    }
+    // Fallback to PBKDF2 (more secure than plain SHA256)
+    return new Promise((resolve, reject) => {
+        const salt = 'brutally_secure_salt_2024';
+        crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
+            if (err) reject(err);
+            else resolve(derivedKey.toString('hex'));
+        });
+    });
+}
+
+async function verifyPassword(password, hash) {
+    if (bcrypt) {
+        return bcrypt.compare(password, hash);
+    }
+    // Fallback: hash and compare
+    const newHash = await hashPassword(password);
+    return crypto.timingSafeEqual(Buffer.from(newHash), Buffer.from(hash));
+}
+
+// Legacy sync hash for migration (will be deprecated)
+function hashPasswordSync(password) {
+    if (bcrypt) {
+        return bcrypt.hashSync(password, BCRYPT_SALT_ROUNDS);
+    }
     return crypto.createHash('sha256').update(password + 'brutally_salt_2024').digest('hex');
 }
 
@@ -253,10 +311,57 @@ function requireAuth(req, res, next) {
     res.redirect('/login');
 }
 
+// ============================================
+// SECURITY MIDDLEWARE
+// ============================================
+
+// Helmet for security headers
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com", "https://cdn.jsdelivr.net"],
+            scriptSrcAttr: ["'unsafe-inline'"],  // Allow inline event handlers
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "https://*"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+}));
+
+// Rate limiters
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 500, // 500 requests per window
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // 10 login attempts per window
+    message: { error: 'Too many login attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true, // Don't count successful logins
+});
+
+const uploadLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 50, // 50 uploads per hour
+    message: { error: 'Upload limit reached, please try again later' },
+});
+
+// Apply general rate limiter to all routes
+app.use(generalLimiter);
+
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser);
 
 // Serve public assets without auth
@@ -290,7 +395,7 @@ app.get('/login', (req, res) => {
     res.render('login', { layout: false });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
     const { email, password, username } = req.body;
     const loginId = email || username;
     
@@ -302,7 +407,29 @@ app.post('/api/auth/login', (req, res) => {
         }
     }
     
-    if (user && user.password === hashPassword(password)) {
+    if (!user) {
+        addLog('auth', 'login_failed', { attemptedEmail: loginId, reason: 'user_not_found' }, null);
+        return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+    
+    // Use async password verification
+    let passwordMatch = false;
+    try {
+        passwordMatch = await verifyPassword(password, user.password);
+    } catch (e) {
+        // Fallback for legacy hashed passwords
+        const legacyHash = hashPasswordSync(password);
+        passwordMatch = user.password === legacyHash;
+        
+        // If legacy match, upgrade the password hash
+        if (passwordMatch && bcrypt) {
+            console.log(`Upgrading password hash for user: ${user.id}`);
+            user.password = await hashPassword(password);
+            saveUsers(users);
+        }
+    }
+    
+    if (passwordMatch) {
         const token = generateSessionToken();
         const expires = Date.now() + (24 * 60 * 60 * 1000);
         
@@ -332,7 +459,7 @@ app.post('/api/auth/login', (req, res) => {
         });
     } else {
         // Log failed login attempt
-        addLog('auth', 'login_failed', { attemptedEmail: loginId }, null);
+        addLog('auth', 'login_failed', { attemptedEmail: loginId, reason: 'wrong_password' }, null);
         res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 });
@@ -474,28 +601,43 @@ app.get('/api/users', requireAuth, (req, res) => {
     res.json({ users: userList });
 });
 
-app.post('/api/users', requireAuth, (req, res) => {
+app.post('/api/users', requireAuth, async (req, res) => {
     if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
+        return res.status(403).json({ success: false, error: 'Admin access required' });
     }
     
     const { email, password, name, role } = req.body;
     
     if (!email || !password) {
-        return res.status(400).json({ error: 'Email and password required' });
+        return res.status(400).json({ success: false, error: 'Email and password required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json({ success: false, error: 'Invalid email format' });
+    }
+    
+    // Validate password strength
+    if (password.length < 8) {
+        return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
     }
     
     for (const u of Object.values(users)) {
         if (u.email === email) {
-            return res.status(400).json({ error: 'Email already exists' });
+            return res.status(400).json({ success: false, error: 'Email already exists' });
         }
     }
     
     const userId = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    // Use async password hashing
+    const hashedPassword = await hashPassword(password);
+    
     const newUser = {
         id: userId,
         email: email,
-        password: hashPassword(password),
+        password: hashedPassword,
         name: name || email.split('@')[0],
         role: role || 'user',
         created: new Date().toISOString()
@@ -503,6 +645,8 @@ app.post('/api/users', requireAuth, (req, res) => {
     
     users[userId] = newUser;
     saveUsers(users);
+    
+    addLog('auth', 'user_created', { email: newUser.email, role: newUser.role }, req.user.id);
     
     res.json({
         success: true,
@@ -535,7 +679,7 @@ app.delete('/api/users/:userId', requireAuth, (req, res) => {
     }
 });
 
-app.put('/api/users/:userId', requireAuth, (req, res) => {
+app.put('/api/users/:userId', requireAuth, async (req, res) => {
     const { userId } = req.params;
     
     if (req.user.role !== 'admin' && req.user.id !== userId) {
@@ -550,10 +694,18 @@ app.put('/api/users/:userId', requireAuth, (req, res) => {
     const { name, password, role } = req.body;
     
     if (name) user.name = name;
-    if (password) user.password = hashPassword(password);
+    if (password) {
+        // Validate password strength
+        if (password.length < 8) {
+            return res.status(400).json({ error: 'Password must be at least 8 characters' });
+        }
+        user.password = await hashPassword(password);
+    }
     if (role && req.user.role === 'admin') user.role = role;
     
     saveUsers(users);
+    
+    addLog('auth', 'user_updated', { userId: user.id, updatedBy: req.user.id }, req.user.id);
     
     res.json({
         success: true,
@@ -776,7 +928,14 @@ app.post('/api/connect_device', requireAuth, async (req, res) => {
 app.get('/api/connection/info', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${API_BASE}/device/info`);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        
+        const response = await fetch(`${API_BASE}/device/info`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        
         const api = await response.json();
         if (api.success && api.device_info) {
             const d = api.device_info;
@@ -790,6 +949,7 @@ app.get('/api/connection/info', requireAuth, async (req, res) => {
             res.json({ connected: false });
         }
     } catch (error) {
+        // Silent fail - backend not available
         res.json({ connected: false });
     }
 });
@@ -1252,7 +1412,7 @@ wss.on('connection', (ws) => {
 });
 
 // Recording upload endpoint - saves browser recordings to server
-app.post('/api/recordings/upload', requireAuth, upload.single('file'), async (req, res) => {
+app.post('/api/recordings/upload', requireAuth, uploadLimiter, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             logActivity('RECORDING', 'upload_failed', { error: 'No file provided' }, req.user?.email);
@@ -1395,7 +1555,7 @@ app.post('/api/ai/process', requireAuth, async (req, res) => {
 });
 
 // Direct file transcription endpoint (no device required)
-app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (req, res) => {
+app.post('/api/ai/transcribe-file', requireAuth, uploadLimiter, upload.single('file'), async (req, res) => {
     const startTime = Date.now();
     
     try {
@@ -1497,7 +1657,7 @@ app.post('/api/ai/transcribe-file', requireAuth, upload.single('file'), async (r
 // ============================================
 
 // Submit async transcription job - returns job ID immediately
-app.post('/api/ai/transcribe-file-async', requireAuth, upload.single('file'), async (req, res) => {
+app.post('/api/ai/transcribe-file-async', requireAuth, uploadLimiter, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, error: 'No audio file provided' });

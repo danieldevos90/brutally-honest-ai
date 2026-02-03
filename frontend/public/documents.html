@@ -251,7 +251,14 @@
                 });
 
                 xhr.addEventListener('error', function() {
-                    throw new Error('Network error during upload');
+                    console.error('Network error during upload');
+                    statusSpan.textContent = `[ERROR] Network error uploading ${file.name}`;
+                    progressBar.style.background = 'var(--color-error, #dc3545)';
+                    
+                    setTimeout(() => {
+                        progressDiv.classList.add('hidden');
+                        progressBar.style.background = '';
+                    }, 3000);
                 });
 
                 xhr.open('POST', '/documents/upload');
@@ -259,14 +266,12 @@
 
             } catch (error) {
                 console.error('Upload error:', error);
-                statusSpan.textContent = `[ERROR] Upload failed: ${error.message}`;
-                progressBar.classList.remove('cred-bar-success');
-                progressBar.classList.add('cred-bar-error');
+                if (statusSpan) statusSpan.textContent = `[ERROR] Upload failed: ${error.message}`;
+                if (progressBar) progressBar.style.background = 'var(--color-error, #dc3545)';
                 
                 setTimeout(() => {
-                    progressDiv.classList.add('hidden');
-                    progressBar.classList.remove('cred-bar-error');
-                    progressBar.classList.add('cred-bar-success');
+                    if (progressDiv) progressDiv.classList.add('hidden');
+                    if (progressBar) progressBar.style.background = '';
                 }, 3000);
             }
         }

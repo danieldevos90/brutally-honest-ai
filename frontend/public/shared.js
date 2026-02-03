@@ -125,13 +125,30 @@ function formatDuration(seconds) {
 // CONNECTION INFO
 // ============================================
 
+let connectionInfoErrorCount = 0;
+const MAX_CONNECTION_ERRORS = 3;
+
 async function updateConnectionInfo() {
+    const connectionInfoEl = document.getElementById('connection-info');
+    if (!connectionInfoEl) return;
+    
+    // Stop polling if we've had too many errors (backend not available)
+    if (connectionInfoErrorCount >= MAX_CONNECTION_ERRORS) {
+        connectionInfoEl.style.display = 'none';
+        return;
+    }
+    
     try {
         const response = await fetch('/api/connection/info');
-        const data = await response.json();
         
-        const connectionInfoEl = document.getElementById('connection-info');
-        if (!connectionInfoEl) return;
+        if (!response.ok) {
+            connectionInfoErrorCount++;
+            connectionInfoEl.style.display = 'none';
+            return;
+        }
+        
+        const data = await response.json();
+        connectionInfoErrorCount = 0; // Reset on success
         
         if (data.connected) {
             connectionInfoEl.style.display = 'flex';
@@ -154,8 +171,9 @@ async function updateConnectionInfo() {
             connectionInfoEl.style.display = 'none';
         }
     } catch (e) {
-        const connectionInfoEl = document.getElementById('connection-info');
-        if (connectionInfoEl) connectionInfoEl.style.display = 'none';
+        connectionInfoErrorCount++;
+        connectionInfoEl.style.display = 'none';
+        // Silent fail - don't spam console
     }
 }
 

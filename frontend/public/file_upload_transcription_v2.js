@@ -1,10 +1,73 @@
-// VERSION: 2.0.1 - Build 2025-11-27-1155
-console.log("File Upload Transcription v2.0.1 loaded");
+// VERSION: 2.1.0 - Build 2026-02-03 - Added Queue System
+console.log("File Upload Transcription v2.1.0 loaded");
 // File Upload Transcription Functions
 // Allows transcribing audio files directly without a connected device
 
 // Global state for uploaded files
 let uploadedFiles = new Map(); // file.name -> File object
+
+// ============================================
+// UPLOAD QUEUE SYSTEM - Prevents Server Overload
+// ============================================
+
+class UploadQueue {
+    constructor(maxConcurrent = 2) {
+        this.maxConcurrent = maxConcurrent;
+        this.activeJobs = 0;
+        this.queue = [];
+        this.results = [];
+        this.onProgress = null;
+        this.onComplete = null;
+    }
+    
+    add(job) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ job, resolve, reject });
+            this.processNext();
+        });
+    }
+    
+    async processNext() {
+        if (this.activeJobs >= this.maxConcurrent || this.queue.length === 0) {
+            return;
+        }
+        
+        const { job, resolve, reject } = this.queue.shift();
+        this.activeJobs++;
+        
+        try {
+            const result = await job();
+            this.results.push(result);
+            resolve(result);
+        } catch (error) {
+            reject(error);
+        } finally {
+            this.activeJobs--;
+            this.processNext();
+            
+            // Check if all done
+            if (this.activeJobs === 0 && this.queue.length === 0 && this.onComplete) {
+                this.onComplete(this.results);
+            }
+        }
+    }
+    
+    clear() {
+        this.queue = [];
+        this.results = [];
+    }
+    
+    get pending() {
+        return this.queue.length;
+    }
+    
+    get active() {
+        return this.activeJobs;
+    }
+}
+
+// Global upload queue - max 2 concurrent uploads to prevent overload
+const uploadQueue = new UploadQueue(2);
 
 // Global state for audio recording
 let mediaRecorder = null;
@@ -179,63 +242,96 @@ function updateUploadedFilesDisplay() {
     const summaryDiv = document.getElementById('uploaded-files-summary');
     const transcribeBtn = document.getElementById('upload-transcribe-btn');
     const saveOnlyBtn = document.getElementById('upload-save-only-btn');
+    const countBadge = document.getElementById('files-count-badge');
     
     if (uploadedFiles.size === 0) {
-        displayDiv.style.display = 'none';
-        transcribeBtn.disabled = true;
-        transcribeBtn.innerHTML = '<i data-lucide="wand-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>Select files to transcribe';
+        if (displayDiv) displayDiv.style.display = 'none';
+        if (transcribeBtn) {
+            transcribeBtn.disabled = true;
+            const btnText = transcribeBtn.querySelector('.btn-text');
+            if (btnText) btnText.textContent = 'Select files to transcribe';
+        }
         if (saveOnlyBtn) {
             saveOnlyBtn.disabled = true;
-            saveOnlyBtn.innerHTML = '<i data-lucide="save" style="width: 16px; height: 16px; margin-right: 6px;"></i>Save Only (transcribe later)';
         }
-        lucide.createIcons();
         return;
     }
     
-    displayDiv.style.display = 'block';
+    if (displayDiv) displayDiv.style.display = 'block';
     
-    // Build file list HTML
+    // Build enhanced file list HTML
     let listHtml = '';
     let totalSize = 0;
     
     uploadedFiles.forEach((file, filename) => {
         totalSize += file.size;
         const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const ext = filename.split('.').pop().toUpperCase();
         
         listHtml += `
-            <div class="uploaded-file-item">
-                <div class="uploaded-file-info">
-                    <div class="uploaded-file-icon">
-                        <i data-lucide="file-audio"></i>
-                    </div>
-                    <div class="uploaded-file-details">
-                        <div class="uploaded-file-name" title="${filename}">${filename}</div>
-                        <div class="uploaded-file-size">${sizeMB} MB</div>
-                    </div>
+            <div class="file-item">
+                <div class="file-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
                 </div>
-                <button class="uploaded-file-remove" onclick="removeUploadedFile('${filename}')" title="Remove">
-                    <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                <div class="file-info">
+                    <div class="file-name" title="${filename}">${filename}</div>
+                    <div class="file-size">${sizeMB} MB • ${ext}</div>
+                </div>
+                <button class="file-remove" onclick="removeUploadedFile('${filename.replace(/'/g, "\\'")}')" title="Remove" aria-label="Remove ${filename}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
             </div>
         `;
     });
     
-    listDiv.innerHTML = listHtml;
+    if (listDiv) listDiv.innerHTML = listHtml;
     
-    // Update summary
+    // Update count badge
+    if (countBadge) countBadge.textContent = uploadedFiles.size;
+    
+    // Update summary bar
     const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(2);
-    summaryDiv.textContent = `${uploadedFiles.size} file(s) selected • ${totalSizeMB} MB total`;
+    if (summaryDiv) {
+        const summaryText = summaryDiv.querySelector('.summary-text');
+        const summarySize = summaryDiv.querySelector('.summary-size');
+        if (summaryText) summaryText.textContent = `${uploadedFiles.size} file${uploadedFiles.size > 1 ? 's' : ''} selected`;
+        if (summarySize) summarySize.textContent = `${totalSizeMB} MB`;
+        // Fallback for old structure
+        if (!summaryText && !summarySize) {
+            summaryDiv.innerHTML = `
+                <span class="summary-text">${uploadedFiles.size} file${uploadedFiles.size > 1 ? 's' : ''} selected</span>
+                <span class="summary-size">${totalSizeMB} MB</span>
+            `;
+        }
+    }
     
-    // Update buttons
-    transcribeBtn.disabled = false;
-    transcribeBtn.innerHTML = `<i data-lucide="wand-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>Transcribe ${uploadedFiles.size} file(s)`;
+    // Update transcribe button
+    if (transcribeBtn) {
+        transcribeBtn.disabled = false;
+        const btnText = transcribeBtn.querySelector('.btn-text');
+        if (btnText) {
+            btnText.textContent = `Transcribe ${uploadedFiles.size} file${uploadedFiles.size > 1 ? 's' : ''}`;
+        } else {
+            // Fallback for old button structure
+            transcribeBtn.innerHTML = `
+                <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+                </svg>
+                <span class="btn-text">Transcribe ${uploadedFiles.size} file${uploadedFiles.size > 1 ? 's' : ''}</span>
+            `;
+        }
+    }
     
     if (saveOnlyBtn) {
         saveOnlyBtn.disabled = false;
-        saveOnlyBtn.innerHTML = `<i data-lucide="save" style="width: 16px; height: 16px; margin-right: 6px;"></i>Save ${uploadedFiles.size} file(s) only`;
     }
     
-    lucide.createIcons();
+    // Recreate Lucide icons if available
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function removeUploadedFile(filename) {
@@ -261,116 +357,173 @@ async function transcribeUploadedFiles() {
     const files = Array.from(uploadedFiles.values());
     const validateDocuments = document.getElementById('upload-enable-document-validation')?.checked || false;
     
-    // Show loading state
+    // Show loading state with enhanced UI
     const loadingDiv = document.getElementById('transcription-loading');
     const resultsDiv = document.getElementById('transcription-results');
     const transcribeBtn = document.getElementById('upload-transcribe-btn');
+    const filesDisplay = document.getElementById('uploaded-files-display');
     
-    loadingDiv.style.display = 'block';
-    resultsDiv.style.display = 'none';
-    transcribeBtn.disabled = true;
-    transcribeBtn.innerHTML = '<i data-lucide="loader-2" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>Processing...';
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (resultsDiv) resultsDiv.style.display = 'none';
+    if (filesDisplay) filesDisplay.style.opacity = '0.6';
+    
+    if (transcribeBtn) {
+        transcribeBtn.disabled = true;
+        const btnText = transcribeBtn.querySelector('.btn-text');
+        const btnIcon = transcribeBtn.querySelector('.btn-icon');
+        if (btnText) btnText.textContent = 'Processing...';
+        if (btnIcon) btnIcon.style.animation = 'spin 1s linear infinite';
+    }
+    
+    // Update processing UI elements
+    updateProcessingUI('Preparing upload...', files[0]?.name || 'files', 0, files.length);
     
     // Initialize logs
     clearProcessLogs();
-    addProcessLog(`Processing ${files.length} uploaded file(s)`);
+    addProcessLog(`🚀 Queuing ${files.length} file(s) for processing (max 2 concurrent)`);
     
-    let allResults = [];
+    // Clear previous queue results
+    uploadQueue.clear();
     
-    // Process each file using async background jobs
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-        
-        addProcessLog(`Uploading ${i + 1}/${files.length}: ${file.name} (${sizeMB} MB)`);
-        
-        try {
-            // Create FormData for upload
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('validate_documents', validateDocuments.toString());
+    // Create jobs for each file
+    const jobPromises = files.map((file, index) => {
+        return uploadQueue.add(async () => {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            addProcessLog(`📤 [${index + 1}/${files.length}] Uploading: ${file.name} (${sizeMB} MB)`);
             
-            // Submit to ASYNC transcription endpoint (returns immediately with job ID)
-            const submitResponse = await fetch('/api/ai/transcribe-file-async', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (!submitResponse.ok) {
-                const errorText = await submitResponse.text();
-                throw new Error(errorText);
+            // Update button with queue status
+            if (transcribeBtn) {
+                const pending = uploadQueue.pending;
+                const active = uploadQueue.active;
+                transcribeBtn.innerHTML = `<i data-lucide="loader-2" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>Processing ${active} / Queued ${pending}`;
             }
             
-            const submitResult = await submitResponse.json();
-            const jobId = submitResult.job_id;
-            
-            addProcessLog(`Job submitted: ${jobId} - Processing in background...`);
-            
-            // Poll for job completion
-            let jobComplete = false;
-            let lastProgress = 0;
-            
-            while (!jobComplete) {
-                await new Promise(resolve => setTimeout(resolve, 2000)); // Poll every 2 seconds
+            try {
+                // Create FormData for upload
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('validate_documents', validateDocuments.toString());
                 
-                const statusResponse = await fetch(`/api/ai/jobs/${jobId}`);
-                if (!statusResponse.ok) {
-                    throw new Error('Failed to get job status');
+                // Submit to ASYNC transcription endpoint
+                const submitResponse = await fetch('/api/ai/transcribe-file-async', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!submitResponse.ok) {
+                    const errorText = await submitResponse.text();
+                    throw new Error(errorText);
                 }
                 
-                const jobStatus = await statusResponse.json();
+                const submitResult = await submitResponse.json();
+                const jobId = submitResult.job_id;
                 
-                // Update progress if changed
-                if (jobStatus.progress !== lastProgress) {
-                    lastProgress = jobStatus.progress;
-                    addProcessLog(`${file.name}: ${jobStatus.progress}% - ${jobStatus.progress_message}`);
+                addProcessLog(`⏳ [${file.name}] Job ${jobId.slice(0, 8)}... queued`);
+                
+                // Poll for job completion
+                let jobComplete = false;
+                let lastProgress = 0;
+                
+                while (!jobComplete) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                     
-                    // Update button text with progress
-                    transcribeBtn.innerHTML = `<i data-lucide="loader-2" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>${jobStatus.progress}% - ${jobStatus.progress_message}`;
+                    const statusResponse = await fetch(`/api/ai/jobs/${jobId}`);
+                    if (!statusResponse.ok) {
+                        throw new Error('Failed to get job status');
+                    }
+                    
+                    const jobStatus = await statusResponse.json();
+                    
+                    // Update progress if changed significantly
+                    if (jobStatus.progress - lastProgress >= 10) {
+                        lastProgress = jobStatus.progress;
+                        addProcessLog(`⚙️ [${file.name}] ${jobStatus.progress}%`);
+                    }
+                    
+                    if (jobStatus.status === 'completed') {
+                        jobComplete = true;
+                        const result = jobStatus.result;
+                        result.filename = file.name;
+                        addProcessLog(`✅ [${file.name}] Complete`);
+                        return result;
+                        
+                    } else if (jobStatus.status === 'failed') {
+                        jobComplete = true;
+                        addProcessLog(`❌ [${file.name}] Failed: ${jobStatus.error}`);
+                        return {
+                            filename: file.name,
+                            success: false,
+                            error: jobStatus.error
+                        };
+                    }
                 }
                 
-                if (jobStatus.status === 'completed') {
-                    jobComplete = true;
-                    const result = jobStatus.result;
-                    result.filename = file.name;
-                    allResults.push(result);
-                    addProcessLog(`Completed ${file.name}`);
-                    
-                } else if (jobStatus.status === 'failed') {
-                    jobComplete = true;
-                    addProcessLog(`Failed ${file.name}: ${jobStatus.error}`);
-                    allResults.push({
-                        filename: file.name,
-                        success: false,
-                        error: jobStatus.error
-                    });
-                }
+            } catch (error) {
+                console.error(`Error processing ${file.name}:`, error);
+                addProcessLog(`❌ [${file.name}] Error: ${error.message}`);
+                return {
+                    filename: file.name,
+                    success: false,
+                    error: error.message
+                };
             }
-            
-        } catch (error) {
-            console.error(`Error processing ${file.name}:`, error);
-            addProcessLog(`Error ${file.name}: ${error.message}`);
-            
-            allResults.push({
-                filename: file.name,
-                success: false,
-                error: error.message
-            });
-        }
-    }
+        });
+    });
+    
+    // Wait for all jobs to complete
+    const allResults = await Promise.all(jobPromises);
     
     // Hide loading state
-    loadingDiv.style.display = 'none';
+    if (loadingDiv) loadingDiv.style.display = 'none';
+    if (filesDisplay) filesDisplay.style.opacity = '1';
     
     // Reset button
-    transcribeBtn.disabled = false;
-    transcribeBtn.innerHTML = `<i data-lucide="wand-2" style="width: 16px; height: 16px; margin-right: 6px;"></i>Transcribe ${uploadedFiles.size} file(s)`;
+    if (transcribeBtn) {
+        transcribeBtn.disabled = false;
+        const btnText = transcribeBtn.querySelector('.btn-text');
+        const btnIcon = transcribeBtn.querySelector('.btn-icon');
+        if (btnText) btnText.textContent = `Transcribe ${uploadedFiles.size} file${uploadedFiles.size > 1 ? 's' : ''}`;
+        if (btnIcon) btnIcon.style.animation = '';
+    }
     
     // Display results
-    addProcessLog(`<i data-lucide="check-circle" style="width: 12px; height: 12px; display: inline-block; margin-right: 4px;"></i>All files processed`);
+    addProcessLog(`🎉 All ${files.length} file(s) processed!`);
     displayUploadTranscriptionResults(allResults);
     
-    lucide.createIcons();
+    // Show success notification
+    const successCount = allResults.filter(r => r.success !== false).length;
+    if (successCount > 0) {
+        showNotification('success', `Successfully processed ${successCount} of ${files.length} file(s)`);
+    }
+    
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Enhanced UI update function for processing state
+function updateProcessingUI(stage, filename, progress, queuePending) {
+    const stageEl = document.getElementById('processing-stage');
+    const fileEl = document.getElementById('processing-file');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressEta = document.getElementById('progress-eta');
+    const queueCount = document.getElementById('queue-pending-count');
+    
+    if (stageEl) stageEl.textContent = stage;
+    if (fileEl) fileEl.textContent = filename;
+    if (progressBar) progressBar.style.width = `${progress}%`;
+    if (progressPercent) progressPercent.textContent = `${Math.round(progress)}%`;
+    if (queueCount) queueCount.textContent = `${queuePending} in queue`;
+    
+    // Estimate ETA based on progress
+    if (progressEta) {
+        if (progress < 10) {
+            progressEta.textContent = 'Estimating...';
+        } else if (progress >= 100) {
+            progressEta.textContent = 'Complete';
+        } else {
+            progressEta.textContent = 'Processing audio...';
+        }
+    }
 }
 
 // ============================================
