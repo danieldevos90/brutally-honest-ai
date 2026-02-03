@@ -36,13 +36,26 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import json
 from enum import Enum
-# Recording storage
+# Data storage paths
+DATA_DIR = Path(__file__).parent / "data"
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
-HISTORY_FILE = Path(__file__).parent / "data" / "transcription_history.json"
+HISTORY_FILE = DATA_DIR / "transcription_history.json"
+VALIDATION_HISTORY_FILE = DATA_DIR / "validation_history.json"
+PROFILES_DIR = DATA_DIR / "profiles"
+
+# Create directories
+DATA_DIR.mkdir(exist_ok=True)
 RECORDINGS_DIR.mkdir(exist_ok=True)
-(Path(__file__).parent / "data").mkdir(exist_ok=True)
+PROFILES_DIR.mkdir(exist_ok=True)
+(PROFILES_DIR / "clients").mkdir(exist_ok=True)
+(PROFILES_DIR / "brands").mkdir(exist_ok=True)
+(PROFILES_DIR / "persons").mkdir(exist_ok=True)
+
+# Initialize history files
 if not HISTORY_FILE.exists():
     HISTORY_FILE.write_text("[]")
+if not VALIDATION_HISTORY_FILE.exists():
+    VALIDATION_HISTORY_FILE.write_text("[]")
 
 
 def save_transcription_result(filename: str, audio_data: bytes, result: dict):
@@ -2630,6 +2643,25 @@ Then provide a brief explanation."""
                 "evidence": evidence
             })
         
+        # Save to validation history
+        try:
+            validation_entry = {
+                "id": str(uuid.uuid4()),
+                "timestamp": datetime.now().isoformat(),
+                "text": text[:500],  # Truncate for storage
+                "claims": validated_claims,
+                "total_claims": len(validated_claims)
+            }
+            history = json.loads(VALIDATION_HISTORY_FILE.read_text())
+            history.append(validation_entry)
+            # Keep last 100 validations
+            if len(history) > 100:
+                history = history[-100:]
+            VALIDATION_HISTORY_FILE.write_text(json.dumps(history, indent=2))
+            logger.info(f"💾 Saved validation to history")
+        except Exception as save_error:
+            logger.warning(f"Failed to save validation history: {save_error}")
+        
         return {
             "success": True,
             "claims": validated_claims,
@@ -2642,6 +2674,16 @@ Then provide a brief explanation."""
             "success": False,
             "error": str(e)
         }
+
+@app.get("/api/validation-history")
+async def get_validation_history():
+    """Get validation history"""
+    try:
+        history = json.loads(VALIDATION_HISTORY_FILE.read_text())
+        return {"success": True, "history": list(reversed(history))}
+    except Exception as e:
+        logger.error(f"Failed to get validation history: {e}")
+        return {"success": False, "error": str(e), "history": []}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

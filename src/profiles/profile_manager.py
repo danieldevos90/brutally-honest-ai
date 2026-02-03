@@ -20,15 +20,21 @@ logger = logging.getLogger(__name__)
 class ProfileManager:
     """Manager for client, brand, and person profiles"""
     
-    def __init__(self, storage_path: str = "profiles"):
+    def __init__(self, storage_path: str = None):
         """
         Initialize profile manager
         
         Args:
             storage_path: Directory to store profile JSON files
         """
+        if storage_path is None:
+            # Use data/profiles relative to project root
+            project_root = Path(__file__).parent.parent.parent
+            storage_path = project_root / "data" / "profiles"
+        
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(exist_ok=True, parents=True)
+        logger.info(f"📂 Profile storage: {self.storage_path}")
         
         # Create subdirectories for each profile type
         self.clients_path = self.storage_path / "clients"
