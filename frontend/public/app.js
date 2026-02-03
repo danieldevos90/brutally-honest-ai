@@ -382,7 +382,11 @@ class VoiceInsightApp {
         statusElement.textContent = 'Connecting...';
         indicator.classList.remove('connected');
         
-        this.websocket = new WebSocket('ws://localhost:8000/ws');
+        // Use WebSocket proxy - in production, use wss:// with same host
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.hostname;
+        const wsPort = window.location.hostname === 'localhost' ? '3002' : window.location.port;
+        this.websocket = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}`);
         
         this.websocket.onopen = () => {
             this.isConnected = true;
@@ -490,7 +494,8 @@ class VoiceInsightApp {
     }
     
     openAPIDocs() {
-        window.open('http://localhost:8000/docs', '_blank');
+        // API docs are available on the backend - in production this may be proxied
+        window.open('/documentation', '_blank');
     }
     
     downloadLogs() {
@@ -696,7 +701,11 @@ class VoiceInsightApp {
         
         this.addDemoLog('[CONNECT] Connecting to live audio stream...');
         
-        this.demoWebSocket = new WebSocket('ws://localhost:8000/ws');
+        // Use WebSocket proxy - in production, use wss:// with same host
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = window.location.hostname;
+        const wsPort = window.location.hostname === 'localhost' ? '3002' : window.location.port;
+        this.demoWebSocket = new WebSocket(`${wsProtocol}//${wsHost}:${wsPort}`);
         
         this.demoWebSocket.onopen = () => {
             this.addDemoLog('🔗 Connected to live stream - listening for audio...');

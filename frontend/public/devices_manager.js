@@ -459,7 +459,7 @@ async function loadDeviceRecordings(deviceId) {
         await selectActiveDevice(deviceId);
         
         // Then get recordings from the active device
-        const response = await fetch('http://localhost:8000/device/recordings');
+        const response = await fetch('/api/device/recordings');
         
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);

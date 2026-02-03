@@ -54,12 +54,15 @@ async function createProfile(event) {
         
         var endpoint = '';
         if (currentProfileType === 'clients') {
+            formData.append('type', 'client');  // Required by API
             endpoint = '/api/profiles/clients';
         } else if (currentProfileType === 'brands') {
+            formData.append('type', 'brand');  // Required by API
             var values = document.getElementById('profile-values').value;
             if (values) formData.append('values', values);
             endpoint = '/api/profiles/brands';
         } else if (currentProfileType === 'persons') {
+            formData.append('type', 'person');  // Required by API
             var role = document.getElementById('profile-role').value;
             var company = document.getElementById('profile-company').value;
             if (role) formData.append('role', role);

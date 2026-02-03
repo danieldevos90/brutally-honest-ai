@@ -3,6 +3,12 @@
 Brutally Honest AI - REST API Server
 Provides HTTP endpoints for the frontend using the src/ structure
 With Bearer Token Authentication for external API access
+
+Updated following FastAPI best practices:
+- Uses lifespan context manager (not deprecated on_event)
+- Proper CORS configuration (not wildcard)
+- Pydantic schemas for validation
+- Async file operations
 """
 
 import asyncio
@@ -12,13 +18,18 @@ import os
 import secrets
 import hashlib
 import uuid
+import aiofiles
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Depends, Request, Security, BackgroundTasks
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Depends, Request, Security, BackgroundTasks, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.responses import Response, HTMLResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.openapi.docs import get_swagger_ui_html
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import uvicorn
 import logging
 from typing import Optional, Dict, Any, List
@@ -266,7 +277,78 @@ async def require_api_key(
 # Load API keys on startup
 load_api_keys()
 
-# FastAPI app
+# ============================================
+# CORS CONFIGURATION (Security fix: no wildcard)
+# ============================================
+ALLOWED_ORIGINS = os.environ.get(
+    "ALLOWED_ORIGINS", 
+    "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000"
+).split(",")
+
+# Add production domains if configured
+PRODUCTION_DOMAIN = os.environ.get("PRODUCTION_DOMAIN", "")
+if PRODUCTION_DOMAIN:
+    ALLOWED_ORIGINS.extend([
+        f"https://{PRODUCTION_DOMAIN}",
+        f"https://app.{PRODUCTION_DOMAIN}",
+        f"https://www.{PRODUCTION_DOMAIN}"
+    ])
+
+# Rate limiting
+limiter = Limiter(key_func=get_remote_address)
+
+# ============================================
+# LIFESPAN CONTEXT MANAGER (replaces deprecated on_event)
+# ============================================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: startup and shutdown logic."""
+    # === STARTUP ===
+    logger.info("🚀 Starting Brutally Honest AI API Server...")
+    
+    # Preload Whisper model for faster first request
+    try:
+        logger.info("🎤 Preloading Whisper model (this may take a few seconds)...")
+        processor = await get_processor()
+        logger.info("✅ Whisper model preloaded and cached in GPU memory")
+    except Exception as e:
+        logger.warning(f"⚠️ Whisper preload failed (will load on first request): {e}")
+    
+    try:
+        # Initialize device manager
+        manager = get_device_manager_instance()
+        logger.info("✅ Device manager initialized successfully")
+        
+        # Auto-scan for devices
+        devices = await manager.scan_for_devices()
+        logger.info(f"📱 Found {len(devices)} ESP32S3 devices")
+        
+        # Auto-connect to first available device (legacy behavior)
+        if devices:
+            first_device = devices[0]
+            if first_device.confidence > 70:
+                logger.info(f"🔌 Auto-connecting to {first_device.description}...")
+                await manager.connect_device(first_device.device_id)
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize device manager: {e}")
+    
+    yield  # Application runs here
+    
+    # === SHUTDOWN ===
+    logger.info("🛑 Shutting down API server...")
+    try:
+        manager = get_device_manager_instance()
+        await manager.disconnect_all()
+        logger.info("✅ All devices disconnected")
+        
+        global connector
+        if connector:
+            await connector.disconnect()
+            logger.info("✅ Legacy connector disconnected")
+    except Exception as e:
+        logger.error(f"❌ Shutdown error: {e}")
+
+# FastAPI app with lifespan
 app = FastAPI(
     title="Brutally Honest AI API",
     description="""
@@ -291,15 +373,20 @@ X-API-Key: bh_your_api_key_here
 - Interactive docs: /docs
 - ReDoc: /redoc
     """,
-    version="2.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
 
-# CORS middleware
+# Add rate limiter exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS middleware (secured - no wildcard)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
 )
 
@@ -388,7 +475,9 @@ async def auth_info():
     }
 
 @app.post("/auth/keys", tags=["Authentication"])
+@limiter.limit("5/minute")
 async def create_api_key(
+    request: Request,
     name: str = "API Key",
     api_key: Dict[str, Any] = Depends(require_api_key)
 ):
@@ -482,46 +571,8 @@ def get_device_manager_instance() -> MultiDeviceManager:
         device_manager = get_device_manager()
     return device_manager
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the device manager on startup"""
-    logger.info("🚀 Starting Brutally Honest AI API Server...")
-    try:
-        # Initialize device manager
-        manager = get_device_manager_instance()
-        logger.info("✅ Device manager initialized successfully")
-        
-        # Auto-scan for devices
-        devices = await manager.scan_for_devices()
-        logger.info(f"📱 Found {len(devices)} ESP32S3 devices")
-        
-        # Auto-connect to first available device (legacy behavior)
-        if devices:
-            first_device = devices[0]
-            if first_device.confidence > 70:
-                logger.info(f"🔌 Auto-connecting to {first_device.description}...")
-                await manager.connect_device(first_device.device_id)
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to initialize device manager: {e}")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    logger.info("🛑 Shutting down API server...")
-    try:
-        # Disconnect all devices
-        manager = get_device_manager_instance()
-        await manager.disconnect_all()
-        logger.info("✅ All devices disconnected")
-        
-        # Legacy connector cleanup
-        global connector
-        if connector:
-            await connector.disconnect()
-            logger.info("✅ Legacy connector disconnected")
-    except Exception as e:
-        logger.error(f"❌ Shutdown error: {e}")
+# NOTE: Startup/shutdown logic moved to lifespan context manager above
+# The @app.on_event decorators are deprecated in FastAPI 0.109.0+
 
 @app.get("/", tags=["General"])
 async def root():
@@ -1041,11 +1092,15 @@ async def process_with_ai(request_data: Dict[str, Any], api_key: Dict[str, Any] 
 async def transcribe_uploaded_file(
     file: UploadFile = File(...),
     validate_documents: bool = Form(False),
+    transcribe_only: bool = Form(False),
     api_key: Dict[str, Any] = Depends(require_api_key)
 ):
     """
     Transcribe an uploaded audio file directly without requiring a connected device.
     Supports WAV, MP3, M4A, OGG, FLAC audio formats.
+    
+    Set transcribe_only=true to skip heavy analysis (LLM, fact-checking) for faster results.
+    Recommended for low-memory devices like Jetson.
     """
     try:
         logger.info(f"📤 Direct file transcription request: {file.filename}")
@@ -1082,7 +1137,7 @@ async def transcribe_uploaded_file(
         else:
             # Use standard processor
             processor = await get_processor()
-            result = await processor.process_audio(audio_data, file.filename)
+            result = await processor.process_audio(audio_data, file.filename, transcribe_only=transcribe_only)
         
         if result.success:
             response_data = {
@@ -1132,7 +1187,12 @@ async def transcribe_uploaded_file(
 # ============================================
 
 async def process_transcription_job(job_id: str, audio_data: bytes, filename: str, validate_documents: bool):
-    """Background task to process transcription with voice analysis"""
+    """Background task to process transcription with voice analysis
+    
+    Two-phase processing for better responsiveness:
+    Phase 1: Fast GPU transcription (Whisper) - returns partial result quickly
+    Phase 2: LLM fact-checking - updates result when complete
+    """
     temp_audio_path = None
     try:
         update_job_status(job_id, JobStatus.PROCESSING, 10, "Loading AI models...")
@@ -1145,13 +1205,17 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
             update_job_status(job_id, JobStatus.PROCESSING, 20, "Loading Whisper AI model...")
             processor = await get_processor()
         
-        update_job_status(job_id, JobStatus.PROCESSING, 40, "Processing audio file...")
+        # ============================================
+        # PHASE 1: Fast transcription (GPU Whisper)
+        # ============================================
+        update_job_status(job_id, JobStatus.PROCESSING, 30, "Transcribing audio with GPU...")
         
-        # Process audio
+        # First pass: transcription only (fast, GPU-accelerated)
         if validate_documents:
             result = await processor.process_audio_with_validation(audio_data, filename)
         else:
-            result = await processor.process_audio(audio_data, filename)
+            # Use transcribe_only=True for fast first pass
+            result = await processor.process_audio(audio_data, filename, transcribe_only=True)
         
         update_job_status(job_id, JobStatus.PROCESSING, 70, "Analyzing voice characteristics...")
         
@@ -1241,10 +1305,50 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
                     "supporting_evidence": result.supporting_evidence if hasattr(result, 'supporting_evidence') else []
                 })
             
+            # ============================================
+            # PHASE 1 COMPLETE: Return transcription immediately
+            # ============================================
+            # Mark as completed with transcription - fact-checking will update later
+            response_data["fact_check_status"] = "pending"
+            response_data["fact_check"] = "Fact-checking in progress..."
             update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
-            # Save recording and result for history
             save_transcription_result(filename, audio_data, response_data)
-            logger.info(f"Job {job_id} completed successfully")
+            logger.info(f"Job {job_id} Phase 1 complete - transcription ready")
+            
+            # ============================================
+            # PHASE 2: Background fact-checking (non-blocking)
+            # ============================================
+            if not validate_documents and result.transcription:
+                try:
+                    logger.info(f"Job {job_id} Phase 2 - starting fact-checking...")
+                    
+                    # Run fact-checking in background
+                    from src.ai.intelligent_fact_checker import check_facts_intelligent
+                    fact_result = await check_facts_intelligent(result.transcription)
+                    
+                    if fact_result:
+                        # Update the job result with fact-check data
+                        response_data["fact_check_status"] = "complete"
+                        response_data["fact_check"] = f"Checked {fact_result.claims_found} claims: {fact_result.claims_verified} verified, {fact_result.claims_false} false"
+                        response_data["credibility_score"] = f"{fact_result.credibility_score * 100:.1f}%"
+                        response_data["brutal_honesty"] = fact_result.summary
+                        
+                        # Update job with fact-check results
+                        update_job_status(job_id, JobStatus.COMPLETED, 100, "Analysis complete!", result=response_data)
+                        logger.info(f"Job {job_id} Phase 2 complete - fact-checking done")
+                    else:
+                        response_data["fact_check_status"] = "skipped"
+                        response_data["fact_check"] = "No verifiable claims found"
+                        update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+                        
+                except Exception as e:
+                    # Fact-checking failed but transcription is still valid
+                    logger.warning(f"Job {job_id} Phase 2 fact-checking failed (non-critical): {e}")
+                    response_data["fact_check_status"] = "failed"
+                    response_data["fact_check"] = f"Fact-checking unavailable: {str(e)[:100]}"
+                    update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+            
+            logger.info(f"Job {job_id} fully completed")
         else:
             update_job_status(job_id, JobStatus.FAILED, 100, "Transcription failed", error=result.error)
             logger.error(f"Job {job_id} failed: {result.error}")
@@ -1528,14 +1632,20 @@ async def list_documents(tags: Optional[str] = None, category: Optional[str] = N
     """List all documents with optional filtering by tags or category"""
     try:
         vector_store = await get_vector_store()
-        stats = await vector_store.get_collection_stats()
+        documents = vector_store.list_documents()
         
-        # For now, return basic stats
-        # In a production system, you'd implement proper document listing with filtering
+        # Apply optional filters
+        if tags:
+            tag_list = [t.strip().lower() for t in tags.split(',')]
+            documents = [d for d in documents if any(t.lower() in [dt.lower() for dt in d.get('tags', [])] for t in tag_list)]
+        
+        if category:
+            documents = [d for d in documents if d.get('category', '').lower() == category.lower()]
+        
         return {
             "success": True,
-            "total_documents": stats.get("total_chunks", 0),
-            "message": "Document listing available. Use /documents/search to query specific documents."
+            "documents": documents,
+            "total_documents": len(documents)
         }
         
     except Exception as e:
@@ -2116,6 +2226,230 @@ async def get_validation_report_endpoint(transcription_id: str):
 
 # AI Processing Endpoints
 
+@app.post("/ai/comprehensive-analysis", tags=["AI Processing"])
+async def comprehensive_analysis(
+    file: UploadFile = File(...),
+    include_fact_check: bool = True,
+    brand_id: Optional[str] = None,
+    client_id: Optional[str] = None,
+    person_id: Optional[str] = None,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Perform comprehensive analysis on an audio file.
+    
+    This endpoint provides full-spectrum analysis including:
+    - Transcription
+    - Voice analysis (pitch, pace, pauses, energy)
+    - Advanced sentiment analysis
+    - Emotion detection (voice + text combined)
+    - Context and topic analysis
+    - Fact checking (optional)
+    - Quality metrics
+    
+    Returns a detailed analysis report with quality scoring.
+    """
+    import time as time_module
+    start_time = time_module.time()
+    
+    try:
+        # Read uploaded file
+        audio_data = await file.read()
+        filename = file.filename or "uploaded_audio"
+        
+        logger.info(f"📊 Comprehensive analysis request: {filename} ({len(audio_data)} bytes)")
+        
+        # Save to temp file for voice analysis
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
+            tmp.write(audio_data)
+            temp_path = tmp.name
+        
+        # First transcribe
+        processor = await get_processor()
+        transcription_result = await processor.process_audio(audio_data, filename)
+        
+        if not transcription_result.success:
+            return {
+                "success": False,
+                "error": transcription_result.error or "Transcription failed"
+            }
+        
+        # Now run comprehensive analysis
+        from src.ai.comprehensive_analyzer import analyze_recording
+        
+        result = await analyze_recording(
+            transcription=transcription_result.transcription,
+            audio_path=temp_path,
+            include_fact_check=include_fact_check,
+            brand_id=brand_id,
+            client_id=client_id,
+            person_id=person_id
+        )
+        
+        # Cleanup temp file
+        try:
+            import os
+            os.unlink(temp_path)
+        except:
+            pass
+        
+        # Build response
+        response = {
+            "success": True,
+            "filename": filename,
+            "file_size": len(audio_data),
+            "analysis_id": result.analysis_id,
+            "processing_time": f"{result.processing_time_seconds:.2f}s",
+            
+            # Core content
+            "transcription": result.transcription,
+            "summary": result.summary,
+            
+            # Sentiment
+            "sentiment": result.sentiment.to_dict() if result.sentiment else None,
+            
+            # Emotion
+            "emotion": result.emotion.to_dict() if result.emotion else None,
+            
+            # Voice features
+            "voice_analysis": result.voice_features,
+            
+            # Context
+            "context": result.context.to_dict() if result.context else None,
+            "keywords": result.keywords,
+            "topics": result.topics,
+            
+            # Fact checking
+            "fact_check": result.fact_check_result,
+            "credibility_score": f"{result.credibility_score * 100:.1f}%",
+            
+            # Quality metrics
+            "quality": result.quality.to_dict() if result.quality else None,
+            
+            # Original transcription analysis
+            "original_analysis": {
+                "analysis": transcription_result.analysis,
+                "brutal_honesty": transcription_result.brutal_honesty,
+                "questionable_claims": transcription_result.questionable_claims,
+                "corrections": transcription_result.corrections
+            }
+        }
+        
+        logger.info(f"✅ Comprehensive analysis complete: quality={result.quality.overall_quality.value if result.quality else 'N/A'}")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Comprehensive analysis error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.post("/ai/team-dynamics", tags=["AI Processing"])
+async def analyze_team_dynamics_endpoint(
+    transcript: str,
+    leader_name: Optional[str] = None,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Analyze team dynamics from a meeting transcript.
+    
+    Based on the @TheBigFish methodology for High Performing Teams.
+    
+    Analyzes 6 dimensions:
+    1. Psychological Safety - openness, vulnerability, learning vs blame
+    2. Collective Ownership - we-language, commitment, strategy alignment
+    3. Constructive Collaboration - healthy challenge, acknowledgement
+    4. Learning & Adaptation - experiment culture, learning loops
+    5. Energy & Engagement - meaning, celebration, prosody
+    6. Structure & Reliability - decisions, clarity, follow-through
+    
+    Returns probabilistic scores (1-5) per dimension with confidence levels.
+    
+    Note: Output is a mirror for dialogue, not an HR assessment tool.
+    """
+    try:
+        logger.info(f"📊 Team dynamics analysis request ({len(transcript)} chars)")
+        
+        from src.ai.team_dynamics_analyzer import analyze_team_dynamics
+        
+        result = await analyze_team_dynamics(
+            transcript=transcript,
+            leader_name=leader_name
+        )
+        
+        return {
+            "success": True,
+            **result.to_dict()
+        }
+        
+    except Exception as e:
+        logger.error(f"Team dynamics analysis error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.post("/ai/analyze-text", tags=["AI Processing"])
+async def analyze_text_only(
+    text: str,
+    include_fact_check: bool = True,
+    brand_id: Optional[str] = None,
+    client_id: Optional[str] = None,
+    person_id: Optional[str] = None,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Perform comprehensive analysis on text (no audio).
+    
+    Use this endpoint for analyzing transcripts or any text content.
+    Voice analysis will not be available.
+    """
+    try:
+        logger.info(f"📝 Text-only analysis request ({len(text)} chars)")
+        
+        from src.ai.comprehensive_analyzer import analyze_recording
+        
+        result = await analyze_recording(
+            transcription=text,
+            include_fact_check=include_fact_check,
+            brand_id=brand_id,
+            client_id=client_id,
+            person_id=person_id
+        )
+        
+        return {
+            "success": True,
+            "analysis_id": result.analysis_id,
+            "processing_time": f"{result.processing_time_seconds:.2f}s",
+            "transcription": result.transcription,
+            "summary": result.summary,
+            "sentiment": result.sentiment.to_dict() if result.sentiment else None,
+            "emotion": result.emotion.to_dict() if result.emotion else None,
+            "context": result.context.to_dict() if result.context else None,
+            "keywords": result.keywords,
+            "topics": result.topics,
+            "fact_check": result.fact_check_result,
+            "credibility_score": f"{result.credibility_score * 100:.1f}%",
+            "quality": result.quality.to_dict() if result.quality else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Text analysis error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 @app.post("/ai/process_with_validation")
 async def process_with_document_validation(request_data: Dict[str, Any]):
     """Process audio file with LLAMA AI and validate against uploaded documents"""
@@ -2183,11 +2517,164 @@ async def process_with_document_validation(request_data: Dict[str, Any]):
             "validation_enabled": False
         }
 
+@app.post("/ai/validate_text")
+async def validate_text_claims(request_data: Dict[str, Any]):
+    """Validate text claims against uploaded documents"""
+    import requests as http_requests
+    import re
+    
+    try:
+        text = request_data.get("text", "")
+        
+        if not text or not text.strip():
+            return {
+                "success": False,
+                "error": "No text provided for validation"
+            }
+        
+        logger.info(f"📝 Text validation request: {len(text)} chars")
+        
+        # Get vector store for document search
+        vector_store = await get_vector_store()
+        
+        # Helper function to call Ollama
+        async def call_ollama(prompt: str) -> str:
+            try:
+                response = http_requests.post(
+                    "http://localhost:11434/api/generate",
+                    json={"model": "tinyllama:latest", "prompt": prompt, "stream": False},
+                    timeout=30
+                )
+                if response.status_code == 200:
+                    return response.json().get("response", "")
+            except Exception as e:
+                logger.warning(f"Ollama call failed: {e}")
+            return ""
+        
+        # Extract claims from text using LLM
+        extract_prompt = f"""Extract all factual claims from the following text. 
+Return a JSON array of claim objects, each with "claim" field.
+Only extract specific, verifiable factual claims (numbers, dates, names, facts).
+
+Text: {text}
+
+Return ONLY valid JSON array like: [{{"claim": "Example claim 1"}}, {{"claim": "Example claim 2"}}]"""
+        
+        claims_response = await call_ollama(extract_prompt)
+        
+        # Parse claims
+        claims = []
+        try:
+            # Try to extract JSON from response
+            json_match = re.search(r'\[.*\]', claims_response, re.DOTALL)
+            if json_match:
+                claims = json.loads(json_match.group())
+        except:
+            pass
+        
+        if not claims:
+            # Treat the whole text as one claim
+            claims = [{"claim": text}]
+        
+        # Validate each claim against document knowledge base
+        validated_claims = []
+        for claim_obj in claims[:10]:  # Limit to 10 claims
+            claim_text = claim_obj.get("claim", str(claim_obj)) if isinstance(claim_obj, dict) else str(claim_obj)
+            
+            # Search documents for relevant context
+            search_results = await vector_store.search_documents(claim_text, limit=3)
+            
+            evidence = []
+            for result in search_results:
+                evidence.append({
+                    "source": result.filename,
+                    "content": result.content[:200],
+                    "score": result.score
+                })
+            
+            # Determine status based on evidence
+            if evidence:
+                # Use LLM to validate claim against evidence
+                validate_prompt = f"""Given this claim: "{claim_text}"
+
+And this evidence from documents:
+{chr(10).join([f"- {e['source']}: {e['content']}" for e in evidence])}
+
+Determine if the claim is:
+- "confirmed" (evidence supports the claim)
+- "contradicted" (evidence contradicts the claim)  
+- "unverified" (not enough evidence)
+
+Respond with just one word: confirmed, contradicted, or unverified.
+Then provide a brief explanation."""
+
+                validation_response = await call_ollama(validate_prompt)
+                
+                status = "unverified"
+                if "confirmed" in validation_response.lower():
+                    status = "confirmed"
+                elif "contradicted" in validation_response.lower():
+                    status = "contradicted"
+                
+                explanation = validation_response.replace("confirmed", "").replace("contradicted", "").replace("unverified", "").strip()
+                if not explanation:
+                    explanation = f"Found {len(evidence)} relevant document(s)"
+            else:
+                status = "unverified"
+                explanation = "No relevant documents found in knowledge base"
+            
+            validated_claims.append({
+                "claim": claim_text,
+                "status": status,
+                "explanation": explanation,
+                "evidence": evidence
+            })
+        
+        return {
+            "success": True,
+            "claims": validated_claims,
+            "total_claims": len(validated_claims)
+        }
+        
+    except Exception as e:
+        logger.error(f"Text validation error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time communication"""
+    """WebSocket endpoint for real-time communication with authentication and heartbeat."""
+    
+    # === AUTHENTICATION ===
+    # Check for token in query params or headers
+    token = websocket.query_params.get("token")
+    
+    # Also check Authorization header for Bearer token
+    auth_header = websocket.headers.get("authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+    
+    # Allow localhost connections without token (internal)
+    client_host = websocket.client.host if websocket.client else ""
+    is_internal = client_host in ["127.0.0.1", "localhost", "::1"]
+    
+    if not is_internal and token:
+        # Verify token for external connections
+        key_info = verify_api_key(token)
+        if not key_info:
+            logger.warning(f"WebSocket auth failed from {client_host}")
+            await websocket.close(code=4001, reason="Invalid or missing authentication")
+            return
+    
     await websocket.accept()
-    logger.info("WebSocket client connected")
+    logger.info(f"WebSocket client connected from {client_host}")
+    
+    # === HEARTBEAT CONFIGURATION ===
+    HEARTBEAT_INTERVAL = 30  # seconds
+    STATUS_UPDATE_INTERVAL = 5  # seconds
+    last_heartbeat = time.time()
     
     try:
         conn = await get_connector()
@@ -2205,14 +2692,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 }
             }))
         
-        # Keep connection alive and send periodic updates
+        # Keep connection alive with heartbeat
         while True:
             try:
-                # Wait for client messages or send periodic updates
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=5.0)
+                # Wait for client messages with timeout
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=STATUS_UPDATE_INTERVAL)
                 message = json.loads(data)
                 
-                if message.get("type") == "get_status":
+                msg_type = message.get("type")
+                
+                if msg_type == "get_status":
                     device_status = await conn.get_device_status()
                     if device_status:
                         await websocket.send_text(json.dumps({
@@ -2225,7 +2714,32 @@ async def websocket_endpoint(websocket: WebSocket):
                             }
                         }))
                 
+                elif msg_type == "ping":
+                    # Respond to client ping with pong
+                    await websocket.send_text(json.dumps({
+                        "type": "pong",
+                        "timestamp": time.time()
+                    }))
+                    last_heartbeat = time.time()
+                
+                elif msg_type == "pong":
+                    # Client responded to our ping
+                    last_heartbeat = time.time()
+                
             except asyncio.TimeoutError:
+                current_time = time.time()
+                
+                # Send heartbeat ping if needed
+                if current_time - last_heartbeat > HEARTBEAT_INTERVAL:
+                    try:
+                        await websocket.send_text(json.dumps({
+                            "type": "ping",
+                            "timestamp": current_time
+                        }))
+                    except Exception:
+                        logger.warning("Failed to send heartbeat, closing connection")
+                        break
+                
                 # Send periodic status update
                 device_status = await conn.get_device_status()
                 if device_status:
@@ -2243,7 +2757,10 @@ async def websocket_endpoint(websocket: WebSocket):
         logger.info("WebSocket client disconnected")
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        await websocket.close()
+        try:
+            await websocket.close(code=1011, reason="Internal error")
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     print("\n" + "="*60)

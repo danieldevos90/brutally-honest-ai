@@ -1,7 +1,7 @@
 <% 
   layout = 'layout';
   pageTitle = 'Validation';
-  extraScripts = ['shared.js'];
+  extraScripts = ['shared.js', 'validation.js'];
 %>
 
 <!-- Status Bar -->
@@ -18,9 +18,9 @@
   <div class="card-header">
     <span class="font-medium">Quick Validation Test</span>
   </div>
-  <form onsubmit="validateText(event)" class="flex flex-col gap-4">
+  <form id="validation-form" class="flex flex-col gap-4">
     <textarea id="test-text" class="input" rows="4" placeholder="Enter text to validate (e.g., 'Praxis has 200 stores across Europe')"></textarea>
-    <button type="submit" class="btn btn-primary w-full">Validate Now</button>
+    <button type="submit" class="btn btn-primary w-full" id="validate-btn">Validate Now</button>
   </form>
 </div>
 
@@ -69,73 +69,3 @@
     </div>
   </div>
 </div>
-
-<script>
-var API_BASE = window.API_BASE || 'http://localhost:8000';
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadKnowledgeBaseStats();
-});
-
-async function loadKnowledgeBaseStats() {
-    try {
-        var response = await fetch(API_BASE + '/api/documents');
-        var result = await response.json();
-        if (result.success) {
-            document.getElementById('kb-documents').textContent = result.documents ? result.documents.length : 0;
-        }
-    } catch (e) {
-        console.error('Error loading stats:', e);
-    }
-    try {
-        var response = await fetch(API_BASE + '/profiles/clients');
-        var result = await response.json();
-        if (result.success) {
-            document.getElementById('kb-profiles').textContent = result.profiles ? result.profiles.length : 0;
-        }
-    } catch (e) {
-        console.error('Error loading profiles:', e);
-    }
-}
-
-async function validateText(e) {
-    e.preventDefault();
-    var text = document.getElementById('test-text').value;
-    if (!text.trim()) {
-        showNotification('Please enter text to validate', 'error');
-        return;
-    }
-    
-    var resultsSection = document.getElementById('validation-results-section');
-    var resultsDiv = document.getElementById('validation-results');
-    resultsSection.style.display = 'block';
-    resultsDiv.innerHTML = '<p class="text-center text-muted">Validating...</p>';
-    
-    try {
-        var response = await fetch(API_BASE + '/validation/validate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text })
-        });
-        var result = await response.json();
-        
-        if (result.success && result.results) {
-            resultsDiv.innerHTML = result.results.map(function(r) {
-                var statusClass = r.status === 'confirmed' ? 'badge-success' : (r.status === 'contradicted' ? 'badge-warning' : '');
-                return '<div class="card">' +
-                    '<div class="flex justify-between items-center mb-2">' +
-                    '<span class="text-sm font-medium">' + r.claim + '</span>' +
-                    '<span class="badge ' + statusClass + '">' + r.status + '</span>' +
-                    '</div>' +
-                    '<p class="text-xs text-muted">' + (r.explanation || 'No explanation') + '</p>' +
-                    '</div>';
-            }).join('');
-        } else {
-            resultsDiv.innerHTML = '<p class="text-muted">No claims found to validate.</p>';
-        }
-    } catch (error) {
-        console.error('Validation error:', error);
-        resultsDiv.innerHTML = '<p style="color: var(--color-danger);">Validation failed: ' + error.message + '</p>';
-    }
-}
-</script>

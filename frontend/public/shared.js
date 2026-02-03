@@ -1,7 +1,5 @@
 // Shared JavaScript functionality for Brutally Honest AI
-
-// API Base URL
-const API_BASE = 'http://localhost:8000';
+// Uses relative URLs to work through Node.js proxy in production
 
 // ============================================
 // USER MENU FUNCTIONS

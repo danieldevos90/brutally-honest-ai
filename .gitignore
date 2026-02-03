@@ -36,6 +36,12 @@ venv.bak/
 .env.development.local
 .env.test.local
 .env.production.local
+# Keep .env.production as template (change sensitive defaults before committing)
+
+# API Keys (never commit)
+api_keys.json
+*.key
+*.pem
 
 # IDE
 .vscode/

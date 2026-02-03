@@ -6,6 +6,7 @@ Uses Qdrant for vector storage and similarity search
 import asyncio
 import logging
 import json
+import os
 import numpy as np
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
@@ -41,15 +42,50 @@ class SearchResult:
 class VectorStore:
     """Vector database for document storage and retrieval"""
     
-    def __init__(self, collection_name: str = "documents"):
+    def __init__(self, collection_name: str = "documents", data_dir: str = None):
         self.collection_name = collection_name
         self.is_initialized = False
         self.client = None
         self.embedding_model = None
+        self.documents = {}  # Track uploaded documents: {doc_id: doc_info}
+        
+        # Set up persistent storage directory
+        if data_dir is None:
+            data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data')
+        self.data_dir = data_dir
+        self.qdrant_path = os.path.join(data_dir, 'qdrant_storage')
+        self.documents_file = os.path.join(data_dir, 'documents_registry.json')
+        
+        # Ensure data directory exists
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(self.qdrant_path, exist_ok=True)
+        
+        # Load existing document registry
+        self._load_documents_registry()
         
         # Check available libraries
         self.qdrant_available = self._check_qdrant()
         self.embedding_available = self._check_embeddings()
+    
+    def _load_documents_registry(self):
+        """Load document registry from disk"""
+        try:
+            if os.path.exists(self.documents_file):
+                with open(self.documents_file, 'r') as f:
+                    self.documents = json.load(f)
+                logger.info(f"📂 Loaded {len(self.documents)} documents from registry")
+        except Exception as e:
+            logger.warning(f"Failed to load documents registry: {e}")
+            self.documents = {}
+    
+    def _save_documents_registry(self):
+        """Save document registry to disk"""
+        try:
+            with open(self.documents_file, 'w') as f:
+                json.dump(self.documents, f, indent=2, default=str)
+            logger.info(f"💾 Saved {len(self.documents)} documents to registry")
+        except Exception as e:
+            logger.error(f"Failed to save documents registry: {e}")
         
     def _check_qdrant(self) -> bool:
         """Check if Qdrant is available"""
@@ -64,9 +100,13 @@ class VectorStore:
         """Check if embedding models are available"""
         try:
             from sentence_transformers import SentenceTransformer
+            logger.info("SentenceTransformers available")
             return True
-        except ImportError:
-            logger.warning("SentenceTransformers not available - install with: pip install sentence-transformers")
+        except ImportError as e:
+            logger.warning(f"SentenceTransformers not available - install with: pip install sentence-transformers (ImportError: {e})")
+            return False
+        except Exception as e:
+            logger.warning(f"SentenceTransformers check failed with {type(e).__name__}: {e}")
             return False
     
     async def initialize(self) -> bool:
@@ -86,12 +126,14 @@ class VectorStore:
             from qdrant_client import QdrantClient
             from qdrant_client.models import Distance, VectorParams
             
-            self.client = QdrantClient(":memory:")  # Use in-memory storage for simplicity
+            # Use persistent storage on disk
+            self.client = QdrantClient(path=self.qdrant_path)
+            logger.info(f"📂 Qdrant using persistent storage at: {self.qdrant_path}")
             
-            # Initialize embedding model
+            # Initialize embedding model on CPU to save GPU memory for Whisper
             from sentence_transformers import SentenceTransformer
-            logger.info("🧠 Loading embedding model...")
-            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight model
+            logger.info("🧠 Loading embedding model (CPU to save GPU for Whisper)...")
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')  # Lightweight model on CPU
             
             # Create collection if it doesn't exist
             try:
@@ -214,12 +256,32 @@ class VectorStore:
                 points=points
             )
             
+            # Track document in registry
+            self.documents[doc_info.id] = {
+                "id": doc_info.id,
+                "filename": doc_info.filename,
+                "file_type": doc_info.file_type,
+                "file_size": doc_info.file_size,
+                "text_length": len(doc_info.content),
+                "upload_time": doc_info.upload_time.isoformat(),
+                "tags": doc_info.tags if doc_info.tags else [],
+                "category": doc_info.category,
+                "chunk_count": len(points)
+            }
+            
+            # Save registry to disk for persistence
+            self._save_documents_registry()
+            
             logger.info(f"✅ Stored {len(points)} chunks for document: {doc_info.filename}")
             return True
             
         except Exception as e:
             logger.error(f"Failed to store document {doc_info.filename}: {e}")
             return False
+    
+    def list_documents(self) -> List[Dict[str, Any]]:
+        """List all stored documents"""
+        return list(self.documents.values())
     
     async def search_documents(self, query: str, limit: int = 5, score_threshold: float = 0.7) -> List[SearchResult]:
         """Search for relevant document chunks"""
@@ -322,6 +384,11 @@ class VectorStore:
                 )
                 
                 logger.info(f"🗑️ Deleted {len(chunk_ids)} chunks for document: {document_id}")
+            
+            # Remove from registry
+            if document_id in self.documents:
+                del self.documents[document_id]
+                self._save_documents_registry()
             
             return True
             

@@ -738,7 +738,7 @@ app.get('/documents', requireAuth, (req, res) => {
         title: 'Documents',
         page: 'documents',
         showInfoBtn: true,
-        extraScripts: ['shared.js'],
+        extraScripts: ['documents_enhanced.js', 'shared.js'],
         extraStyles: []
     });
 });
@@ -760,7 +760,7 @@ app.get('/validation', requireAuth, (req, res) => {
         title: 'Validation',
         page: 'validation',
         showInfoBtn: true,
-        extraScripts: ['shared.js'],
+        extraScripts: ['shared.js', 'validation.js'],
         extraStyles: []
     });
 });
@@ -1234,6 +1234,17 @@ app.get('/documents/stats', requireAuth, async (req, res) => {
     }
 });
 
+app.get('/documents/list', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/documents/list`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Failed to list documents' });
+    }
+});
+
 app.delete('/documents/:documentId', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
@@ -1393,6 +1404,32 @@ app.post('/api/ai/process_with_validation', requireAuth, async (req, res) => {
     } catch (error) {
         logActivity('VALIDATION', 'process_error', { error: error.message }, req.user?.email);
         res.status(500).json({ success: false, error: 'Enhanced AI processing failed' });
+    }
+});
+
+app.post('/api/ai/validate_text', requireAuth, async (req, res) => {
+    try {
+        logActivity('VALIDATION', 'text_validation_started', { 
+            textLength: req.body.text?.length || 0 
+        }, req.user?.email);
+        
+        const fetch = (await import('node-fetch')).default;
+        const response = await fetch(`${API_BASE}/ai/validate_text`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        
+        logActivity('VALIDATION', 'text_validation_completed', { 
+            success: data.success,
+            claimsFound: data.claims?.length || 0
+        }, req.user?.email);
+        
+        res.json(data);
+    } catch (error) {
+        logActivity('VALIDATION', 'text_validation_error', { error: error.message }, req.user?.email);
+        res.status(500).json({ success: false, error: 'Text validation failed' });
     }
 });
 
