@@ -1675,12 +1675,17 @@ app.post('/api/ai/transcribe-file-async', requireAuth, uploadLimiter, upload.sin
         const validateDocs = req.body.validate_documents === 'true' || req.body.validate_documents === true;
         formData.append('validate_documents', validateDocs.toString());
         
-        console.log(`[TRANSCRIBE] Submitting async transcription job: ${req.file.originalname}`);
+        const fileSizeMB = (req.file.size / 1024 / 1024).toFixed(2);
+        console.log(`[TRANSCRIBE] Submitting async job: ${req.file.originalname} (${fileSizeMB} MB)`);
+        console.log(`[TRANSCRIBE] Backend URL: ${API_BASE}/ai/transcribe-file-async`);
         
-        // 60 second timeout for job submission (should be fast, just file upload)
+        // 120 second timeout for job submission (large files may take time to upload)
         const AbortController = globalThis.AbortController || (await import('abort-controller')).AbortController;
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60 * 1000);
+        const timeout = setTimeout(() => {
+            console.error('[TRANSCRIBE] Request timed out after 120 seconds');
+            controller.abort();
+        }, 120 * 1000);
         
         const response = await fetch(`${API_BASE}/ai/transcribe-file-async`, {
             method: 'POST',
@@ -1690,15 +1695,27 @@ app.post('/api/ai/transcribe-file-async', requireAuth, uploadLimiter, upload.sin
         });
         
         clearTimeout(timeout);
+        console.log(`[TRANSCRIBE] Backend response: ${response.status}`);
         
-        const data = await response.json();
+        // Handle non-JSON responses
+        const contentType = response.headers.get('content-type');
+        let data;
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('[TRANSCRIBE] Non-JSON response:', text.substring(0, 500));
+            data = { success: false, error: `Backend error: ${text.substring(0, 100)}` };
+        }
         
         // Log job submission
-        addLog('transcribe', 'job_submitted', {
-            filename: req.file.originalname,
-            job_id: data.job_id,
-            validateDocs: validateDocs
-        }, req.user?.id);
+        if (data.job_id) {
+            addLog('transcribe', 'job_submitted', {
+                filename: req.file.originalname,
+                job_id: data.job_id,
+                validateDocs: validateDocs
+            }, req.user?.id);
+        }
         
         // Clean up uploaded file
         fs.unlink(req.file.path, (err) => {
@@ -1707,11 +1724,22 @@ app.post('/api/ai/transcribe-file-async', requireAuth, uploadLimiter, upload.sin
         
         res.status(response.status).json(data);
     } catch (error) {
-        console.error('Async transcription submission error:', error);
+        console.error('[TRANSCRIBE] Error:', error.name, error.message);
         if (req.file && req.file.path) {
             fs.unlink(req.file.path, () => {});
         }
-        res.status(500).json({ success: false, error: 'Failed to submit job: ' + error.message });
+        
+        // Provide more helpful error messages
+        let errorMessage = error.message;
+        if (error.name === 'AbortError') {
+            errorMessage = 'Request timed out. The backend server may be overloaded or unreachable.';
+        } else if (error.code === 'ECONNREFUSED') {
+            errorMessage = 'Cannot connect to backend API. Ensure the Python server is running.';
+        } else if (error.code === 'ECONNRESET') {
+            errorMessage = 'Connection was reset. The file may be too large or server is overloaded.';
+        }
+        
+        res.status(500).json({ success: false, error: 'Failed to submit job: ' + errorMessage });
     }
 });
 
