@@ -81,21 +81,30 @@ let recordingTimer = null;
 // ============================================
 
 window.clearProcessLogs = function() {
+    // Support both old and new element IDs
     const logContent = document.getElementById('log-content');
+    const processLogs = document.getElementById('process-logs');
     const resultsLogContent = document.getElementById('results-log-content');
     if (logContent) logContent.innerHTML = '';
+    if (processLogs) processLogs.innerHTML = '';
     if (resultsLogContent) resultsLogContent.innerHTML = '';
 };
 
 window.addProcessLog = function(message) {
+    // Support both old and new element IDs
     const logContent = document.getElementById('log-content');
+    const processLogs = document.getElementById('process-logs');
     const resultsLogContent = document.getElementById('results-log-content');
     const timestamp = new Date().toLocaleTimeString();
-    const logEntry = `<div style="margin-bottom: 4px;"><span style="color: #888;">[${timestamp}]</span> ${message}</div>`;
+    const logEntry = `<div style="margin-bottom: 4px;"><span style="color: var(--text-muted, #888);">[${timestamp}]</span> ${message}</div>`;
     
     if (logContent) {
         logContent.innerHTML += logEntry;
         logContent.scrollTop = logContent.scrollHeight;
+    }
+    if (processLogs) {
+        processLogs.innerHTML += logEntry;
+        processLogs.scrollTop = processLogs.scrollHeight;
     }
     if (resultsLogContent) {
         resultsLogContent.innerHTML += logEntry;
@@ -385,18 +394,17 @@ async function transcribeUploadedFiles() {
     // Clear previous queue results
     uploadQueue.clear();
     
+    // Track completed files for progress
+    let completedFiles = 0;
+    
     // Create jobs for each file
     const jobPromises = files.map((file, index) => {
         return uploadQueue.add(async () => {
             const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
             addProcessLog(`📤 [${index + 1}/${files.length}] Uploading: ${file.name} (${sizeMB} MB)`);
             
-            // Update button with queue status
-            if (transcribeBtn) {
-                const pending = uploadQueue.pending;
-                const active = uploadQueue.active;
-                transcribeBtn.innerHTML = `<i data-lucide="loader-2" style="width: 16px; height: 16px; margin-right: 6px; animation: spin 1s linear infinite;"></i>Processing ${active} / Queued ${pending}`;
-            }
+            // Update processing UI
+            updateProcessingUI(`Uploading file ${index + 1}/${files.length}...`, file.name, 0, uploadQueue.pending);
             
             try {
                 // Create FormData for upload
@@ -405,6 +413,8 @@ async function transcribeUploadedFiles() {
                 formData.append('validate_documents', validateDocuments.toString());
                 
                 // Submit to ASYNC transcription endpoint
+                updateProcessingUI(`Submitting ${file.name}...`, file.name, 5, uploadQueue.pending);
+                
                 const submitResponse = await fetch('/api/ai/transcribe-file-async', {
                     method: 'POST',
                     body: formData
@@ -419,6 +429,7 @@ async function transcribeUploadedFiles() {
                 const jobId = submitResult.job_id;
                 
                 addProcessLog(`⏳ [${file.name}] Job ${jobId.slice(0, 8)}... queued`);
+                updateProcessingUI(`Processing ${file.name}...`, file.name, 10, uploadQueue.pending);
                 
                 // Poll for job completion
                 let jobComplete = false;
@@ -434,7 +445,11 @@ async function transcribeUploadedFiles() {
                     
                     const jobStatus = await statusResponse.json();
                     
-                    // Update progress if changed significantly
+                    // Update UI with current progress
+                    const overallProgress = 10 + (jobStatus.progress * 0.9); // 10-100%
+                    updateProcessingUI(`Transcribing ${file.name}...`, file.name, overallProgress, uploadQueue.pending);
+                    
+                    // Log progress if changed significantly
                     if (jobStatus.progress - lastProgress >= 10) {
                         lastProgress = jobStatus.progress;
                         addProcessLog(`⚙️ [${file.name}] ${jobStatus.progress}%`);
@@ -442,13 +457,16 @@ async function transcribeUploadedFiles() {
                     
                     if (jobStatus.status === 'completed') {
                         jobComplete = true;
+                        completedFiles++;
                         const result = jobStatus.result;
                         result.filename = file.name;
                         addProcessLog(`✅ [${file.name}] Complete`);
+                        updateProcessingUI(`Completed ${completedFiles}/${files.length}`, file.name, 100, uploadQueue.pending);
                         return result;
                         
                     } else if (jobStatus.status === 'failed') {
                         jobComplete = true;
+                        completedFiles++;
                         addProcessLog(`❌ [${file.name}] Failed: ${jobStatus.error}`);
                         return {
                             filename: file.name,
@@ -507,12 +525,19 @@ function updateProcessingUI(stage, filename, progress, queuePending) {
     const progressPercent = document.getElementById('progress-percent');
     const progressEta = document.getElementById('progress-eta');
     const queueCount = document.getElementById('queue-pending-count');
+    const logsDetails = document.querySelector('.process-logs-details');
     
     if (stageEl) stageEl.textContent = stage;
     if (fileEl) fileEl.textContent = filename;
     if (progressBar) progressBar.style.width = `${progress}%`;
     if (progressPercent) progressPercent.textContent = `${Math.round(progress)}%`;
     if (queueCount) queueCount.textContent = `${queuePending} in queue`;
+    
+    // Open logs details on first call
+    if (logsDetails && !logsDetails.hasAttribute('data-opened')) {
+        logsDetails.setAttribute('open', '');
+        logsDetails.setAttribute('data-opened', 'true');
+    }
     
     // Estimate ETA based on progress
     if (progressEta) {
