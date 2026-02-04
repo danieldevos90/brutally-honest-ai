@@ -169,17 +169,58 @@ class LLAMAProcessor:
     
     def __init__(self, model_path: str = None, whisper_model: str = "small"):
         self.model_path = model_path or "llama-2-7b-chat.gguf"  # Default model
-        self.whisper_model = whisper_model  # Use 'medium' model for better accuracy
+        self.whisper_model_name = whisper_model  # Use 'medium' model for better accuracy
+        self.whisper_model = whisper_model  # Keep for backward compat
         self.is_initialized = False
+        self.whisper = None  # Whisper model instance
         
         # Check if models are available
         self.whisper_available = self._check_whisper()
         self.llama_available = self._check_llama()
+    
+    def unload_whisper(self):
+        """Unload Whisper model to free GPU/RAM memory for LLM"""
+        if self.whisper is not None:
+            logger.info("🗑️ Unloading Whisper model to free memory...")
+            del self.whisper
+            self.whisper = None
+            
+            # Force garbage collection and CUDA cleanup
+            import gc
+            gc.collect()
+            
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+                    logger.info("✅ CUDA cache cleared")
+            except ImportError:
+                pass
+            
+            logger.info("✅ Whisper unloaded - memory freed for LLM")
         
     def _check_whisper(self) -> bool:
         """Check if Whisper is available for transcription"""
+        import platform
+        is_arm = platform.machine() in ('aarch64', 'arm64')
+        
+        # On ARM (Jetson), faster-whisper has ctranslate2 bugs, use openai-whisper
+        if not is_arm:
+            try:
+                # Prefer faster-whisper on x86 (3-4x faster, INT8 quantization)
+                from faster_whisper import WhisperModel
+                self._use_faster_whisper = True
+                logger.info("Using faster-whisper (optimized for x86)")
+                return True
+            except ImportError:
+                pass
+        
         try:
             import whisper
+            self._use_faster_whisper = False
+            if is_arm:
+                logger.info("Using openai-whisper (ARM/Jetson compatible)")
             return True
         except ImportError:
             logger.warning("Whisper not available - install with: pip install openai-whisper")
@@ -305,10 +346,22 @@ class LLAMAProcessor:
         """Initialize the AI models"""
         try:
             if self.whisper_available:
-                import whisper
-                logger.info(f"🎤 Loading Whisper model: {self.whisper_model}")
-                self.whisper = whisper.load_model(self.whisper_model)
-                logger.info("✅ Whisper model loaded successfully")
+                if getattr(self, '_use_faster_whisper', False):
+                    from faster_whisper import WhisperModel
+                    logger.info(f"🎤 Loading faster-whisper model: {self.whisper_model} (auto compute type)")
+                    # Use auto compute type for best compatibility across platforms
+                    self.whisper = WhisperModel(self.whisper_model, device="cpu", compute_type="auto", cpu_threads=4)
+                    logger.info("✅ faster-whisper model loaded (3-4x faster than openai-whisper)")
+                else:
+                    import whisper
+                    import torch
+                    # Check for CUDA availability
+                    device = "cuda" if torch.cuda.is_available() else "cpu"
+                    logger.info(f"🎤 Loading Whisper model: {self.whisper_model} on {device.upper()}")
+                    if device == "cuda":
+                        logger.info(f"🚀 GPU: {torch.cuda.get_device_name(0)}")
+                    self.whisper = whisper.load_model(self.whisper_model, device=device)
+                    logger.info(f"✅ Whisper model loaded on {device.upper()}")
             
             if self.llama_available:
                 try:
@@ -367,27 +420,47 @@ class LLAMAProcessor:
             logger.info("   • Compression ratio threshold: 2.0 (natural speech)")
             logger.info("   • Word timestamps: enabled")
             logger.info("   • Fallback: Processed audio if raw fails")
-            logger.info("   • FP16: disabled (using FP32)")
+            import torch
+            use_fp16 = torch.cuda.is_available()
+            logger.info(f"   • FP16: {'enabled (GPU)' if use_fp16 else 'disabled (CPU)'}")
             
             # Use raw audio transcription as primary method (most accurate)
             logger.info("🎯 Primary: Raw audio transcription (most accurate)...")
             try:
-                result = self.whisper.transcribe(
-                    temp_path,  # Use original, unprocessed audio
-                    language=None,
-                    task="transcribe",
-                    temperature=0.1,
-                    no_speech_threshold=0.5,
-                    logprob_threshold=-1.0,
-                    compression_ratio_threshold=2.0,
-                    condition_on_previous_text=False,
-                    word_timestamps=True,
-                    fp16=False
-                )
-                logger.info(f"✅ Raw audio result: '{result['text'].strip()}'")
+                if getattr(self, '_use_faster_whisper', False):
+                    # faster-whisper API (3-4x faster)
+                    logger.info("⚡ Using faster-whisper (INT8 optimized)")
+                    segments, info = self.whisper.transcribe(
+                        temp_path,
+                        language=None,  # Auto-detect
+                        task="transcribe",
+                        vad_filter=True,  # Voice activity detection
+                        vad_parameters=dict(min_silence_duration_ms=500),
+                    )
+                    # Collect all segments
+                    text_parts = []
+                    for segment in segments:
+                        text_parts.append(segment.text)
+                    text = " ".join(text_parts).strip()
+                    logger.info(f"✅ faster-whisper result: '{text[:100]}...' (detected: {info.language})")
+                else:
+                    # OpenAI whisper API
+                    result = self.whisper.transcribe(
+                        temp_path,  # Use original, unprocessed audio
+                        language=None,
+                        task="transcribe",
+                        temperature=0.1,
+                        no_speech_threshold=0.5,
+                        logprob_threshold=-1.0,
+                        compression_ratio_threshold=2.0,
+                        condition_on_previous_text=False,
+                        word_timestamps=True,
+                        fp16=use_fp16  # Use FP16 on GPU for speed
+                    )
+                    text = result['text'].strip()
+                    logger.info(f"✅ Raw audio result: '{text[:100]}...'")
                 
                 # Check if result is reasonable
-                text = result['text'].strip()
                 if len(text) > 0 and not text.lower() in ['you can fly', 'the fox can fly']:
                     logger.info("🏆 Raw audio transcription successful - using this result")
                 else:
@@ -400,22 +473,30 @@ class LLAMAProcessor:
                 
                 # Fallback to processed audio if raw fails
                 try:
-                    result = self.whisper.transcribe(
-                        processed_path,
-                        language=None,
-                        task="transcribe",
-                        temperature=0.0,
-                        no_speech_threshold=0.3,
-                        logprob_threshold=-0.8,
-                        compression_ratio_threshold=2.4,
-                        condition_on_previous_text=False,
-                        word_timestamps=True,
-                        fp16=False,
-                        beam_size=5,
-                        best_of=5,
-                        patience=1.0
-                    )
-                    logger.info(f"✅ Processed audio fallback: '{result['text'].strip()}'")
+                    if getattr(self, '_use_faster_whisper', False):
+                        segments, info = self.whisper.transcribe(processed_path, language=None)
+                        text = " ".join([seg.text for seg in segments]).strip()
+                        detected_language = info.language
+                        logger.info(f"✅ Processed audio fallback: '{text[:100]}...'")
+                    else:
+                        result = self.whisper.transcribe(
+                            processed_path,
+                            language=None,
+                            task="transcribe",
+                            temperature=0.0,
+                            no_speech_threshold=0.3,
+                            logprob_threshold=-0.8,
+                            compression_ratio_threshold=2.4,
+                            condition_on_previous_text=False,
+                            word_timestamps=True,
+                            fp16=False,
+                            beam_size=5,
+                            best_of=5,
+                            patience=1.0
+                        )
+                        text = result['text'].strip()
+                        detected_language = result.get("language", "unknown")
+                        logger.info(f"✅ Processed audio fallback: '{text[:100]}...'")
                 except Exception as e2:
                     logger.error(f"Both raw and processed audio failed: {e2}")
                     raise Exception("All transcription methods failed")
@@ -427,8 +508,11 @@ class LLAMAProcessor:
                 os.unlink(processed_path)
                 logger.info("🗑️ Preprocessed file cleaned up")
             
-            transcription = result["text"].strip()
-            detected_language = result.get("language", "unknown")
+            transcription = text
+            if not getattr(self, '_use_faster_whisper', False):
+                detected_language = result.get("language", "unknown")
+            else:
+                detected_language = getattr(info, 'language', 'unknown') if 'info' in dir() else 'unknown'
             
             # Check for repetitive patterns and clean them
             cleaned_transcription = self._clean_repetitive_text(transcription)
@@ -441,7 +525,7 @@ class LLAMAProcessor:
             logger.info(f"📝 Result: '{transcription}' ({len(transcription)} characters)")
             
             # Log detailed confidence information if available
-            if "segments" in result and result["segments"]:
+            if not getattr(self, '_use_faster_whisper', False) and "segments" in result and result["segments"]:
                 avg_confidence = sum(seg.get("avg_logprob", 0) for seg in result["segments"]) / len(result["segments"])
                 logger.info(f"📊 Average confidence: {avg_confidence:.3f}")
                 logger.info(f"🔢 Number of segments: {len(result['segments'])}")
@@ -849,8 +933,14 @@ JSON format:
         return (best[1], best[2])
     
     
-    async def process_audio(self, audio_data: bytes, filename: str) -> AIProcessingResult:
-        """Complete audio processing pipeline"""
+    async def process_audio(self, audio_data: bytes, filename: str, transcribe_only: bool = False) -> AIProcessingResult:
+        """Complete audio processing pipeline
+        
+        Args:
+            audio_data: Audio bytes to process
+            filename: Original filename
+            transcribe_only: If True, skip heavy analysis (LLM, fact-checking) - useful for low-memory devices
+        """
         import time
         start_time = time.time()
         
@@ -859,6 +949,8 @@ JSON format:
                 await self.initialize()
             
             logger.info(f"🤖 Starting AI processing for: {filename}")
+            if transcribe_only:
+                logger.info("⚡ Transcribe-only mode (skipping analysis)")
             
             # Step 1: Transcribe audio
             transcription = await self.transcribe_audio(audio_data, filename)
@@ -872,6 +964,25 @@ JSON format:
                 return AIProcessingResult(
                     success=False,
                     error=transcription,
+                    processing_time=time.time() - start_time
+                )
+            
+            # If transcribe_only, return just the transcription
+            if transcribe_only:
+                logger.info("⚡ Returning transcription-only result (no LLM analysis)")
+                return AIProcessingResult(
+                    success=True,
+                    transcription=transcription,
+                    analysis="Transcription-only mode - analysis skipped",
+                    summary=transcription[:200] + "..." if len(transcription) > 200 else transcription,
+                    sentiment="neutral",
+                    keywords=[],
+                    fact_check="Skipped (transcribe-only mode)",
+                    brutal_honesty="Analysis not performed in transcribe-only mode",
+                    credibility_score=None,
+                    questionable_claims=[],
+                    corrections=[],
+                    confidence=0.9,
                     processing_time=time.time() - start_time
                 )
             

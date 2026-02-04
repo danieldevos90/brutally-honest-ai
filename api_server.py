@@ -147,8 +147,9 @@ def create_job(filename: str, file_size: int, validate_documents: bool = False) 
     return job_id
 
 def update_job_status(job_id: str, status: JobStatus, progress: int = None, 
-                      progress_message: str = None, result: dict = None, error: str = None):
-    """Update job status"""
+                      progress_message: str = None, result: dict = None, error: str = None,
+                      phase: str = None, phase_progress: int = None):
+    """Update job status with phase tracking for UI progress display"""
     if job_id in transcription_jobs:
         job = transcription_jobs[job_id]
         job["status"] = status
@@ -156,6 +157,10 @@ def update_job_status(job_id: str, status: JobStatus, progress: int = None,
             job["progress"] = progress
         if progress_message:
             job["progress_message"] = progress_message
+        if phase:
+            job["phase"] = phase
+        if phase_progress is not None:
+            job["phase_progress"] = phase_progress
         if status == JobStatus.PROCESSING and job["started_at"] is None:
             job["started_at"] = datetime.now().isoformat()
         if status in [JobStatus.COMPLETED, JobStatus.FAILED]:
@@ -1208,20 +1213,20 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
     """
     temp_audio_path = None
     try:
-        update_job_status(job_id, JobStatus.PROCESSING, 10, "Loading AI models...")
+        update_job_status(job_id, JobStatus.PROCESSING, 5, "Phase 1: Loading AI models...", phase="loading", phase_progress=0)
         
         # Get processor
         if validate_documents:
-            update_job_status(job_id, JobStatus.PROCESSING, 20, "Loading enhanced processor with document validation...")
+            update_job_status(job_id, JobStatus.PROCESSING, 10, "Phase 1: Loading document validator...", phase="loading", phase_progress=50)
             processor = await get_enhanced_processor()
         else:
-            update_job_status(job_id, JobStatus.PROCESSING, 20, "Loading Whisper AI model...")
+            update_job_status(job_id, JobStatus.PROCESSING, 10, "Phase 1: Loading Whisper AI...", phase="loading", phase_progress=50)
             processor = await get_processor()
         
         # ============================================
         # PHASE 1: Fast transcription (GPU Whisper)
         # ============================================
-        update_job_status(job_id, JobStatus.PROCESSING, 30, "Transcribing audio with GPU...")
+        update_job_status(job_id, JobStatus.PROCESSING, 20, "Phase 1: Transcribing audio with GPU...", phase="transcribing", phase_progress=0)
         
         # First pass: transcription only (fast, GPU-accelerated)
         if validate_documents:
@@ -1230,7 +1235,7 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
             # Use transcribe_only=True for fast first pass
             result = await processor.process_audio(audio_data, filename, transcribe_only=True)
         
-        update_job_status(job_id, JobStatus.PROCESSING, 70, "Analyzing voice characteristics...")
+        update_job_status(job_id, JobStatus.PROCESSING, 50, "Phase 1: Analyzing voice characteristics...", phase="transcribing", phase_progress=70)
         
         # Voice analysis - save audio temporarily
         voice_analysis = None
@@ -1254,7 +1259,7 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
         except Exception as e:
             logger.warning(f"Voice analysis failed (non-critical): {e}")
         
-        update_job_status(job_id, JobStatus.PROCESSING, 90, "Generating analysis...")
+        update_job_status(job_id, JobStatus.PROCESSING, 60, "Phase 1: Generating analysis...", phase="transcribing", phase_progress=90)
         
         if result.success:
             response_data = {
@@ -1319,37 +1324,52 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
                 })
             
             # ============================================
-            # PHASE 1 COMPLETE: Return transcription immediately
+            # PHASE 1 COMPLETE: Transcription ready
             # ============================================
-            # Mark as completed with transcription - fact-checking will update later
             response_data["fact_check_status"] = "pending"
             response_data["fact_check"] = "Fact-checking in progress..."
-            update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+            # Keep as PROCESSING - Phase 2 will mark as COMPLETED
+            update_job_status(job_id, JobStatus.PROCESSING, 70, "Phase 2: Preparing fact-check...", phase="fact_checking", phase_progress=0, result=response_data)
             save_transcription_result(filename, audio_data, response_data)
-            logger.info(f"Job {job_id} Phase 1 complete - transcription ready")
+            logger.info(f"Job {job_id} Phase 1 complete - transcription ready, starting Phase 2")
             
             # ============================================
             # PHASE 2: Background fact-checking (non-blocking)
+            # Now runs for ALL transcriptions (both with and without document validation)
             # ============================================
-            if not validate_documents and result.transcription:
+            if result.transcription:
                 try:
+                    # Unload Whisper to free GPU memory for LLM
+                    update_job_status(job_id, JobStatus.PROCESSING, 75, "Phase 2: Freeing GPU memory...", phase="fact_checking", phase_progress=10, result=response_data)
+                    logger.info(f"Job {job_id} - Freeing GPU memory for fact-checking...")
+                    processor.unload_whisper()
+                    
+                    # Small delay to let memory settle
+                    await asyncio.sleep(1)
+                    
                     # Check available memory before running LLM
                     import psutil
                     available_memory_gb = psutil.virtual_memory().available / (1024**3)
-                    logger.info(f"Job {job_id} - Available memory: {available_memory_gb:.2f} GB")
+                    logger.info(f"Job {job_id} - Available memory after unload: {available_memory_gb:.2f} GB")
                     
-                    if available_memory_gb < 2.5:
+                    # TinyLlama needs ~637MB, so 0.8GB threshold is safe
+                    if available_memory_gb < 0.8:
                         # Skip LLM analysis to avoid OOM
-                        logger.warning(f"Job {job_id} - Skipping fact-check (low memory: {available_memory_gb:.2f} GB < 2.5 GB)")
+                        logger.warning(f"Job {job_id} - Skipping fact-check (low memory: {available_memory_gb:.2f} GB < 0.8 GB)")
                         response_data["fact_check_status"] = "skipped"
                         response_data["fact_check"] = f"Fact-checking skipped (low memory: {available_memory_gb:.1f}GB available)"
-                        update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+                        update_job_status(job_id, JobStatus.COMPLETED, 100, "Complete! (fact-check skipped - low memory)", phase="complete", phase_progress=100, result=response_data)
                     else:
+                        update_job_status(job_id, JobStatus.PROCESSING, 80, "Phase 2: Analyzing claims with AI...", phase="fact_checking", phase_progress=30, result=response_data)
                         logger.info(f"Job {job_id} Phase 2 - starting fact-checking...")
                         
                         # Run fact-checking in background
                         from src.ai.intelligent_fact_checker import check_facts_intelligent
+                        
+                        update_job_status(job_id, JobStatus.PROCESSING, 85, "Phase 2: Extracting claims...", phase="fact_checking", phase_progress=50, result=response_data)
                         fact_result = await check_facts_intelligent(result.transcription)
+                        
+                        update_job_status(job_id, JobStatus.PROCESSING, 95, "Phase 2: Finalizing results...", phase="fact_checking", phase_progress=90, result=response_data)
                         
                         if fact_result:
                             # Update the job result with fact-check data
@@ -1359,19 +1379,22 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
                             response_data["brutal_honesty"] = fact_result.summary
                             
                             # Update job with fact-check results
-                            update_job_status(job_id, JobStatus.COMPLETED, 100, "Analysis complete!", result=response_data)
+                            update_job_status(job_id, JobStatus.COMPLETED, 100, "Complete! Analysis finished.", phase="complete", phase_progress=100, result=response_data)
                             logger.info(f"Job {job_id} Phase 2 complete - fact-checking done")
                         else:
                             response_data["fact_check_status"] = "skipped"
                             response_data["fact_check"] = "No verifiable claims found"
-                            update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+                            update_job_status(job_id, JobStatus.COMPLETED, 100, "Complete! No claims to verify.", phase="complete", phase_progress=100, result=response_data)
                         
                 except Exception as e:
                     # Fact-checking failed but transcription is still valid
                     logger.warning(f"Job {job_id} Phase 2 fact-checking failed (non-critical): {e}")
                     response_data["fact_check_status"] = "failed"
                     response_data["fact_check"] = f"Fact-checking unavailable: {str(e)[:100]}"
-                    update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+                    update_job_status(job_id, JobStatus.COMPLETED, 100, "Complete! (fact-check failed)", phase="complete", phase_progress=100, result=response_data)
+            else:
+                # No transcription - still mark as complete
+                update_job_status(job_id, JobStatus.COMPLETED, 100, "Complete!", phase="complete", phase_progress=100, result=response_data)
             
             logger.info(f"Job {job_id} fully completed")
         else:

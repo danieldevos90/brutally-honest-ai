@@ -55,9 +55,11 @@ console.log(`🔗 API Backend URL: ${API_BASE}`);
 
 // Recording storage
 const RECORDINGS_DIR = path.join(__dirname, 'uploads', 'recordings');
-const HISTORY_FILE = path.join(__dirname, 'data', 'transcription_history.json');
+// Use shared data directory (same as API server) for consistent history
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const HISTORY_FILE = path.join(DATA_DIR, 'transcription_history.json');
 if (!fs.existsSync(RECORDINGS_DIR)) fs.mkdirSync(RECORDINGS_DIR, { recursive: true });
-if (!fs.existsSync(path.dirname(HISTORY_FILE))) fs.mkdirSync(path.dirname(HISTORY_FILE), { recursive: true });
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, '[]');
 // ============================================
 

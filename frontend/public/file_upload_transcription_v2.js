@@ -445,14 +445,18 @@ async function transcribeUploadedFiles() {
                     
                     const jobStatus = await statusResponse.json();
                     
-                    // Update UI with current progress
-                    const overallProgress = 10 + (jobStatus.progress * 0.9); // 10-100%
-                    updateProcessingUI(`Transcribing ${file.name}...`, file.name, overallProgress, uploadQueue.pending);
+                    // Update UI with current progress including phase info
+                    const phase = jobStatus.phase || 'transcribing';
+                    const phaseProgress = jobStatus.phase_progress || 0;
+                    const progressMessage = jobStatus.progress_message || `Processing ${file.name}...`;
+                    
+                    updateProcessingUI(progressMessage, file.name, jobStatus.progress, uploadQueue.pending, phase, phaseProgress);
                     
                     // Log progress if changed significantly
                     if (jobStatus.progress - lastProgress >= 10) {
                         lastProgress = jobStatus.progress;
-                        addProcessLog(`⚙️ [${file.name}] ${jobStatus.progress}%`);
+                        const phaseEmoji = phase === 'fact_checking' ? '🧠' : phase === 'transcribing' ? '🎤' : '⚙️';
+                        addProcessLog(`${phaseEmoji} [${file.name}] ${jobStatus.progress}% - ${progressMessage}`);
                     }
                     
                     if (jobStatus.status === 'completed') {
@@ -517,8 +521,8 @@ async function transcribeUploadedFiles() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// Enhanced UI update function for processing state
-function updateProcessingUI(stage, filename, progress, queuePending) {
+// Enhanced UI update function for processing state with phase tracking
+function updateProcessingUI(stage, filename, progress, queuePending, phase, phaseProgress) {
     const stageEl = document.getElementById('processing-stage');
     const fileEl = document.getElementById('processing-file');
     const progressBar = document.getElementById('progress-bar');
@@ -526,6 +530,7 @@ function updateProcessingUI(stage, filename, progress, queuePending) {
     const progressEta = document.getElementById('progress-eta');
     const queueCount = document.getElementById('queue-pending-count');
     const logsDetails = document.querySelector('.process-logs-details');
+    const phaseIndicator = document.getElementById('phase-indicator');
     
     if (stageEl) stageEl.textContent = stage;
     if (fileEl) fileEl.textContent = filename;
@@ -533,22 +538,60 @@ function updateProcessingUI(stage, filename, progress, queuePending) {
     if (progressPercent) progressPercent.textContent = `${Math.round(progress)}%`;
     if (queueCount) queueCount.textContent = `${queuePending} in queue`;
     
+    // Update phase indicator if it exists
+    if (phaseIndicator) {
+        updatePhaseIndicator(phase || 'loading', phaseProgress || 0);
+    }
+    
     // Open logs details on first call
     if (logsDetails && !logsDetails.hasAttribute('data-opened')) {
         logsDetails.setAttribute('open', '');
         logsDetails.setAttribute('data-opened', 'true');
     }
     
-    // Estimate ETA based on progress
+    // Update ETA with phase-aware messaging
     if (progressEta) {
-        if (progress < 10) {
-            progressEta.textContent = 'Estimating...';
-        } else if (progress >= 100) {
-            progressEta.textContent = 'Complete';
+        if (progress >= 100) {
+            progressEta.textContent = 'Complete!';
+        } else if (phase === 'fact_checking') {
+            progressEta.textContent = 'AI analyzing...';
+        } else if (phase === 'transcribing') {
+            progressEta.textContent = 'Converting speech...';
+        } else if (progress < 10) {
+            progressEta.textContent = 'Starting...';
         } else {
-            progressEta.textContent = 'Processing audio...';
+            progressEta.textContent = 'Processing...';
         }
     }
+}
+
+// Update phase indicator UI
+function updatePhaseIndicator(phase, phaseProgress) {
+    const phases = ['loading', 'transcribing', 'fact_checking', 'complete'];
+    const currentIndex = phases.indexOf(phase);
+    
+    phases.forEach((p, index) => {
+        const el = document.getElementById(`phase-${p}`);
+        if (el) {
+            if (index < currentIndex) {
+                el.className = 'phase-step completed';
+            } else if (index === currentIndex) {
+                el.className = 'phase-step active';
+            } else {
+                el.className = 'phase-step pending';
+            }
+        }
+    });
+    
+    // Update connectors manually (since :has() isn't fully supported)
+    const connectors = document.querySelectorAll('.phase-connector');
+    connectors.forEach((connector, index) => {
+        if (index < currentIndex) {
+            connector.classList.add('active');
+        } else {
+            connector.classList.remove('active');
+        }
+    });
 }
 
 // ============================================

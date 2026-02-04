@@ -112,6 +112,27 @@ class IntelligentFactChecker:
         import time
         start_time = time.time()
         
+        # Check available memory before running LLM operations
+        # TinyLlama needs ~637MB, so 0.7GB threshold is safe
+        try:
+            import psutil
+            available_gb = psutil.virtual_memory().available / (1024**3)
+            if available_gb < 0.7:
+                logger.warning(f"⚠️ Low memory ({available_gb:.1f}GB) - skipping fact-checking to prevent OOM")
+                return FactCheckResult(
+                    claims_found=0,
+                    claims_verified=0,
+                    claims_false=0,
+                    claims_partial=0,
+                    claims_unverifiable=0,
+                    claims_opinion=0,
+                    credibility_score=0.5,
+                    summary=f"Fact-checking skipped (low memory: {available_gb:.1f}GB available)",
+                    processing_time=time.time() - start_time
+                )
+        except ImportError:
+            pass  # psutil not available, continue anyway
+        
         if not self.is_initialized:
             await self.initialize()
         
@@ -189,6 +210,16 @@ class IntelligentFactChecker:
     async def _extract_claims_with_llama(self, text: str) -> Optional[List[str]]:
         """Use LLAMA via Ollama to intelligently extract claims"""
         import aiohttp
+        
+        # Check memory before calling Ollama (TinyLlama needs ~637MB)
+        try:
+            import psutil
+            available_gb = psutil.virtual_memory().available / (1024**3)
+            if available_gb < 0.7:
+                logger.warning(f"⚠️ Low memory ({available_gb:.1f}GB) - skipping LLAMA claim extraction")
+                return None
+        except ImportError:
+            pass
         
         prompt = f"""Extract ALL factual claims from this text. A factual claim is ANY statement that can be checked as TRUE or FALSE.
 

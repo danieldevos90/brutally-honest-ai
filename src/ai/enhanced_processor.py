@@ -285,8 +285,9 @@ Be brutally honest and precise. If the documents don't clearly support or contra
         try:
             logger.info(f"🎤 Starting enhanced audio processing with document validation: {filename}")
             
-            # First, do standard audio processing
-            base_result = await super().process_audio(audio_data, filename)
+            # First, do standard audio processing (transcribe only to save memory)
+            # LLM fact-checking will happen in Phase 2 after Whisper is unloaded
+            base_result = await super().process_audio(audio_data, filename, transcribe_only=True)
             
             if not base_result.success:
                 return EnhancedAIResult(

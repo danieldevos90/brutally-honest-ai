@@ -164,8 +164,31 @@
     </div>
   </div>
   
-  <!-- Processing State - Enhanced with stages -->
+  <!-- Processing State - Enhanced with phase indicators -->
   <div id="transcription-loading" class="processing-card" style="display: none;">
+    <!-- Phase Steps Indicator - Simplified horizontal layout -->
+    <div id="phase-indicator" class="phase-steps">
+      <div id="phase-loading" class="phase-step active">
+        <div class="phase-dot"></div>
+        <span class="phase-label">Loading</span>
+      </div>
+      <div class="phase-connector"></div>
+      <div id="phase-transcribing" class="phase-step pending">
+        <div class="phase-dot"></div>
+        <span class="phase-label">Transcribing</span>
+      </div>
+      <div class="phase-connector"></div>
+      <div id="phase-fact_checking" class="phase-step pending">
+        <div class="phase-dot"></div>
+        <span class="phase-label">AI Analysis</span>
+      </div>
+      <div class="phase-connector"></div>
+      <div id="phase-complete" class="phase-step pending">
+        <div class="phase-dot"></div>
+        <span class="phase-label">Complete</span>
+      </div>
+    </div>
+    
     <!-- Processing Header -->
     <div class="processing-header">
       <div class="processing-icon">
@@ -1404,6 +1427,82 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Phase Steps Indicator - Clean horizontal dots */
+.phase-steps {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--bg-secondary, #f8fafc);
+  border-radius: 10px;
+}
+
+.phase-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+.phase-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg-tertiary, #cbd5e1);
+  transition: all 0.3s ease;
+}
+
+.phase-step .phase-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted, #94a3b8);
+  white-space: nowrap;
+}
+
+.phase-step.pending .phase-dot {
+  background: var(--bg-tertiary, #cbd5e1);
+}
+
+.phase-step.active .phase-dot {
+  background: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+  animation: pulse-dot 1.5s infinite;
+}
+
+.phase-step.active .phase-label {
+  color: var(--primary, #6366f1);
+  font-weight: 600;
+}
+
+.phase-step.completed .phase-dot {
+  background: #10b981;
+}
+
+.phase-step.completed .phase-label {
+  color: #10b981;
+}
+
+.phase-connector {
+  width: 24px;
+  height: 2px;
+  background: var(--bg-tertiary, #cbd5e1);
+  margin: 0 2px;
+  margin-bottom: 20px;
+}
+
+.phase-connector.active {
+  background: #10b981;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
 }
 
 .processing-info {
