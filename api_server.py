@@ -1333,26 +1333,38 @@ async def process_transcription_job(job_id: str, audio_data: bytes, filename: st
             # ============================================
             if not validate_documents and result.transcription:
                 try:
-                    logger.info(f"Job {job_id} Phase 2 - starting fact-checking...")
+                    # Check available memory before running LLM
+                    import psutil
+                    available_memory_gb = psutil.virtual_memory().available / (1024**3)
+                    logger.info(f"Job {job_id} - Available memory: {available_memory_gb:.2f} GB")
                     
-                    # Run fact-checking in background
-                    from src.ai.intelligent_fact_checker import check_facts_intelligent
-                    fact_result = await check_facts_intelligent(result.transcription)
-                    
-                    if fact_result:
-                        # Update the job result with fact-check data
-                        response_data["fact_check_status"] = "complete"
-                        response_data["fact_check"] = f"Checked {fact_result.claims_found} claims: {fact_result.claims_verified} verified, {fact_result.claims_false} false"
-                        response_data["credibility_score"] = f"{fact_result.credibility_score * 100:.1f}%"
-                        response_data["brutal_honesty"] = fact_result.summary
-                        
-                        # Update job with fact-check results
-                        update_job_status(job_id, JobStatus.COMPLETED, 100, "Analysis complete!", result=response_data)
-                        logger.info(f"Job {job_id} Phase 2 complete - fact-checking done")
-                    else:
+                    if available_memory_gb < 2.5:
+                        # Skip LLM analysis to avoid OOM
+                        logger.warning(f"Job {job_id} - Skipping fact-check (low memory: {available_memory_gb:.2f} GB < 2.5 GB)")
                         response_data["fact_check_status"] = "skipped"
-                        response_data["fact_check"] = "No verifiable claims found"
+                        response_data["fact_check"] = f"Fact-checking skipped (low memory: {available_memory_gb:.1f}GB available)"
                         update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
+                    else:
+                        logger.info(f"Job {job_id} Phase 2 - starting fact-checking...")
+                        
+                        # Run fact-checking in background
+                        from src.ai.intelligent_fact_checker import check_facts_intelligent
+                        fact_result = await check_facts_intelligent(result.transcription)
+                        
+                        if fact_result:
+                            # Update the job result with fact-check data
+                            response_data["fact_check_status"] = "complete"
+                            response_data["fact_check"] = f"Checked {fact_result.claims_found} claims: {fact_result.claims_verified} verified, {fact_result.claims_false} false"
+                            response_data["credibility_score"] = f"{fact_result.credibility_score * 100:.1f}%"
+                            response_data["brutal_honesty"] = fact_result.summary
+                            
+                            # Update job with fact-check results
+                            update_job_status(job_id, JobStatus.COMPLETED, 100, "Analysis complete!", result=response_data)
+                            logger.info(f"Job {job_id} Phase 2 complete - fact-checking done")
+                        else:
+                            response_data["fact_check_status"] = "skipped"
+                            response_data["fact_check"] = "No verifiable claims found"
+                            update_job_status(job_id, JobStatus.COMPLETED, 100, "Transcription complete!", result=response_data)
                         
                 except Exception as e:
                     # Fact-checking failed but transcription is still valid

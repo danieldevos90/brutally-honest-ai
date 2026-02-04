@@ -35,7 +35,8 @@ class OllamaClient(BaseLLMClient):
     
     def __init__(self, model: str = None):
         self.base_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
-        self.model = model or os.getenv("LLM_MODEL", "llama3.2:3b")
+        # Default to tinyllama for lower memory usage on constrained devices
+        self.model = model or os.getenv("LLM_MODEL", "tinyllama:latest")
         self.is_initialized = False
     
     async def initialize(self) -> bool:

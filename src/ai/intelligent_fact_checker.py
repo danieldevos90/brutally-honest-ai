@@ -221,10 +221,10 @@ JSON array:"""
                 else:
                     logger.warning(f"⚠️ Failed to parse claims from LLAMA response: {response[:100]}...")
             
-            # Direct Ollama call as backup
+            # Direct Ollama call as backup - use tinyllama for lower memory usage
             ollama_url = "http://localhost:11434/api/generate"
             payload = {
-                "model": "llama3.2:3b",  # or tinyllama:latest
+                "model": "tinyllama:latest",  # Use smaller model to avoid OOM
                 "prompt": prompt,
                 "stream": False,
                 "options": {
