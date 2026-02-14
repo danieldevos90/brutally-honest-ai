@@ -25,6 +25,7 @@ MANIFEST
 
 # Virtual Environment
 venv/
+.venv/
 env/
 ENV/
 env.bak/
@@ -36,10 +37,12 @@ venv.bak/
 .env.development.local
 .env.test.local
 .env.production.local
-# Keep .env.production as template (change sensitive defaults before committing)
+# Production env files are commonly secret-bearing; keep a separate template (see env.example).
+.env.production
 
 # API Keys (never commit)
 api_keys.json
+.api_keys.json
 *.key
 *.pem
 
@@ -49,6 +52,13 @@ api_keys.json
 *.swp
 *.swo
 *~
+
+# Agent skill installs (project-local)
+.agents/
+
+# Local app state (do not commit)
+frontend/sessions.json
+frontend/users.json
 
 # OS
 .DS_Store

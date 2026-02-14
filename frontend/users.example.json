@@ -1,0 +1,11 @@
+{
+  "admin": {
+    "id": "admin",
+    "email": "admin@brutallyhonest.io",
+    "password": "$2b$12$REPLACE_WITH_BCRYPT_HASH",
+    "name": "Admin",
+    "role": "admin",
+    "created": "2026-01-01T00:00:00.000Z"
+  }
+}
+
