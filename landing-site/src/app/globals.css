@@ -146,6 +146,24 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-float,
+  .animate-pulse-dot {
+    animation: none !important;
+  }
+}
+
+button,
+a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ========================================
@@ -189,7 +207,9 @@ html {
 
 /* Card hover effect */
 .card-hover {
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .card-hover:hover {
@@ -200,7 +220,10 @@ html {
 /* Bento grid items */
 .bento-item {
   @apply rounded-xl p-6 bg-card border border-border;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .bento-item:hover {
@@ -223,7 +246,9 @@ html {
   background-color: var(--color-white);
   color: var(--color-black);
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .btn-primary:hover {
@@ -236,7 +261,10 @@ html {
   color: var(--color-white);
   border: 1px solid var(--border);
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .btn-secondary:hover {

@@ -2,5 +2,57 @@
   "metadata": {
     "title": "Brutally Honest - Binnenkort Beschikbaar",
     "description": "Real-time AI feitencontrole voor interviews, vergaderingen en onderhandelingen. Weet wat waar is—en wat niet—op het moment dat het gezegd wordt."
+  },
+  "landing": {
+    "brand": "Brutally Honest",
+    "badge": "Binnenkort — Q1 2026",
+    "headline": "Waarheid in elk gesprek.",
+    "subhead": "Brutally Honest is real-time AI feitencontrole voor interviews, meetings en onderhandelingen. Je krijgt de claim, het bewijs en een risicosignaal terwijl het gesprek nog bezig is.",
+    "form": {
+      "emailLabel": "E-mailadres",
+      "emailPlaceholder": "naam@domein.nl…",
+      "submit": "Meld me aan",
+      "submitting": "Bezig…",
+      "success": "Je staat op de lijst. We mailen je zodra early access opent.",
+      "error": "Er ging iets mis. Probeer het opnieuw.",
+      "privacy": "Geen spam. Een update zodra early access opent."
+    },
+    "cta": {
+      "contact": "Contact",
+      "earlyAccess": "Probeer Early Access"
+    },
+    "faq": {
+      "title": "FAQ",
+      "items": [
+        {
+          "q": "Wat is Brutally Honest?",
+          "a": "Een real-time assistent die feitelijke claims uit spraak/tekst haalt en ze valideert met documenten en relevante context."
+        },
+        {
+          "q": "Voor wie is het?",
+          "a": "Teams met interviews, salesgesprekken, onderhandelingen en meetings waar nauwkeurigheid telt."
+        },
+        {
+          "q": "Hoe werkt de feitencheck?",
+          "a": "We halen claims uit de input, zoeken in je knowledge base en geven een verdict met bewijs en vertrouwenssignalen."
+        },
+        {
+          "q": "Slaan jullie opnames op?",
+          "a": "Jij bepaalt wat je uploadt. Early access focust op privacy-by-default en minimale dataretentie."
+        },
+        {
+          "q": "Wanneer is de launch?",
+          "a": "Doel: Q1 2026 voor brede beschikbaarheid, met gefaseerde early access daarvoor."
+        },
+        {
+          "q": "Hoe krijg ik toegang?",
+          "a": "Meld je aan met je e-mailadres. We nemen contact op zodra jouw plek beschikbaar is."
+        }
+      ]
+    },
+    "footer": {
+      "maker": "ALT F AWESOME",
+      "rights": "— Alle rechten voorbehouden."
+    }
   }
 }

@@ -8,6 +8,7 @@ import logging
 import json
 import os
 import numpy as np
+import re
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
 from datetime import datetime
@@ -48,6 +49,8 @@ class VectorStore:
         self.client = None
         self.embedding_model = None
         self.documents = {}  # Track uploaded documents: {doc_id: doc_info}
+        # Prevent concurrent writers corrupting local JSON registry/chunk files.
+        self._local_write_lock = asyncio.Lock()
         
         # Set up persistent storage directory
         if data_dir is None:
@@ -55,10 +58,12 @@ class VectorStore:
         self.data_dir = data_dir
         self.qdrant_path = os.path.join(data_dir, 'qdrant_storage')
         self.documents_file = os.path.join(data_dir, 'documents_registry.json')
+        self.local_chunks_dir = os.path.join(data_dir, 'documents_chunks')
         
         # Ensure data directory exists
         os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(self.qdrant_path, exist_ok=True)
+        os.makedirs(self.local_chunks_dir, exist_ok=True)
         
         # Load existing document registry
         self._load_documents_registry()
@@ -66,6 +71,17 @@ class VectorStore:
         # Check available libraries
         self.qdrant_available = self._check_qdrant()
         self.embedding_available = self._check_embeddings()
+
+        # Allow forcing a mode via env var. This is useful on constrained devices (Jetson)
+        # where the embedded Qdrant+embeddings path can be slow or unstable under concurrency.
+        forced_mode = (os.environ.get("BH_VECTOR_STORE_MODE") or os.environ.get("VECTOR_STORE_MODE") or "").strip().lower()
+        if forced_mode in ("local", "qdrant"):
+            self.mode = forced_mode
+            logger.info(f"Vector store forced mode via env: {self.mode}")
+        else:
+            # If Qdrant/embeddings aren't available, fall back to a lightweight local store so
+            # document upload and validation can still work (with naive keyword search).
+            self.mode = "qdrant" if (self.qdrant_available and self.embedding_available) else "local"
     
     def _load_documents_registry(self):
         """Load document registry from disk"""
@@ -81,8 +97,11 @@ class VectorStore:
     def _save_documents_registry(self):
         """Save document registry to disk"""
         try:
-            with open(self.documents_file, 'w') as f:
-                json.dump(self.documents, f, indent=2, default=str)
+            tmp_path = f"{self.documents_file}.tmp"
+            with open(tmp_path, "w") as f:
+                # Avoid pretty-print here; this file can grow and we want it fast/atomic.
+                json.dump(self.documents, f, default=str)
+            os.replace(tmp_path, self.documents_file)
             logger.info(f"💾 Saved {len(self.documents)} documents to registry")
         except Exception as e:
             logger.error(f"Failed to save documents registry: {e}")
@@ -112,13 +131,10 @@ class VectorStore:
     async def initialize(self) -> bool:
         """Initialize the vector store"""
         try:
-            if not self.qdrant_available:
-                logger.error("Qdrant client not available")
-                return False
-            
-            if not self.embedding_available:
-                logger.error("Embedding models not available")
-                return False
+            if self.mode == "local":
+                self.is_initialized = True
+                logger.info("✅ Vector store initialized in LOCAL fallback mode")
+                return True
             
             logger.info("🔧 Initializing vector store...")
             
@@ -201,6 +217,20 @@ class VectorStore:
         
         embedding = self.embedding_model.encode(text)
         return embedding.tolist()
+
+    def _local_chunks_path(self, document_id: str) -> str:
+        return os.path.join(self.local_chunks_dir, f"{document_id}.json")
+
+    def _tokenize(self, text: str) -> List[str]:
+        return re.findall(r"[a-z0-9]+", (text or "").lower())
+
+    def _local_score(self, query: str, content: str) -> float:
+        q = set(self._tokenize(query))
+        if not q:
+            return 0.0
+        c = set(self._tokenize(content))
+        overlap = len(q & c)
+        return overlap / max(1, len(q))
     
     async def store_document(self, doc_info: DocumentInfo) -> bool:
         """Store a document in the vector database"""
@@ -213,6 +243,58 @@ class VectorStore:
             # Split document into chunks
             chunks = self._chunk_text(doc_info.content)
             logger.info(f"📄 Split into {len(chunks)} chunks")
+
+            if self.mode == "local":
+                local_chunks = []
+                for i, chunk_text in enumerate(chunks):
+                    # Avoid uuid4() here: on some embedded Linux setups it can be surprisingly slow
+                    # (entropy / getrandom() behavior). Deterministic IDs are fine for local mode.
+                    chunk_id = f"{doc_info.id}:chunk:{i}"
+                    chunk_metadata = {
+                        "document_id": doc_info.id,
+                        "chunk_index": i,
+                        "filename": doc_info.filename,
+                        "file_type": doc_info.file_type,
+                        "upload_time": doc_info.upload_time.isoformat(),
+                        "content_preview": chunk_text[:100] + "..." if len(chunk_text) > 100 else chunk_text,
+                        "chunk_length": len(chunk_text),
+                        "tags": doc_info.tags if doc_info.tags else [],
+                        "context": doc_info.context,
+                        "category": doc_info.category,
+                        "related_documents": doc_info.related_documents if doc_info.related_documents else [],
+                    }
+                    local_chunks.append(
+                        {
+                            "chunk_id": chunk_id,
+                            "content": chunk_text,
+                            "metadata": chunk_metadata,
+                        }
+                    )
+
+                async with self._local_write_lock:
+                    # Persist chunk data (atomic write)
+                    chunks_path = self._local_chunks_path(doc_info.id)
+                    tmp_chunks_path = f"{chunks_path}.tmp"
+                    with open(tmp_chunks_path, "w") as f:
+                        json.dump(local_chunks, f)
+                    os.replace(tmp_chunks_path, chunks_path)
+
+                    # Track document in registry
+                    self.documents[doc_info.id] = {
+                        "id": doc_info.id,
+                        "filename": doc_info.filename,
+                        "file_type": doc_info.file_type,
+                        "file_size": doc_info.file_size,
+                        "text_length": len(doc_info.content),
+                        "upload_time": doc_info.upload_time.isoformat(),
+                        "tags": doc_info.tags if doc_info.tags else [],
+                        "category": doc_info.category,
+                        "chunk_count": len(local_chunks),
+                    }
+                    self._save_documents_registry()
+
+                logger.info(f"✅ Stored {len(local_chunks)} chunks for document (local): {doc_info.filename}")
+                return True
             
             # Process each chunk
             points = []
@@ -283,13 +365,42 @@ class VectorStore:
         """List all stored documents"""
         return list(self.documents.values())
     
-    async def search_documents(self, query: str, limit: int = 5, score_threshold: float = 0.7) -> List[SearchResult]:
+    async def search_documents(self, query: str, limit: int = 5, score_threshold: float = 0.3) -> List[SearchResult]:
         """Search for relevant document chunks"""
         if not self.is_initialized:
             await self.initialize()
         
         try:
             logger.info(f"🔍 Searching for: {query}")
+
+            if self.mode == "local":
+                results: List[SearchResult] = []
+                for doc_id, doc_meta in self.documents.items():
+                    chunks_path = self._local_chunks_path(doc_id)
+                    if not os.path.exists(chunks_path):
+                        continue
+                    try:
+                        with open(chunks_path, "r") as f:
+                            chunks = json.load(f)
+                    except Exception:
+                        continue
+                    for ch in chunks:
+                        score = self._local_score(query, ch.get("content", ""))
+                        if score < score_threshold:
+                            continue
+                        md = ch.get("metadata") or {}
+                        results.append(
+                            SearchResult(
+                                document_id=md.get("document_id", doc_id),
+                                chunk_id=ch.get("chunk_id", ""),
+                                content=ch.get("content", ""),
+                                score=float(score),
+                                metadata=md,
+                            )
+                        )
+
+                results.sort(key=lambda r: r.score, reverse=True)
+                return results[:limit]
             
             # Generate query embedding
             query_embedding = self._generate_embedding(query)
@@ -327,6 +438,25 @@ class VectorStore:
             await self.initialize()
         
         try:
+            if self.mode == "local":
+                chunks_path = self._local_chunks_path(document_id)
+                if not os.path.exists(chunks_path):
+                    return []
+                with open(chunks_path, "r") as f:
+                    chunks = json.load(f)
+                results = [
+                    SearchResult(
+                        document_id=document_id,
+                        chunk_id=ch.get("chunk_id", ""),
+                        content=ch.get("content", ""),
+                        score=1.0,
+                        metadata=ch.get("metadata") or {},
+                    )
+                    for ch in chunks
+                ]
+                results.sort(key=lambda x: x.metadata.get("chunk_index", 0))
+                return results
+
             # Search with filter for specific document
             from qdrant_client.models import Filter, FieldCondition, MatchValue
             
@@ -372,6 +502,19 @@ class VectorStore:
             await self.initialize()
         
         try:
+            if self.mode == "local":
+                try:
+                    chunks_path = self._local_chunks_path(document_id)
+                    if os.path.exists(chunks_path):
+                        os.remove(chunks_path)
+                except Exception:
+                    pass
+
+                if document_id in self.documents:
+                    del self.documents[document_id]
+                    self._save_documents_registry()
+                return True
+
             # Get all chunk IDs for the document
             chunks = await self.get_document_chunks(document_id)
             chunk_ids = [chunk.chunk_id for chunk in chunks]
@@ -402,13 +545,24 @@ class VectorStore:
             await self.initialize()
         
         try:
+            if self.mode == "local":
+                total_chunks = sum(int(d.get("chunk_count", 0) or 0) for d in self.documents.values())
+                return {
+                    "total_chunks": total_chunks,
+                    "vector_size": None,
+                    "distance_metric": None,
+                    "collection_name": self.collection_name,
+                    "mode": "local",
+                }
+
             collection_info = self.client.get_collection(self.collection_name)
             
             return {
                 "total_chunks": collection_info.points_count,
                 "vector_size": collection_info.config.params.vectors.size,
                 "distance_metric": collection_info.config.params.vectors.distance.name,
-                "collection_name": self.collection_name
+                "collection_name": self.collection_name,
+                "mode": "qdrant",
             }
             
         except Exception as e:

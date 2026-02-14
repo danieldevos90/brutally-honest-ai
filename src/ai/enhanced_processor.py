@@ -200,7 +200,7 @@ Be brutally honest and precise. If the documents don't clearly support or contra
                             "prompt": prompt,
                             "stream": False
                         },
-                        timeout=15
+                        timeout=60  # Increased for slower Jetson hardware
                     )
                     
                     if response.status_code == 200:

@@ -3,6 +3,7 @@ Claim Extractor - Extracts factual claims from transcriptions
 """
 
 import logging
+import os
 import re
 from typing import List, Optional
 import requests
@@ -88,11 +89,12 @@ CLAIM: The company will expand next year | TYPE: prediction | ENTITIES: company
 """
         
         # Call Ollama API
+        model = os.environ.get("LLM_MODEL", "llama3.2:3b")
         try:
             response = requests.post(
                 f"{self.ollama_url}/api/generate",
                 json={
-                    "model": "tinyllama:latest",
+                    "model": model,
                     "prompt": prompt,
                     "stream": False,
                     "options": {
@@ -100,7 +102,7 @@ CLAIM: The company will expand next year | TYPE: prediction | ENTITIES: company
                         "num_predict": 500
                     }
                 },
-                timeout=30
+                timeout=60
             )
             
             if response.status_code == 200:

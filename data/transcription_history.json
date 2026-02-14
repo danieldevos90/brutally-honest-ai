@@ -1,0 +1,1079 @@
+[
+  {
+    "id": "9121f19c-373a-4266-88c2-d78cc6427012",
+    "timestamp": "2026-02-03T22:05:17.225361",
+    "originalFilename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "savedFilename": "20260203_220517_In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "filePath": "/Users/danieldevos/Documents/ALT F AWESOME/brutally-honest-ai/recordings/20260203_220517_In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "result": {
+      "success": true,
+      "filename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+      "transcription": "Text 1. Nieuw op school. Hallo. Hoi. Is deze stoel vrij? Ja hoor, graam maar zitten. Bedankt. Ben jij nieuw hier op school? Ik heb je nog niet eerder gezien. Dat klopt. Vandaag is mijn eerste dag hier op school. In welke klas zit je? 3A. En jij? 3B. Waar kom je vandaan? Ik woonde eerst in Amersfoort. Mijn moeder heeft hier een nieuwe baan gevonden. Daarom zijn we verhuisd. Ik kom oorspronkelijk uit Afghanistan. Vind je het vervelend dat je verhuisd bent? Het gaat wel. Maar ik moet nog wel een beetje wennen. Ik ken hier nog niemand. Maar nu ken je mij. Zal ik mij even voorstellen? Ik heet Irina. Ik kom oorspronkelijk uit Polen. Wij wonen sinds een jaar in Nederland. Aangenaam. Ik heet Mo. Wij wonen ook ongeveer een jaar in Nederland. Ben je hier alleen met je moeder? Nee, mijn vader is hier ook. En ik heb nog een klein zusje. Zit zij hier op school? Nee, ze zit op de basisschool. Heb jij broers of sussen? Nee, ik ben enig kind. Lekker rustig. Hey Mo, morgenmiddag gaan we met een groepje van school naar het zwembad. Heb je misschien zin om mee te gaan? Dat lijkt me wel leuk. We hebben om twee uur bij de hoofdingang van school afgesproken. Zie ik je daar? Ok\u00e9. Leuk! Hey, de bel gaat zo en ik moet nog gauw iets uit mijn kluisje halen. Tot morgen dan. Doei.",
+      "analysis": "Analyzed 241 words, negative sentiment.",
+      "summary": "Text 1. Nieuw op school. Hallo. Hoi. Is deze stoel vrij? Ja hoor, graam maar zitten. Bedankt. Ben ji...",
+      "sentiment": "negative",
+      "keywords": [
+        "text",
+        "nieuw",
+        "school",
+        "hallo",
+        "hoi"
+      ],
+      "fact_check": "Checked 43 claims: 0 TRUE, 0 FALSE",
+      "brutal_honesty": "*Claim Analysis (0/43 verified):*\nUNVERIFIED|Text 1|Could not verify\nUNVERIFIED|Nieuw op school|Could not verify\nUNVERIFIED|Hallo|Could not verify\nUNVERIFIED|Is deze stoel vrij? Ja hoor|Could not verify\nUNVERIFIED|graam maar zitten|Could not verify\nUNVERIFIED|Bedankt|Could not verify\nUNVERIFIED|Ben jij nieuw hier op school? Ik heb je nog niet eerder gezien|Could not verify\nUNVERIFIED|Dat klopt|Could not verify\nUNVERIFIED|Vandaag is mijn eerste dag hier op school|Could not verify\nUNVERIFIED|In welke klas zit je? 3A|Could not verify\nUNVERIFIED|En jij? 3B|Could not verify\nUNVERIFIED|Waar kom je vandaan? Ik woonde eerst in Amersfoort|Could not verify\nUNVERIFIED|Mijn moeder heeft hier een nieuwe baan gevonden|Could not verify\nUNVERIFIED|Daarom zijn we verhuisd|Could not verify\nUNVERIFIED|Ik kom oorspronkelijk uit Afghanistan|Could not verify\nUNVERIFIED|Vind je het vervelend dat je verhuisd bent? Het gaat wel|Could not verify\nUNVERIFIED|Maar ik moet nog wel een beetje wennen|Could not verify\nUNVERIFIED|Ik ken hier nog niemand|Could not verify\nUNVERIFIED|Maar nu ken je mij|Could not verify\nUNVERIFIED|Zal ik mij even voorstellen? Ik heet Irina|Could not verify\nUNVERIFIED|Ik kom oorspronkelijk uit Polen|Could not verify\nUNVERIFIED|Wij wonen sinds een jaar in Nederland|Could not verify\nUNVERIFIED|Aangenaam|Could not verify\nUNVERIFIED|Ik heet Mo|Could not verify\nUNVERIFIED|Wij wonen ook ongeveer een jaar in Nederland|Could not verify\nUNVERIFIED|Ben je hier alleen met je moeder? Nee|Could not verify\nUNVERIFIED|mijn vader is hier ook|Could not verify\nUNVERIFIED|En ik heb nog een klein zusje|Could not verify\nUNVERIFIED|Zit zij hier op school? Nee|Could not verify\nUNVERIFIED|ze zit op de basisschool|Could not verify\nUNVERIFIED|Heb jij broers of sussen? Nee|Could not verify\nUNVERIFIED|ik ben enig kind|Could not verify\nUNVERIFIED|Lekker rustig|Could not verify\nUNVERIFIED|Hey Mo|Could not verify\nUNVERIFIED|morgenmiddag gaan we met een groepje van school naar het zwembad|Could not verify\nUNVERIFIED|Heb je misschien zin om mee te gaan? Dat lijkt me wel leuk|Could not verify\nUNVERIFIED|We hebben om twee uur bij de hoofdingang van school afgesproken|Could not verify\nUNVERIFIED|Zie ik je daar? Ok\u00e9|Could not verify\nUNVERIFIED|Leuk! Hey|Could not verify\nUNVERIFIED|de bel gaat zo|Could not verify\nUNVERIFIED|ik moet nog gauw iets uit mijn kluisje halen|Could not verify\nUNVERIFIED|Tot morgen dan|Could not verify\nUNVERIFIED|Doei|Could not verify",
+      "credibility_score": "N/A",
+      "questionable_claims": [],
+      "corrections": [],
+      "confidence": "95.0%",
+      "processing_time": "22.52s",
+      "source": "file_upload_async",
+      "voice_analysis": {
+        "pitch_hz": 220.9,
+        "pitch_variation": 108.0,
+        "speaking_rate_wpm": 225.0,
+        "pause_ratio": 0.36,
+        "pause_count": 48,
+        "speech_rhythm": "hesitant",
+        "confidence_indicator": 0.45,
+        "stress_indicator": 0.88,
+        "engagement_indicator": 0.83,
+        "energy_mean_db": -31.0,
+        "duration_seconds": 99.8
+      },
+      "sentence_moods": [
+        {
+          "sentence": "Text 1.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nieuw op school.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hallo.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hoi.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Is deze stoel vrij?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ja hoor, graam maar zitten.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Bedankt.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ben jij nieuw hier op school?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heb je nog niet eerder gezien.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Dat klopt.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Vandaag is mijn eerste dag hier op school.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "In welke klas zit je?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "3A.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "En jij?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "3B.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Waar kom je vandaan?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik woonde eerst in Amersfoort.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Mijn moeder heeft hier een nieuwe baan gevonden.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Daarom zijn we verhuisd.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik kom oorspronkelijk uit Afghanistan.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Vind je het vervelend dat je verhuisd bent?",
+          "mood": "frustrated",
+          "confidence": 0.3,
+          "indicators": [
+            "frustrated: 'vervelend'"
+          ]
+        },
+        {
+          "sentence": "Het gaat wel.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Maar ik moet nog wel een beetje wennen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik ken hier nog niemand.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Maar nu ken je mij.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zal ik mij even voorstellen?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heet Irina.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik kom oorspronkelijk uit Polen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Wij wonen sinds een jaar in Nederland.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Aangenaam.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heet Mo.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Wij wonen ook ongeveer een jaar in Nederland.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ben je hier alleen met je moeder?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, mijn vader is hier ook.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "En ik heb nog een klein zusje.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zit zij hier op school?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, ze zit op de basisschool.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Heb jij broers of sussen?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, ik ben enig kind.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Lekker rustig.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hey Mo, morgenmiddag gaan we met een groepje van school naar het zwembad.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Heb je misschien zin om mee te gaan?",
+          "mood": "sad",
+          "confidence": 0.3,
+          "indicators": [
+            "sad: 'miss'",
+            "uncertain: 'misschien'"
+          ]
+        },
+        {
+          "sentence": "Dat lijkt me wel leuk.",
+          "mood": "happy",
+          "confidence": 0.3,
+          "indicators": [
+            "happy: 'leuk'"
+          ]
+        },
+        {
+          "sentence": "We hebben om twee uur bij de hoofdingang van school afgesproken.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zie ik je daar?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ok\u00e9.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Leuk!",
+          "mood": "happy",
+          "confidence": 0.3,
+          "indicators": [
+            "happy: 'leuk'"
+          ]
+        },
+        {
+          "sentence": "Hey, de bel gaat zo en ik moet nog gauw iets uit mijn kluisje halen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Tot morgen dan.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Doei.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        }
+      ],
+      "agents_used": [
+        "Whisper STT",
+        "LLAMA Analysis",
+        "Voice Analyzer"
+      ]
+    }
+  },
+  {
+    "id": "41645f8f-d671-4206-bc40-855520aa268f",
+    "timestamp": "2026-02-03T22:19:30.363444",
+    "originalFilename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "savedFilename": "20260203_221930_In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "filePath": "/Users/danieldevos/Documents/ALT F AWESOME/brutally-honest-ai/recordings/20260203_221930_In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "result": {
+      "success": true,
+      "filename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+      "transcription": "Text 1. Nieuw op school. Hallo. Hoi. Is deze stoel vrij? Ja hoor, ga maar zitten. Bedankt. Ben jij nieuw hier op school? Ik heb je nog niet eerder gezien. Dat klopt. Vandaag is mijn eerste dag hier op school. In welke klas zit je? 3A. En jij? 3B. Waar kom je vandaan? Ik woonde eerst in Amersfoort. Mijn moeder heeft hier een nieuwe baan gevonden. Daarom zijn we verhuisd. Ik kom oorspronkelijk uit Afghanistan. Vind je het vervelend dat je verhuisd bent? Het gaat wel. Maar ik moet nog wel een beetje wennen. Ik ken hier nog niemand. Maar nu ken je mij. Zal ik me even voorstellen? Ik heet Irina. Ik kom oorspronkelijk uit Polen. Wij wonen sinds een jaar in Nederland. Aangenaam. Ik heet Mo. Wij wonen ook ongeveer een jaar in Nederland. Ben je hier alleen met je moeder? Nee, mijn vader is hier ook. En ik heb nog een klein zusje. Zit zij hier op school? Nee, ze zit op de basisschool. Heb jij broers of sussen? Nee, ik ben enig kind. Lekker rustig. Hey Mo, morgenmiddag gaan we met een groepje van school naar het zwembad. Heb je misschien zin om mee te gaan? Dat lijkt me wel leuk. We hebben om twee uur bij de hoofdingang van school afgesproken. Zie ik je daar? Ok\u00e9. Leuk. Hey, de bel gaat zo en ik moet nog gauw iets uit mijn kluisje halen. Tot morgen dan. Doei.",
+      "analysis": "Analyzed 241 words, negative sentiment.",
+      "summary": "Text 1. Nieuw op school. Hallo. Hoi. Is deze stoel vrij? Ja hoor, ga maar zitten. Bedankt. Ben jij n...",
+      "sentiment": "negative",
+      "keywords": [
+        "text",
+        "nieuw",
+        "school",
+        "hallo",
+        "hoi"
+      ],
+      "fact_check": "Checked 43 claims: 0 TRUE, 0 FALSE",
+      "brutal_honesty": "*Claim Analysis (0/43 verified):*\nUNVERIFIED|Text 1|Could not verify\nUNVERIFIED|Nieuw op school|Could not verify\nUNVERIFIED|Hallo|Could not verify\nUNVERIFIED|Is deze stoel vrij? Ja hoor|Could not verify\nUNVERIFIED|ga maar zitten|Could not verify\nUNVERIFIED|Bedankt|Could not verify\nUNVERIFIED|Ben jij nieuw hier op school? Ik heb je nog niet eerder gezien|Could not verify\nUNVERIFIED|Dat klopt|Could not verify\nUNVERIFIED|Vandaag is mijn eerste dag hier op school|Could not verify\nUNVERIFIED|In welke klas zit je? 3A|Could not verify\nUNVERIFIED|En jij? 3B|Could not verify\nUNVERIFIED|Waar kom je vandaan? Ik woonde eerst in Amersfoort|Could not verify\nUNVERIFIED|Mijn moeder heeft hier een nieuwe baan gevonden|Could not verify\nUNVERIFIED|Daarom zijn we verhuisd|Could not verify\nUNVERIFIED|Ik kom oorspronkelijk uit Afghanistan|Could not verify\nUNVERIFIED|Vind je het vervelend dat je verhuisd bent? Het gaat wel|Could not verify\nUNVERIFIED|Maar ik moet nog wel een beetje wennen|Could not verify\nUNVERIFIED|Ik ken hier nog niemand|Could not verify\nUNVERIFIED|Maar nu ken je mij|Could not verify\nUNVERIFIED|Zal ik me even voorstellen? Ik heet Irina|Could not verify\nUNVERIFIED|Ik kom oorspronkelijk uit Polen|Could not verify\nUNVERIFIED|Wij wonen sinds een jaar in Nederland|Could not verify\nUNVERIFIED|Aangenaam|Could not verify\nUNVERIFIED|Ik heet Mo|Could not verify\nUNVERIFIED|Wij wonen ook ongeveer een jaar in Nederland|Could not verify\nUNVERIFIED|Ben je hier alleen met je moeder? Nee|Could not verify\nUNVERIFIED|mijn vader is hier ook|Could not verify\nUNVERIFIED|En ik heb nog een klein zusje|Could not verify\nUNVERIFIED|Zit zij hier op school? Nee|Could not verify\nUNVERIFIED|ze zit op de basisschool|Could not verify\nUNVERIFIED|Heb jij broers of sussen? Nee|Could not verify\nUNVERIFIED|ik ben enig kind|Could not verify\nUNVERIFIED|Lekker rustig|Could not verify\nUNVERIFIED|Hey Mo|Could not verify\nUNVERIFIED|morgenmiddag gaan we met een groepje van school naar het zwembad|Could not verify\nUNVERIFIED|Heb je misschien zin om mee te gaan? Dat lijkt me wel leuk|Could not verify\nUNVERIFIED|We hebben om twee uur bij de hoofdingang van school afgesproken|Could not verify\nUNVERIFIED|Zie ik je daar? Ok\u00e9|Could not verify\nUNVERIFIED|Leuk|Could not verify\nUNVERIFIED|de bel gaat zo|Could not verify\nUNVERIFIED|ik moet nog gauw iets uit mijn kluisje halen|Could not verify\nUNVERIFIED|Tot morgen dan|Could not verify\nUNVERIFIED|Doei|Could not verify",
+      "credibility_score": "N/A",
+      "questionable_claims": [],
+      "corrections": [],
+      "confidence": "95.0%",
+      "processing_time": "36.97s",
+      "source": "file_upload_async",
+      "voice_analysis": {
+        "pitch_hz": 220.9,
+        "pitch_variation": 108.0,
+        "speaking_rate_wpm": 225.0,
+        "pause_ratio": 0.36,
+        "pause_count": 48,
+        "speech_rhythm": "hesitant",
+        "confidence_indicator": 0.45,
+        "stress_indicator": 0.88,
+        "engagement_indicator": 0.83,
+        "energy_mean_db": -31.0,
+        "duration_seconds": 99.8
+      },
+      "sentence_moods": [
+        {
+          "sentence": "Text 1.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nieuw op school.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hallo.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hoi.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Is deze stoel vrij?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ja hoor, ga maar zitten.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Bedankt.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ben jij nieuw hier op school?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heb je nog niet eerder gezien.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Dat klopt.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Vandaag is mijn eerste dag hier op school.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "In welke klas zit je?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "3A.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "En jij?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "3B.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Waar kom je vandaan?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik woonde eerst in Amersfoort.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Mijn moeder heeft hier een nieuwe baan gevonden.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Daarom zijn we verhuisd.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik kom oorspronkelijk uit Afghanistan.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Vind je het vervelend dat je verhuisd bent?",
+          "mood": "frustrated",
+          "confidence": 0.3,
+          "indicators": [
+            "frustrated: 'vervelend'"
+          ]
+        },
+        {
+          "sentence": "Het gaat wel.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Maar ik moet nog wel een beetje wennen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik ken hier nog niemand.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Maar nu ken je mij.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zal ik me even voorstellen?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heet Irina.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik kom oorspronkelijk uit Polen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Wij wonen sinds een jaar in Nederland.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Aangenaam.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heet Mo.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Wij wonen ook ongeveer een jaar in Nederland.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ben je hier alleen met je moeder?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, mijn vader is hier ook.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "En ik heb nog een klein zusje.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zit zij hier op school?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, ze zit op de basisschool.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Heb jij broers of sussen?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, ik ben enig kind.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Lekker rustig.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hey Mo, morgenmiddag gaan we met een groepje van school naar het zwembad.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Heb je misschien zin om mee te gaan?",
+          "mood": "sad",
+          "confidence": 0.3,
+          "indicators": [
+            "sad: 'miss'",
+            "uncertain: 'misschien'"
+          ]
+        },
+        {
+          "sentence": "Dat lijkt me wel leuk.",
+          "mood": "happy",
+          "confidence": 0.3,
+          "indicators": [
+            "happy: 'leuk'"
+          ]
+        },
+        {
+          "sentence": "We hebben om twee uur bij de hoofdingang van school afgesproken.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zie ik je daar?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ok\u00e9.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Leuk.",
+          "mood": "happy",
+          "confidence": 0.3,
+          "indicators": [
+            "happy: 'leuk'"
+          ]
+        },
+        {
+          "sentence": "Hey, de bel gaat zo en ik moet nog gauw iets uit mijn kluisje halen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Tot morgen dan.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Doei.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        }
+      ],
+      "agents_used": [
+        "Whisper STT",
+        "LLAMA Analysis",
+        "Voice Analyzer"
+      ]
+    }
+  },
+  {
+    "id": "d51a7cf4-9c56-43ae-a7fc-fd55b2ca3932",
+    "timestamp": "2026-02-03T22:21:35.370804",
+    "originalFilename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "savedFilename": "20260203_222135_In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "filePath": "/Users/danieldevos/Documents/ALT F AWESOME/brutally-honest-ai/recordings/20260203_222135_In Gesprek Audiotekst 1 - CD track 1.mp3",
+    "result": {
+      "success": true,
+      "filename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+      "transcription": "Text 1. Nieuw op school. Hallo. Hoi. Is deze stoel vrij? Ja hoor, graam maar zitten. Bedankt. Ben je nieuw hier op school? Ik heb je nog niet eerder gezien. Dat klopt. Vandaag is mijn eerste dag hier op school. In welke klas zit je? 3A. En jij? 3B. Waar kom je vandaan? Ik woonde eerst in Amersfoort. Mijn moeder heeft hier een nieuwe baan gevonden. Daarom zijn we verhuisd. Ik kom oorspronkelijk uit Afghanistan. Vind je het vervelend dat je verhuisd bent? Het gaat wel. Maar ik moet nog wel een beetje wennen. Ik ken hier nog niemand. Maar nu ken je mij. Zal ik me even voorstellen? Ik heet Irina. Ik kom oorspronkelijk uit Polen. Wij wonen sinds een jaar in Nederland. Aangenaam. Ik heet Mo. Wij wonen ook ongeveer een jaar in Nederland. Ben je hier alleen met je moeder? Nee, mijn vader is hier ook. En ik heb nog een klein zusje. Zit zij hier op school? Nee, ze zit op de basisschool. Heb jij broers of sussen? Nee, ik ben enig kind. Lekker rustig. Hey Mo, morgenmiddag gaan we met een groepje van school naar het zwembad. Heb je misschien zin om mee te gaan? Dat lijkt me wel leuk. We hebben om twee uur bij de hoofdingang van school afgesproken. Zie ik je daar? Ok\u00e9. Leuk! Hey, de bel gaat zo en ik moet nog gauw iets uit mijn kluisje halen. Tot morgen dan. Doei.",
+      "analysis": "Analyzed 241 words, negative sentiment.",
+      "summary": "Text 1. Nieuw op school. Hallo. Hoi. Is deze stoel vrij? Ja hoor, graam maar zitten. Bedankt. Ben je...",
+      "sentiment": "negative",
+      "keywords": [
+        "text",
+        "nieuw",
+        "school",
+        "hallo",
+        "hoi"
+      ],
+      "fact_check": "Checked 43 claims: 0 TRUE, 0 FALSE",
+      "brutal_honesty": "*Claim Analysis (0/43 verified):*\nUNVERIFIED|Text 1|Could not verify\nUNVERIFIED|Nieuw op school|Could not verify\nUNVERIFIED|Hallo|Could not verify\nUNVERIFIED|Is deze stoel vrij? Ja hoor|Could not verify\nUNVERIFIED|graam maar zitten|Could not verify\nUNVERIFIED|Bedankt|Could not verify\nUNVERIFIED|Ben je nieuw hier op school? Ik heb je nog niet eerder gezien|Could not verify\nUNVERIFIED|Dat klopt|Could not verify\nUNVERIFIED|Vandaag is mijn eerste dag hier op school|Could not verify\nUNVERIFIED|In welke klas zit je? 3A|Could not verify\nUNVERIFIED|En jij? 3B|Could not verify\nUNVERIFIED|Waar kom je vandaan? Ik woonde eerst in Amersfoort|Could not verify\nUNVERIFIED|Mijn moeder heeft hier een nieuwe baan gevonden|Could not verify\nUNVERIFIED|Daarom zijn we verhuisd|Could not verify\nUNVERIFIED|Ik kom oorspronkelijk uit Afghanistan|Could not verify\nUNVERIFIED|Vind je het vervelend dat je verhuisd bent? Het gaat wel|Could not verify\nUNVERIFIED|Maar ik moet nog wel een beetje wennen|Could not verify\nUNVERIFIED|Ik ken hier nog niemand|Could not verify\nUNVERIFIED|Maar nu ken je mij|Could not verify\nUNVERIFIED|Zal ik me even voorstellen? Ik heet Irina|Could not verify\nUNVERIFIED|Ik kom oorspronkelijk uit Polen|Could not verify\nUNVERIFIED|Wij wonen sinds een jaar in Nederland|Could not verify\nUNVERIFIED|Aangenaam|Could not verify\nUNVERIFIED|Ik heet Mo|Could not verify\nUNVERIFIED|Wij wonen ook ongeveer een jaar in Nederland|Could not verify\nUNVERIFIED|Ben je hier alleen met je moeder? Nee|Could not verify\nUNVERIFIED|mijn vader is hier ook|Could not verify\nUNVERIFIED|En ik heb nog een klein zusje|Could not verify\nUNVERIFIED|Zit zij hier op school? Nee|Could not verify\nUNVERIFIED|ze zit op de basisschool|Could not verify\nUNVERIFIED|Heb jij broers of sussen? Nee|Could not verify\nUNVERIFIED|ik ben enig kind|Could not verify\nUNVERIFIED|Lekker rustig|Could not verify\nUNVERIFIED|Hey Mo|Could not verify\nUNVERIFIED|morgenmiddag gaan we met een groepje van school naar het zwembad|Could not verify\nUNVERIFIED|Heb je misschien zin om mee te gaan? Dat lijkt me wel leuk|Could not verify\nUNVERIFIED|We hebben om twee uur bij de hoofdingang van school afgesproken|Could not verify\nUNVERIFIED|Zie ik je daar? Ok\u00e9|Could not verify\nUNVERIFIED|Leuk! Hey|Could not verify\nUNVERIFIED|de bel gaat zo|Could not verify\nUNVERIFIED|ik moet nog gauw iets uit mijn kluisje halen|Could not verify\nUNVERIFIED|Tot morgen dan|Could not verify\nUNVERIFIED|Doei|Could not verify",
+      "credibility_score": "N/A",
+      "questionable_claims": [],
+      "corrections": [],
+      "confidence": "95.0%",
+      "processing_time": "45.76s",
+      "source": "file_upload_async",
+      "voice_analysis": {
+        "pitch_hz": 220.9,
+        "pitch_variation": 108.0,
+        "speaking_rate_wpm": 225.0,
+        "pause_ratio": 0.36,
+        "pause_count": 48,
+        "speech_rhythm": "hesitant",
+        "confidence_indicator": 0.45,
+        "stress_indicator": 0.88,
+        "engagement_indicator": 0.83,
+        "energy_mean_db": -31.0,
+        "duration_seconds": 99.8
+      },
+      "sentence_moods": [
+        {
+          "sentence": "Text 1.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nieuw op school.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hallo.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hoi.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Is deze stoel vrij?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ja hoor, graam maar zitten.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Bedankt.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ben je nieuw hier op school?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heb je nog niet eerder gezien.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Dat klopt.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Vandaag is mijn eerste dag hier op school.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "In welke klas zit je?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "3A.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "En jij?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "3B.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Waar kom je vandaan?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik woonde eerst in Amersfoort.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Mijn moeder heeft hier een nieuwe baan gevonden.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Daarom zijn we verhuisd.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik kom oorspronkelijk uit Afghanistan.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Vind je het vervelend dat je verhuisd bent?",
+          "mood": "frustrated",
+          "confidence": 0.3,
+          "indicators": [
+            "frustrated: 'vervelend'"
+          ]
+        },
+        {
+          "sentence": "Het gaat wel.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Maar ik moet nog wel een beetje wennen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik ken hier nog niemand.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Maar nu ken je mij.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zal ik me even voorstellen?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heet Irina.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik kom oorspronkelijk uit Polen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Wij wonen sinds een jaar in Nederland.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Aangenaam.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ik heet Mo.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Wij wonen ook ongeveer een jaar in Nederland.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ben je hier alleen met je moeder?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, mijn vader is hier ook.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "En ik heb nog een klein zusje.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zit zij hier op school?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, ze zit op de basisschool.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Heb jij broers of sussen?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Nee, ik ben enig kind.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Lekker rustig.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Hey Mo, morgenmiddag gaan we met een groepje van school naar het zwembad.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Heb je misschien zin om mee te gaan?",
+          "mood": "sad",
+          "confidence": 0.3,
+          "indicators": [
+            "sad: 'miss'",
+            "uncertain: 'misschien'"
+          ]
+        },
+        {
+          "sentence": "Dat lijkt me wel leuk.",
+          "mood": "happy",
+          "confidence": 0.3,
+          "indicators": [
+            "happy: 'leuk'"
+          ]
+        },
+        {
+          "sentence": "We hebben om twee uur bij de hoofdingang van school afgesproken.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Zie ik je daar?",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Ok\u00e9.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Leuk!",
+          "mood": "happy",
+          "confidence": 0.3,
+          "indicators": [
+            "happy: 'leuk'"
+          ]
+        },
+        {
+          "sentence": "Hey, de bel gaat zo en ik moet nog gauw iets uit mijn kluisje halen.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Tot morgen dan.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        },
+        {
+          "sentence": "Doei.",
+          "mood": "neutral",
+          "confidence": 0.5,
+          "indicators": []
+        }
+      ],
+      "agents_used": [
+        "Whisper STT",
+        "LLAMA Analysis",
+        "Voice Analyzer"
+      ]
+    }
+  }
+]

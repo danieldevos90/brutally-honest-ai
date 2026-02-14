@@ -31,10 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadKnowledgeBaseStats() {
     try {
-        var response = await fetch('/documents/stats');
+        var response = await fetch('/documents/list');
         var result = await response.json();
         if (result.success) {
-            document.getElementById('kb-documents').textContent = result.total_documents || 0;
+            document.getElementById('kb-documents').textContent = result.total_documents || (result.documents ? result.documents.length : 0);
         }
     } catch (e) {
         console.error('Error loading stats:', e);
@@ -82,9 +82,28 @@ async function validateText() {
             resultsDiv.innerHTML = result.claims.map(function(r) {
                 var statusClass = r.status === 'confirmed' || r.status === 'verified' ? 'badge-success' : 
                                   (r.status === 'contradicted' || r.status === 'incorrect' ? 'badge-warning' : '');
+                // Handle multiple claim formats: string, object with value, or nested content
+                var claimText = '';
+                if (typeof r.claim === 'string') {
+                    claimText = r.claim;
+                } else if (r.claim && typeof r.claim === 'object') {
+                    // Format based on type and value (new format from LLM)
+                    if (r.claim.value !== undefined) {
+                        claimText = String(r.claim.value);
+                    } else if (r.claim.content && r.claim.content.title) {
+                        claimText = r.claim.content.title;
+                    } else if (r.claim.content && r.claim.content.description) {
+                        claimText = r.claim.content.description;
+                    } else {
+                        // Fallback: stringify the claim object
+                        claimText = JSON.stringify(r.claim);
+                    }
+                } else if (r.text) {
+                    claimText = r.text;
+                }
                 return '<div class="card" style="padding: 12px; margin-bottom: 8px;">' +
                     '<div class="flex justify-between items-center mb-2">' +
-                    '<span class="text-sm font-medium">' + escapeHtml(r.claim || r.text || '') + '</span>' +
+                    '<span class="text-sm font-medium">' + escapeHtml(claimText || 'Unknown claim') + '</span>' +
                     '<span class="badge ' + statusClass + '">' + (r.status || 'unverified') + '</span>' +
                     '</div>' +
                     '<p class="text-xs text-muted">' + escapeHtml(r.explanation || 'No explanation') + '</p>' +

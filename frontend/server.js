@@ -29,11 +29,41 @@ app.set('trust proxy', 1);
 // API_BASE can be configured via environment variable for production
 // Default to localhost for development
 const API_BASE = process.env.API_BASE || 'http://localhost:8000';
+// API Key for backend authentication
+const API_KEY = process.env.API_MASTER_KEY || 'bh_brutally_honest_api_2025';
+
+// Make frontend state paths configurable for testing/CI.
+// Defaults preserve existing behavior.
+const STATE_DIR = process.env.FRONTEND_STATE_DIR || __dirname;
+const FRONTEND_DATA_DIR = process.env.FRONTEND_DATA_DIR || path.join(__dirname, '..', 'data');
+const FRONTEND_RECORDINGS_DIR = process.env.FRONTEND_RECORDINGS_DIR || path.join(__dirname, 'uploads', 'recordings');
+const FRONTEND_HISTORY_FILE = process.env.FRONTEND_HISTORY_FILE || path.join(FRONTEND_DATA_DIR, 'transcription_history.json');
+const FRONTEND_ACTIVITY_LOG_FILE = process.env.FRONTEND_ACTIVITY_LOG_FILE || path.join(STATE_DIR, 'data', 'activity.log');
+
+const WS_PORT = parseInt(process.env.WS_PORT || '3002', 10);
+const DISABLE_WS = process.env.DISABLE_WS === '1' || process.env.DISABLE_WS === 'true';
+
+let wss = null;
+let httpServer = null;
+
+// Helper function to get auth headers for backend requests
+function getApiHeaders(additionalHeaders = {}) {
+    return {
+        'Authorization': `Bearer ${API_KEY}`,
+        ...additionalHeaders
+    };
+}
+
+// Prefer Node's built-in fetch (Node 18+) to avoid ESM import issues in tests.
+async function getFetch() {
+    if (typeof globalThis.fetch === 'function') return globalThis.fetch;
+    return (await import('node-fetch')).default;
+}
 
 // ============================================
 // ACTIVITY LOGGING
 // ============================================
-const ACTIVITY_LOG_FILE = path.join(__dirname, 'data', 'activity.log');
+const ACTIVITY_LOG_FILE = FRONTEND_ACTIVITY_LOG_FILE;
 if (!fs.existsSync(path.dirname(ACTIVITY_LOG_FILE))) {
     fs.mkdirSync(path.dirname(ACTIVITY_LOG_FILE), { recursive: true });
 }
@@ -54,10 +84,10 @@ function logActivity(type, action, details, user = 'anonymous') {
 console.log(`🔗 API Backend URL: ${API_BASE}`);
 
 // Recording storage
-const RECORDINGS_DIR = path.join(__dirname, 'uploads', 'recordings');
+const RECORDINGS_DIR = FRONTEND_RECORDINGS_DIR;
 // Use shared data directory (same as API server) for consistent history
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const HISTORY_FILE = path.join(DATA_DIR, 'transcription_history.json');
+const DATA_DIR = FRONTEND_DATA_DIR;
+const HISTORY_FILE = FRONTEND_HISTORY_FILE;
 if (!fs.existsSync(RECORDINGS_DIR)) fs.mkdirSync(RECORDINGS_DIR, { recursive: true });
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(HISTORY_FILE)) fs.writeFileSync(HISTORY_FILE, '[]');
@@ -102,9 +132,9 @@ app.set('layout extractStyles', true);
 // USER MANAGEMENT SYSTEM
 // ============================================
 
-const USERS_FILE = path.join(__dirname, 'users.json');
-const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
-const LOGS_FILE = path.join(__dirname, 'activity_logs.json');
+const USERS_FILE = process.env.FRONTEND_USERS_FILE || path.join(STATE_DIR, 'users.json');
+const SESSIONS_FILE = process.env.FRONTEND_SESSIONS_FILE || path.join(STATE_DIR, 'sessions.json');
+const LOGS_FILE = process.env.FRONTEND_LOGS_FILE || path.join(STATE_DIR, 'activity_logs.json');
 
 // ============================================
 // ACTIVITY LOGGING SYSTEM
@@ -327,10 +357,14 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "https://*"],
+            connectSrc: ["'self'", "ws:", "wss:", "http://localhost:*", "http://*", "https://*"],
+            // Don't upgrade insecure requests - we're running on HTTP for local network
+            upgradeInsecureRequests: null,
         },
     },
     crossOriginEmbedderPolicy: false,
+    // Disable HSTS for local network HTTP access
+    hsts: false,
 }));
 
 // Rate limiters
@@ -805,7 +839,9 @@ app.use(requireAuth, (req, res, next) => {
 app.get('/api/devices/status', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${API_BASE}/devices/status`);
+        const response = await fetch(`${API_BASE}/devices/status`, {
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -869,7 +905,9 @@ app.post('/api/devices/select/:deviceId', requireAuth, async (req, res) => {
 app.get('/api/status', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${API_BASE}/status`);
+        const response = await fetch(`${API_BASE}/status`, {
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.json({
             omi_connected: data.device_connected || false,
@@ -1177,7 +1215,10 @@ app.post('/documents/upload', requireAuth, upload.single('file'), async (req, re
         const response = await fetch(`${API_BASE}/documents/upload`, {
             method: 'POST',
             body: formData,
-            headers: formData.getHeaders()
+            headers: {
+                ...formData.getHeaders(),
+                ...getApiHeaders()
+            }
         });
         const data = await response.json();
         fs.unlink(req.file.path, (err) => {
@@ -1202,7 +1243,9 @@ app.get('/documents/search', requireAuth, async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         const query = req.query.query;
         const limit = req.query.limit || 5;
-        const response = await fetch(`${API_BASE}/documents/search?query=${encodeURIComponent(query)}&limit=${limit}`);
+        const response = await fetch(`${API_BASE}/documents/search?query=${encodeURIComponent(query)}&limit=${limit}`, {
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -1215,7 +1258,7 @@ app.post('/documents/query', requireAuth, async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         const response = await fetch(`${API_BASE}/documents/query`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getApiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(req.body)
         });
         const data = await response.json();
@@ -1228,7 +1271,9 @@ app.post('/documents/query', requireAuth, async (req, res) => {
 app.get('/documents/stats', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${API_BASE}/documents/stats`);
+        const response = await fetch(`${API_BASE}/documents/stats`, {
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -1239,7 +1284,9 @@ app.get('/documents/stats', requireAuth, async (req, res) => {
 app.get('/documents/list', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${API_BASE}/documents/list`);
+        const response = await fetch(`${API_BASE}/documents/list`, {
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -1251,7 +1298,10 @@ app.delete('/documents/:documentId', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
         const documentId = req.params.documentId;
-        const response = await fetch(`${API_BASE}/documents/${documentId}`, { method: 'DELETE' });
+        const response = await fetch(`${API_BASE}/documents/${documentId}`, { 
+            method: 'DELETE',
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -1392,7 +1442,7 @@ app.post('/api/ai/process_with_validation', requireAuth, async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         const response = await fetch(`${API_BASE}/ai/process_with_validation`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getApiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(req.body)
         });
         const data = await response.json();
@@ -1418,7 +1468,7 @@ app.post('/api/ai/validate_text', requireAuth, async (req, res) => {
         const fetch = (await import('node-fetch')).default;
         const response = await fetch(`${API_BASE}/ai/validate_text`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getApiHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify(req.body)
         });
         const data = await response.json();
@@ -1436,19 +1486,33 @@ app.post('/api/ai/validate_text', requireAuth, async (req, res) => {
 });
 
 // WebSocket proxy
-const wss = new WebSocket.Server({ port: 3002 });
-wss.on('connection', (ws) => {
-    console.log('Frontend WebSocket client connected');
-    const backendWs = new WebSocket('ws://localhost:8000/ws');
-    backendWs.on('open', () => {
-        ws.send(JSON.stringify({ type: 'connection', data: 'Connected to Voice Insight Platform' }));
+function startWebSocketProxy() {
+    if (DISABLE_WS) {
+        console.log('[WS] WebSocket proxy disabled (DISABLE_WS=1)');
+        return null;
+    }
+    if (wss) return wss;
+
+    // Convert http(s)://host:port -> ws(s)://host:port/ws
+    const backendWsUrl = API_BASE.replace(/^http/, 'ws').replace(/\/$/, '') + '/ws';
+
+    wss = new WebSocket.Server({ port: WS_PORT });
+    wss.on('connection', (ws) => {
+        console.log('Frontend WebSocket client connected');
+        const backendWs = new WebSocket(backendWsUrl);
+        backendWs.on('open', () => {
+            ws.send(JSON.stringify({ type: 'connection', data: 'Connected to Voice Insight Platform' }));
+        });
+        backendWs.on('message', (data) => { ws.send(data); });
+        backendWs.on('close', () => { ws.send(JSON.stringify({ type: 'connection', data: 'Disconnected from backend' })); });
+        backendWs.on('error', (error) => { ws.send(JSON.stringify({ type: 'error', data: `Backend connection error: ${error.message}` })); });
+        ws.on('message', (message) => { if (backendWs.readyState === WebSocket.OPEN) backendWs.send(message); });
+        ws.on('close', () => { if (backendWs.readyState === WebSocket.OPEN) backendWs.close(); });
     });
-    backendWs.on('message', (data) => { ws.send(data); });
-    backendWs.on('close', () => { ws.send(JSON.stringify({ type: 'connection', data: 'Disconnected from backend' })); });
-    backendWs.on('error', (error) => { ws.send(JSON.stringify({ type: 'error', data: `Backend connection error: ${error.message}` })); });
-    ws.on('message', (message) => { if (backendWs.readyState === WebSocket.OPEN) backendWs.send(message); });
-    ws.on('close', () => { if (backendWs.readyState === WebSocket.OPEN) backendWs.close(); });
-});
+
+    console.log(`[WS] WebSocket server on ws://localhost:${WS_PORT} (proxy -> ${backendWsUrl})`);
+    return wss;
+}
 
 // Recording upload endpoint - saves browser recordings to server
 app.post('/api/recordings/upload', requireAuth, uploadLimiter, upload.single('file'), async (req, res) => {
@@ -1633,7 +1697,10 @@ app.post('/api/ai/transcribe-file', requireAuth, uploadLimiter, upload.single('f
         const response = await fetch(`${API_BASE}/ai/transcribe-file`, {
             method: 'POST',
             body: formData,
-            headers: formData.getHeaders(),
+            headers: {
+                ...formData.getHeaders(),
+                ...getApiHeaders()
+            },
             signal: controller.signal
         });
         
@@ -1729,7 +1796,10 @@ app.post('/api/ai/transcribe-file-async', requireAuth, uploadLimiter, upload.sin
         const response = await fetch(`${API_BASE}/ai/transcribe-file-async`, {
             method: 'POST',
             body: formData,
-            headers: formData.getHeaders(),
+            headers: {
+                ...formData.getHeaders(),
+                ...getApiHeaders()
+            },
             signal: controller.signal
         });
         
@@ -1786,7 +1856,9 @@ app.post('/api/ai/transcribe-file-async', requireAuth, uploadLimiter, upload.sin
 app.get('/api/ai/jobs/:jobId', requireAuth, async (req, res) => {
     try {
         const fetch = (await import('node-fetch')).default;
-        const response = await fetch(`${API_BASE}/ai/jobs/${req.params.jobId}`);
+        const response = await fetch(`${API_BASE}/ai/jobs/${req.params.jobId}`, {
+            headers: getApiHeaders()
+        });
         const data = await response.json();
         res.status(response.status).json(data);
     } catch (error) {
@@ -1894,16 +1966,141 @@ app.delete('/api/activity-log', requireAuth, (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`\n=== Brutally Honest Frontend running on http://localhost:${PORT} ===`);
-    console.log(`WebSocket server on ws://localhost:3002`);
-    console.log(`Multi-user authentication: ENABLED`);
-    console.log(`EJS Templates: ENABLED`);
-    console.log(`\nDefault Admin Account:`);
-    console.log(`   Email: admin@brutallyhonest.io`);
-    console.log(`   Password: brutallyhonest2024`);
-    console.log(`\nRoutes: /login, /, /documents, /profiles, /validation, /documentation, /settings\n`);
+// ============================================
+// USER JOB ENDPOINTS - Cross-device sync
+// ============================================
+
+// Get all jobs for current user
+app.get('/api/user/jobs', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        const includeCompleted = req.query.include_completed !== 'false';
+        const limit = req.query.limit || 50;
+        
+        const response = await fetch(
+            `${API_BASE}/api/user/${req.user.id}/jobs?include_completed=${includeCompleted}&limit=${limit}`,
+            { headers: getApiHeaders() }
+        );
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Get user jobs error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get user jobs' });
+    }
 });
+
+// Get only active jobs for current user (for polling)
+app.get('/api/user/jobs/active', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        
+        const response = await fetch(
+            `${API_BASE}/api/user/${req.user.id}/jobs/active`,
+            { headers: getApiHeaders() }
+        );
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Get active user jobs error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get active jobs' });
+    }
+});
+
+// Get specific job for current user
+app.get('/api/user/jobs/:jobId', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        
+        const response = await fetch(
+            `${API_BASE}/api/user/${req.user.id}/jobs/${req.params.jobId}`,
+            { headers: getApiHeaders() }
+        );
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Get user job error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get job' });
+    }
+});
+
+// Create new job for current user with file storage
+app.post('/api/user/jobs', requireAuth, uploadLimiter, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, error: 'No file provided' });
+        }
+        
+        const FormData = (await import('form-data')).default;
+        const fetch = (await import('node-fetch')).default;
+        
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(req.file.path), {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+        formData.append('job_type', req.body.job_type || 'transcription');
+        formData.append('validate_documents', (req.body.validate_documents === 'true').toString());
+        formData.append('device_name', req.body.device_name || 'web');
+        formData.append('device_id', req.body.device_id || '');
+        
+        console.log(`[USER_JOB] Creating job for user ${req.user.id}: ${req.file.originalname}`);
+        
+        const response = await fetch(`${API_BASE}/api/user/${req.user.id}/jobs`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                ...formData.getHeaders(),
+                ...getApiHeaders()
+            }
+        });
+        
+        const data = await response.json();
+        
+        // Clean up temp file
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error cleaning up temp file:', err);
+        });
+        
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Create user job error:', error);
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, () => {});
+        }
+        res.status(500).json({ success: false, error: 'Failed to create job' });
+    }
+});
+
+// Delete job for current user
+app.delete('/api/user/jobs/:jobId', requireAuth, async (req, res) => {
+    try {
+        const fetch = (await import('node-fetch')).default;
+        
+        const response = await fetch(
+            `${API_BASE}/api/user/${req.user.id}/jobs/${req.params.jobId}`,
+            { method: 'DELETE', headers: getApiHeaders() }
+        );
+        const data = await response.json();
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error('Delete user job error:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete job' });
+    }
+});
+
+// Get current user info (for cross-device sync)
+app.get('/api/user/me', requireAuth, (req, res) => {
+    res.json({
+        success: true,
+        user: {
+            id: req.user.id,
+            email: req.user.email,
+            name: req.user.name,
+            role: req.user.role
+        }
+    });
+});
+
 
 // Delete recording from history
 app.delete('/api/transcription-history/:id', requireAuth, (req, res) => {
@@ -1934,6 +2131,7 @@ app.delete('/api/transcription-history/:id', requireAuth, (req, res) => {
 // Re-analyze endpoint proxy
 app.post('/api/reanalyze/:id', requireAuth, async (req, res) => {
     try {
+        const fetch = await getFetch();
         const response = await fetch(`${API_BASE}/api/reanalyze/${req.params.id}`, {
             method: 'POST'
         });
@@ -1948,6 +2146,7 @@ app.post('/api/reanalyze/:id', requireAuth, async (req, res) => {
 // Alias for re-analyze (used by home.js)
 app.post('/api/transcription-history/:id/reanalyze', requireAuth, async (req, res) => {
     try {
+        const fetch = await getFetch();
         const response = await fetch(`${API_BASE}/api/reanalyze/${req.params.id}`, {
             method: 'POST'
         });
@@ -1958,3 +2157,39 @@ app.post('/api/transcription-history/:id/reanalyze', requireAuth, async (req, re
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+function startHttpServer(port = PORT) {
+    if (httpServer) return httpServer;
+    httpServer = app.listen(port, () => {
+        console.log(`\n=== Brutally Honest Frontend running on http://localhost:${port} ===`);
+        console.log(`Multi-user authentication: ENABLED`);
+        console.log(`EJS Templates: ENABLED`);
+        console.log(`User Job Sync: ENABLED`);
+        if (!DISABLE_WS) {
+            console.log(`WebSocket server on ws://localhost:${WS_PORT}`);
+        }
+        console.log(`\nDefault Admin Account:`);
+        console.log(`   Email: admin@brutallyhonest.io`);
+        console.log(`   Password: ${process.env.ADMIN_PASSWORD || 'brutallyhonest2024'}`);
+        console.log(`\nRoutes: /login, /, /documents, /profiles, /validation, /documentation, /settings\n`);
+    });
+    return httpServer;
+}
+
+function startServers({ port = PORT } = {}) {
+    startHttpServer(port);
+    startWebSocketProxy();
+    return { httpServer, wss };
+}
+
+if (require.main === module) {
+    startServers({ port: PORT });
+}
+
+module.exports = {
+    app,
+    startHttpServer,
+    startWebSocketProxy,
+    startServers,
+    getApiHeaders,
+};

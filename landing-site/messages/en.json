@@ -2,5 +2,57 @@
   "metadata": {
     "title": "Brutally Honest - Coming Soon",
     "description": "Real-time AI fact-checking for interviews, meetings, and negotiations. Know what's true—and what's not—the moment it's said."
+  },
+  "landing": {
+    "brand": "Brutally Honest",
+    "badge": "Coming Soon — Q1 2026",
+    "headline": "Truth in every conversation.",
+    "subhead": "Brutally Honest is real-time AI fact-checking for interviews, meetings, and negotiations. Get the claim, the evidence, and the risk signal while the conversation is still happening.",
+    "form": {
+      "emailLabel": "Email address",
+      "emailPlaceholder": "name@domain.com…",
+      "submit": "Join the waitlist",
+      "submitting": "Joining…",
+      "success": "You're on the list. We'll email you when early access opens.",
+      "error": "Something went wrong. Please try again.",
+      "privacy": "No spam. One update when we open early access."
+    },
+    "cta": {
+      "contact": "Contact",
+      "earlyAccess": "Try Early Access"
+    },
+    "faq": {
+      "title": "FAQ",
+      "items": [
+        {
+          "q": "What is Brutally Honest?",
+          "a": "A real-time assistant that extracts factual claims from speech/text and validates them against documents and trusted context."
+        },
+        {
+          "q": "Who is it for?",
+          "a": "Teams doing interviews, sales calls, negotiations, and high-stakes meetings where accuracy matters."
+        },
+        {
+          "q": "How does fact-checking work?",
+          "a": "We extract claims, search your knowledge base, and return a verdict with supporting evidence and confidence signals."
+        },
+        {
+          "q": "Do you store recordings?",
+          "a": "You control what you upload. Early access focuses on privacy-by-default and minimal data retention."
+        },
+        {
+          "q": "When will it launch?",
+          "a": "Targeting Q1 2026 for public availability, with rolling early access before that."
+        },
+        {
+          "q": "How can I get access?",
+          "a": "Join the waitlist with your email. We'll reach out with onboarding details when your slot opens."
+        }
+      ]
+    },
+    "footer": {
+      "maker": "ALT F AWESOME",
+      "rights": "— All rights reserved."
+    }
   }
 }

@@ -167,9 +167,11 @@ class AIProcessingResult:
 class LLAMAProcessor:
     """LLAMA AI processor for audio analysis"""
     
-    def __init__(self, model_path: str = None, whisper_model: str = "small"):
+    def __init__(self, model_path: str = None, whisper_model: str = None):
         self.model_path = model_path or "llama-2-7b-chat.gguf"  # Default model
-        self.whisper_model_name = whisper_model  # Use 'medium' model for better accuracy
+        # Read whisper model from env var, default to 'small' for balance of speed/accuracy
+        whisper_model = whisper_model or os.environ.get("WHISPER_MODEL", "small")
+        self.whisper_model_name = whisper_model
         self.whisper_model = whisper_model  # Keep for backward compat
         self.is_initialized = False
         self.whisper = None  # Whisper model instance
@@ -199,6 +201,36 @@ class LLAMAProcessor:
                 pass
             
             logger.info("✅ Whisper unloaded - memory freed for LLM")
+    
+    def reload_whisper(self):
+        """Reload Whisper model if it was unloaded"""
+        if self.whisper is None:
+            logger.info("🔄 Reloading Whisper model...")
+            import platform
+            is_arm = platform.machine() in ('aarch64', 'arm64')
+            
+            if is_arm:
+                # ARM/Jetson: use openai-whisper
+                import whisper
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                logger.info(f"🎤 Loading Whisper model: {self.whisper_model_name} on {device.upper()}")
+                self.whisper = whisper.load_model(self.whisper_model_name, device=device)
+                logger.info(f"✅ Whisper model reloaded on {device.upper()}")
+            else:
+                # x86: try faster-whisper first
+                try:
+                    from faster_whisper import WhisperModel
+                    logger.info(f"🎤 Loading faster-whisper model: {self.whisper_model_name}")
+                    self.whisper = WhisperModel(self.whisper_model_name, device="cpu", compute_type="auto", cpu_threads=4)
+                    self._use_faster_whisper = True
+                    logger.info("✅ faster-whisper model reloaded")
+                except ImportError:
+                    import whisper
+                    import torch
+                    device = "cuda" if torch.cuda.is_available() else "cpu"
+                    self.whisper = whisper.load_model(self.whisper_model_name, device=device)
+                    logger.info(f"✅ Whisper model reloaded on {device.upper()}")
         
     def _check_whisper(self) -> bool:
         """Check if Whisper is available for transcription"""
@@ -394,6 +426,10 @@ class LLAMAProcessor:
         """Transcribe audio using Whisper with preprocessing"""
         if not self.whisper_available:
             return "Transcription not available - Whisper not installed"
+        
+        # Reload Whisper if it was unloaded (e.g., to free memory for LLM)
+        if self.whisper is None:
+            self.reload_whisper()
         
         try:
             # Save audio to temporary file
@@ -623,7 +659,7 @@ JSON format:
                 logger.info("🔄 Sending request to Ollama API (localhost:11434)...")
                 # Use provided model or default
                 model_name = model or "tinyllama:latest"
-                request_timeout = timeout or 15
+                request_timeout = timeout or 60  # Increased for slower Jetson hardware
                 
                 logger.info(f"🔧 Using model: {model_name}, timeout: {request_timeout}s")
                 
@@ -994,7 +1030,7 @@ JSON format:
             
             # Try to enhance with LLAMA if available (non-blocking)
             try:
-                llama_result = await self.analyze_with_llama(transcription, filename, model="tinyllama:latest", timeout=15)
+                llama_result = await self.analyze_with_llama(transcription, filename, model="tinyllama:latest", timeout=60)
                 if llama_result:
                     # KEEP fast analysis fact-checking results - only add LLAMA context if fast analysis has no claims
                     if "Claim Analysis" not in analysis_result.get("brutal_honesty", ""):

@@ -1,6 +1,11 @@
 /*
  * ESP32S3 Sense - Working PDM Microphone with USB Sync
  * Fixed version using ESP32-I2S library
+ * 
+ * Improvements:
+ * - Added watchdog timer for reliability
+ * - Defined all magic numbers as constants
+ * - Better error handling
  */
 
 #include <ESP_I2S.h>
@@ -12,6 +17,11 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#include <esp_task_wdt.h>  // Watchdog timer
+
+// ============================================
+// CONFIGURATION CONSTANTS
+// ============================================
 
 // USB Serial
 #define USBSerial Serial
@@ -31,6 +41,21 @@
 // Audio configuration
 #define SAMPLE_RATE 16000
 #define SAMPLE_BITS 16
+#define AUDIO_BUFFER_SIZE 512
+
+// Timing constants
+#define DEBOUNCE_DELAY_MS 50
+#define LED_UPDATE_INTERVAL_MS 10
+#define STATUS_UPDATE_INTERVAL_MS 5000
+#define DISPLAY_UPDATE_INTERVAL_MS 500
+#define I2C_DEBUG_INTERVAL_MS 10000
+#define I2C_CLOCK_SPEED 100000
+
+// BLE constants
+#define BLE_PACKET_SIZE 20
+
+// Watchdog configuration
+#define WATCHDOG_TIMEOUT_SEC 30
 
 // I2S instance
 I2SClass I2S;
@@ -43,14 +68,13 @@ U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ U8X8_PIN_NONE);
 volatile bool isRecording = false;
 volatile bool buttonPressed = false;
 unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50;
 int recordingCount = 0;
 
 // OLED status
 bool oledAvailable = false;
 
 // Audio buffer
-int16_t audioBuffer[512];
+int16_t audioBuffer[AUDIO_BUFFER_SIZE];
 
 // BLE UUIDs
 #define SERVICE_UUID        "12345678-1234-5678-1234-56789abcdef0"
@@ -72,7 +96,7 @@ unsigned long lastLedUpdate = 0;
 
 void IRAM_ATTR handleButtonPress() {
     unsigned long currentTime = millis();
-    if (currentTime - lastDebounceTime > debounceDelay) {
+    if (currentTime - lastDebounceTime > DEBOUNCE_DELAY_MS) {
         buttonPressed = true;
         lastDebounceTime = currentTime;
     }
@@ -97,6 +121,12 @@ void setup() {
     
     USBSerial.println("🚀 ESP32S3 Sense PDM Audio Recorder Starting...");
     
+    // Initialize watchdog timer for reliability
+    USBSerial.println("🐕 Initializing watchdog timer...");
+    esp_task_wdt_init(WATCHDOG_TIMEOUT_SEC, true);  // Panic on timeout
+    esp_task_wdt_add(NULL);  // Add current task to watchdog
+    USBSerial.printf("   Watchdog timeout: %d seconds\n", WATCHDOG_TIMEOUT_SEC);
+    
     // Initialize OLED display with improved I2C handling
     USBSerial.println("🔄 Initializing OLED display...");
     
@@ -113,7 +143,7 @@ void setup() {
     USBSerial.println("Config 1: SDA=5, SCL=4");
     Wire.end();
     Wire.begin(5, 4);
-    Wire.setClock(100000);
+    Wire.setClock(I2C_CLOCK_SPEED);
     delay(100);
     
     // Quick test
@@ -125,7 +155,7 @@ void setup() {
     USBSerial.println("Config 2: Default I2C pins");
     Wire.end();
     Wire.begin(); // Use default pins
-    Wire.setClock(100000);
+    Wire.setClock(I2C_CLOCK_SPEED);
     delay(100);
     
     Wire.beginTransmission(0x51);
@@ -136,7 +166,7 @@ void setup() {
     USBSerial.println("Config 3: SDA=4, SCL=5 (testing old config)");
     Wire.end();
     Wire.begin(4, 5);
-    Wire.setClock(100000);
+    Wire.setClock(I2C_CLOCK_SPEED);
     delay(100);
     
     Wire.beginTransmission(0x51);
@@ -147,7 +177,7 @@ void setup() {
     USBSerial.println("🔄 Returning to SDA=5, SCL=4 configuration");
     Wire.end();
     Wire.begin(OLED_SDA, OLED_SCL);
-    Wire.setClock(100000);
+    Wire.setClock(I2C_CLOCK_SPEED);
     delay(100);
     
     // Comprehensive I2C scan for debugging
@@ -341,12 +371,12 @@ void stopRecording() {
 void updateDisplay() {
     // Avoid display updates too frequently
     static unsigned long lastDisplayUpdate = 0;
-    if (millis() - lastDisplayUpdate < 500) return;
+    if (millis() - lastDisplayUpdate < DISPLAY_UPDATE_INTERVAL_MS) return;
     lastDisplayUpdate = millis();
     
     // Add periodic I2C debug info
     static unsigned long lastI2CDebug = 0;
-    if (millis() - lastI2CDebug > 10000) { // Every 10 seconds
+    if (millis() - lastI2CDebug > I2C_DEBUG_INTERVAL_MS) {
         lastI2CDebug = millis();
         USBSerial.println("🔍 Periodic I2C status check:");
         USBSerial.printf("   OLED Available: %s\n", oledAvailable ? "YES" : "NO");
@@ -412,7 +442,7 @@ void updateLED() {
     if (isRecording) {
         // Smooth breathing effect
         unsigned long currentTime = millis();
-        if (currentTime - lastLedUpdate > 10) {
+        if (currentTime - lastLedUpdate > LED_UPDATE_INTERVAL_MS) {
             ledBrightness += ledDirection * 5;
             if (ledBrightness >= 255) {
                 ledBrightness = 255;
@@ -432,9 +462,9 @@ void handleRecording() {
     
     // Read audio data sample by sample
     int samplesRead = 0;
-    int16_t pcmBuffer[512];  // Buffer for processed PCM data
+    int16_t pcmBuffer[AUDIO_BUFFER_SIZE];  // Buffer for processed PCM data
     
-    while (I2S.available() && samplesRead < 512) {
+    while (I2S.available() && samplesRead < AUDIO_BUFFER_SIZE) {
         int32_t sample = I2S.read();
         // PDM to PCM conversion with gain adjustment
         // Shift right by 14 bits to convert from 32-bit PDM to 16-bit PCM range
@@ -466,9 +496,9 @@ void handleRecording() {
         
         // Send via BLE if connected
         if (deviceConnected && pAudioCharacteristic) {
-            // BLE has 20-byte limit per packet, so we need to chunk
-            for (int i = 0; i < bytesRead; i += 20) {
-                int chunkSize = min(20, bytesRead - i);
+            // BLE has packet size limit, so we need to chunk
+            for (int i = 0; i < bytesRead; i += BLE_PACKET_SIZE) {
+                int chunkSize = min(BLE_PACKET_SIZE, bytesRead - i);
                 pAudioCharacteristic->setValue((uint8_t*)audioBuffer + i, chunkSize);
                 pAudioCharacteristic->notify();
             }
@@ -494,6 +524,9 @@ void sendStatus() {
 }
 
 void loop() {
+    // Feed the watchdog to prevent reset
+    esp_task_wdt_reset();
+    
     // Handle button press
     if (buttonPressed) {
         buttonPressed = false;
@@ -516,7 +549,7 @@ void loop() {
     
     // Send periodic status updates
     static unsigned long lastStatusUpdate = 0;
-    if (millis() - lastStatusUpdate > 5000) {
+    if (millis() - lastStatusUpdate > STATUS_UPDATE_INTERVAL_MS) {
         sendStatus();
         lastStatusUpdate = millis();
     }
@@ -635,7 +668,7 @@ void testI2CConfigurations() {
     // Restore original configuration
     Wire.end();
     Wire.begin(OLED_SDA, OLED_SCL);
-    Wire.setClock(100000);
+    Wire.setClock(I2C_CLOCK_SPEED);
     delay(100);
     USBSerial.println("\n🔄 Restored to SDA=5, SCL=4 @ 100kHz");
 }

@@ -12,6 +12,7 @@ Instead of hardcoded rules, this:
 import asyncio
 import logging
 import json
+import os
 import re
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
@@ -252,20 +253,22 @@ JSON array:"""
                 else:
                     logger.warning(f"⚠️ Failed to parse claims from LLAMA response: {response[:100]}...")
             
-            # Direct Ollama call as backup - use tinyllama for lower memory usage
+            # Direct Ollama call as backup
             ollama_url = "http://localhost:11434/api/generate"
+            model = os.environ.get("LLM_MODEL", "llama3.2:3b")
             payload = {
-                "model": "tinyllama:latest",  # Use smaller model to avoid OOM
+                "model": model,
                 "prompt": prompt,
                 "stream": False,
                 "options": {
                     "temperature": 0.1,  # Low temp for consistent extraction
-                    "num_predict": 200,
+                    "num_predict": 300,
                 }
             }
             
             async with aiohttp.ClientSession() as session:
-                async with session.post(ollama_url, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                # Increased timeout for slower Jetson hardware
+                async with session.post(ollama_url, json=payload, timeout=aiohttp.ClientTimeout(total=120)) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         response = data.get("response", "")

@@ -184,7 +184,8 @@ function renderHistoryItems(items) {
   let html = '';
   items.forEach(item => {
     const date = new Date(item.timestamp).toLocaleString();
-    const size = item.size ? formatFileSize(item.size) : '';
+    const bytes = (typeof item.size === 'number' ? item.size : (typeof item.fileSize === 'number' ? item.fileSize : null));
+    const size = bytes ? formatFileSize(bytes) : '';
     const hasResult = item.result && item.result.transcription;
     const status = hasResult ? 'completed' : (item.status || 'pending');
     const filename = item.originalFilename || item.filename || item.savedFilename || 'Recording';

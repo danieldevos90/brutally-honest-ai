@@ -14,56 +14,46 @@
 <div id="tab-content-upload">
   <div class="card">
     <form id="upload-form" enctype="multipart/form-data">
-      <div class="file-upload" onclick="document.getElementById('file-input').click()">
+      <div class="file-upload" id="upload-area" onclick="document.getElementById('file-input').click()">
         <input type="file" id="file-input" multiple accept=".txt,.pdf,.doc,.docx" style="display: none;">
         <svg class="file-upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
         </svg>
         <div class="file-upload-text">
           <strong>Click to upload</strong> or drag and drop<br>
-          <span class="text-xs text-muted">TXT, PDF, DOC, DOCX</span>
+          <span class="text-xs text-muted">TXT, PDF, DOC, DOCX · Multiple files supported</span>
         </div>
       </div>
       
-      <div id="metadata-form" class="mt-4" style="display: none;">
-        <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium">Tags (comma-separated)</label>
-            <input type="text" id="doc-tags" class="input" placeholder="e.g., policy, brand, official">
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium">Category</label>
-            <select id="doc-category" class="input">
-              <option value="">Select category...</option>
-              <option value="policy">Policy</option>
-              <option value="contract">Contract</option>
-              <option value="guideline">Guideline</option>
-              <option value="manual">Manual</option>
-              <option value="report">Report</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium">Description</label>
-            <textarea id="doc-context" class="input" rows="3" placeholder="Describe what this document is about..."></textarea>
-          </div>
-          <div class="flex gap-3">
-            <button type="button" onclick="uploadWithMetadata()" class="btn btn-primary flex-1">Upload Document</button>
-            <button type="button" onclick="cancelUpload()" class="btn btn-tertiary flex-1">Cancel</button>
-          </div>
+      <!-- Selected Files Preview -->
+      <div id="selected-files" class="mt-4" style="display: none;">
+        <div class="card-header">
+          <span class="font-medium" id="files-count">Selected Files</span>
+          <button type="button" onclick="clearAllFiles()" class="btn btn-tertiary btn-sm">Clear All</button>
+        </div>
+        <div id="files-list" class="flex flex-col gap-2 mt-3">
+          <!-- Files will be listed here -->
+        </div>
+        <div class="flex gap-3 mt-4">
+          <button type="button" onclick="uploadAllFiles()" class="btn btn-primary flex-1">
+            <span id="upload-btn-text">Upload All</span>
+          </button>
+          <button type="button" onclick="clearAllFiles()" class="btn btn-tertiary flex-1">Cancel</button>
         </div>
       </div>
     </form>
   </div>
   
-  <!-- Upload Progress -->
-  <div id="upload-progress" class="card mt-4" style="display: none;">
-    <div class="row-stretch mb-2">
-      <span id="upload-status" class="text-sm">Uploading...</span>
-      <span id="upload-percentage" class="text-sm font-medium">0%</span>
-    </div>
-    <div style="background: var(--color-gray-200); height: 4px; border-radius: 2px; overflow: hidden;">
-      <div id="progress-bar" style="background: var(--color-black); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+  <!-- Upload Progress Section -->
+  <div id="upload-progress-section" class="mt-4" style="display: none;">
+    <div class="card">
+      <div class="card-header">
+        <span class="font-medium">Upload Progress</span>
+        <span id="upload-summary" class="text-sm text-muted">0/0 completed</span>
+      </div>
+      <div id="upload-progress-list" class="flex flex-col gap-3 mt-3">
+        <!-- Individual file progress items will appear here -->
+      </div>
     </div>
   </div>
 </div>

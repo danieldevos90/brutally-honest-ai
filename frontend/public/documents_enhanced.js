@@ -1,59 +1,17 @@
-// Enhanced Documents Page JavaScript with Profile Linking and Better UX
+// Enhanced Documents Page JavaScript with Multi-file Upload Support
 // Uses relative URLs to work through the Node.js proxy in production
 
 let selectedFiles = [];
-let availableProfiles = [];
+let uploadResults = { completed: 0, failed: 0, total: 0 };
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
     setupFileUpload();
-    loadProfiles();
     loadDocuments();
 });
 
-// Load all profiles for linking
-async function loadProfiles() {
-    try {
-        const [clients, brands, persons] = await Promise.all([
-            fetch('/api/profiles/clients').then(r => r.json()),
-            fetch('/api/profiles/brands').then(r => r.json()),
-            fetch('/api/profiles/persons').then(r => r.json())
-        ]);
-        
-        availableProfiles = [
-            ...(clients.profiles || []).map(p => ({...p, type: 'client'})),
-            ...(brands.profiles || []).map(p => ({...p, type: 'brand'})),
-            ...(persons.profiles || []).map(p => ({...p, type: 'person'}))
-        ];
-        
-        populateProfileSelect();
-    } catch (error) {
-        console.error('Error loading profiles:', error);
-    }
-}
-
-function populateProfileSelect() {
-    const select = document.getElementById('doc-profiles');
-    if (!select) return;
-    
-    select.innerHTML = '';
-    
-    if (availableProfiles.length === 0) {
-        select.innerHTML = '<option disabled>No profiles available. Create profiles first.</option>';
-        return;
-    }
-    
-    availableProfiles.forEach(profile => {
-        const option = document.createElement('option');
-        option.value = profile.id;
-        option.textContent = `[${profile.type.toUpperCase()}] ${profile.name}`;
-        select.appendChild(option);
-    });
-}
-
 function setupFileUpload() {
-    // Support both class-based and ID-based upload areas
     const uploadArea = document.querySelector('.file-upload') || document.getElementById('upload-area');
     const fileInput = document.getElementById('file-input');
     
@@ -79,7 +37,7 @@ function setupFileUpload() {
         handleFiles(e.dataTransfer.files);
     });
     
-    // File input
+    // File input - add more files to selection
     fileInput.addEventListener('change', (e) => {
         handleFiles(e.target.files);
     });
@@ -91,17 +49,20 @@ function handleFiles(files) {
     const supportedTypes = ['.txt', '.pdf', '.doc', '.docx'];
     const maxSize = 10 * 1024 * 1024; // 10MB
     
-    selectedFiles = [];
-    
     for (let file of files) {
         const extension = '.' + file.name.split('.').pop().toLowerCase();
         if (!supportedTypes.includes(extension)) {
-            alert(`Unsupported file type: ${file.name}`);
+            showNotification(`Unsupported: ${file.name}`, 'error');
             continue;
         }
         
         if (file.size > maxSize) {
-            alert(`File too large: ${file.name}. Max 10MB`);
+            showNotification(`Too large: ${file.name} (max 10MB)`, 'error');
+            continue;
+        }
+        
+        // Check for duplicates
+        if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
             continue;
         }
         
@@ -109,130 +70,200 @@ function handleFiles(files) {
     }
     
     if (selectedFiles.length > 0) {
-        showMetadataForm();
+        showSelectedFiles();
     }
 }
 
-function showMetadataForm() {
-    const metadataForm = document.getElementById('metadata-form');
-    const uploadArea = document.querySelector('.file-upload') || document.getElementById('upload-area');
+function showSelectedFiles() {
+    const selectedSection = document.getElementById('selected-files');
+    const filesList = document.getElementById('files-list');
+    const filesCount = document.getElementById('files-count');
+    const uploadArea = document.getElementById('upload-area');
     
-    if (metadataForm) metadataForm.style.display = 'block';
-    if (uploadArea) uploadArea.style.opacity = '0.5';
+    if (!selectedSection || !filesList) return;
     
-    // Update form title with file count if title element exists
-    const fileCount = selectedFiles.length;
-    const title = document.querySelector('#metadata-form h3');
-    if (title) {
-        title.textContent = `Add Metadata for ${fileCount} Document${fileCount > 1 ? 's' : ''}`;
+    selectedSection.style.display = 'block';
+    if (uploadArea) uploadArea.style.opacity = '0.6';
+    
+    // Update count
+    if (filesCount) {
+        filesCount.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} selected`;
     }
     
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Update button text
+    const uploadBtn = document.getElementById('upload-btn-text');
+    if (uploadBtn) {
+        uploadBtn.textContent = `Upload ${selectedFiles.length} File${selectedFiles.length > 1 ? 's' : ''}`;
+    }
+    
+    // Render file list
+    filesList.innerHTML = selectedFiles.map((file, index) => `
+        <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--color-gray-100); border-radius: 8px;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(file.name)}</div>
+                <div class="text-xs text-muted">${formatFileSize(file.size)} · ${file.name.split('.').pop().toUpperCase()}</div>
+            </div>
+            <button type="button" onclick="removeFile(${index})" class="btn btn-tertiary btn-sm" style="margin-left: 8px;">
+                Remove
+            </button>
+        </div>
+    `).join('');
 }
 
-function cancelUpload() {
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    if (selectedFiles.length === 0) {
+        clearAllFiles();
+    } else {
+        showSelectedFiles();
+    }
+}
+
+function clearAllFiles() {
     selectedFiles = [];
     
-    const metadataForm = document.getElementById('metadata-form');
-    const uploadArea = document.querySelector('.file-upload') || document.getElementById('upload-area');
+    const selectedSection = document.getElementById('selected-files');
+    const uploadArea = document.getElementById('upload-area');
     const fileInput = document.getElementById('file-input');
+    const progressSection = document.getElementById('upload-progress-section');
     
-    if (metadataForm) metadataForm.style.display = 'none';
+    if (selectedSection) selectedSection.style.display = 'none';
     if (uploadArea) uploadArea.style.opacity = '1';
     if (fileInput) fileInput.value = '';
-    
-    // Clear form fields if they exist
-    const docTags = document.getElementById('doc-tags');
-    const docCategory = document.getElementById('doc-category');
-    const docContext = document.getElementById('doc-context');
-    const docProfiles = document.getElementById('doc-profiles');
-    
-    if (docTags) docTags.value = '';
-    if (docCategory) docCategory.value = '';
-    if (docContext) docContext.value = '';
-    if (docProfiles) docProfiles.selectedIndex = -1;
+    if (progressSection) progressSection.style.display = 'none';
 }
 
-async function uploadWithMetadata() {
+async function uploadAllFiles() {
     if (selectedFiles.length === 0) return;
     
-    const docTags = document.getElementById('doc-tags');
-    const docCategory = document.getElementById('doc-category');
-    const docContext = document.getElementById('doc-context');
-    const profileSelect = document.getElementById('doc-profiles');
+    const selectedSection = document.getElementById('selected-files');
+    const progressSection = document.getElementById('upload-progress-section');
+    const progressList = document.getElementById('upload-progress-list');
+    const uploadSummary = document.getElementById('upload-summary');
     
-    const tags = docTags ? docTags.value : '';
-    const category = docCategory ? docCategory.value : '';
-    const context = docContext ? docContext.value : '';
-    const selectedProfiles = profileSelect ? Array.from(profileSelect.selectedOptions).map(o => o.value) : [];
+    // Hide file selection, show progress
+    if (selectedSection) selectedSection.style.display = 'none';
+    if (progressSection) progressSection.style.display = 'block';
+    if (progressList) progressList.innerHTML = '';
     
-    // Hide form, show progress
-    const metadataForm = document.getElementById('metadata-form');
-    const progressDiv = document.getElementById('upload-progress');
-    const uploadArea = document.querySelector('.file-upload') || document.getElementById('upload-area');
+    // Reset results
+    uploadResults = { completed: 0, failed: 0, total: selectedFiles.length };
+    updateUploadSummary();
     
-    if (metadataForm) metadataForm.style.display = 'none';
-    if (progressDiv) progressDiv.style.display = 'block';
+    // Create progress items for all files
+    selectedFiles.forEach((file, index) => {
+        const progressItem = document.createElement('div');
+        progressItem.id = `upload-item-${index}`;
+        progressItem.className = 'upload-item';
+        progressItem.style.cssText = 'padding: 12px; background: var(--color-gray-100); border-radius: 8px; border-left: 4px solid var(--color-primary);';
+        progressItem.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${escapeHtml(file.name)}</span>
+                <span class="upload-percent text-sm text-muted" style="margin-left: 8px;">0%</span>
+            </div>
+            <div style="background: var(--color-gray-200); height: 4px; border-radius: 2px; overflow: hidden;">
+                <div class="upload-bar" style="background: var(--color-black); height: 100%; width: 0%; transition: width 0.2s ease;"></div>
+            </div>
+            <div class="upload-status text-xs text-muted" style="margin-top: 4px;">Waiting...</div>
+        `;
+        if (progressList) progressList.appendChild(progressItem);
+    });
     
-    for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        await uploadSingleFile(file, tags, category, context, selectedProfiles, i + 1, selectedFiles.length);
-    }
+    // Upload all files in parallel
+    const uploadPromises = selectedFiles.map((file, index) => uploadSingleFile(file, index));
+    await Promise.all(uploadPromises);
     
-    // Reset
-    if (progressDiv) progressDiv.style.display = 'none';
-    if (uploadArea) uploadArea.style.opacity = '1';
-    cancelUpload();
+    // Show completion message
+    showNotification(`Uploaded ${uploadResults.completed}/${uploadResults.total} files`, 
+        uploadResults.failed > 0 ? 'warning' : 'success');
     
-    // Reload documents
-    setTimeout(() => loadDocuments(), 1000);
+    // Reset after delay
+    setTimeout(() => {
+        clearAllFiles();
+        loadDocuments();
+    }, 2000);
 }
 
-async function uploadSingleFile(file, tags, category, context, profiles, current, total) {
-    const statusSpan = document.getElementById('upload-status');
-    const percentageSpan = document.getElementById('upload-percentage');
-    const progressBar = document.getElementById('progress-bar');
+function updateUploadSummary() {
+    const summaryEl = document.getElementById('upload-summary');
+    if (summaryEl) {
+        summaryEl.textContent = `${uploadResults.completed}/${uploadResults.total} completed`;
+    }
+}
+
+async function uploadSingleFile(file, index) {
+    const itemEl = document.getElementById(`upload-item-${index}`);
+    const percentEl = itemEl?.querySelector('.upload-percent');
+    const barEl = itemEl?.querySelector('.upload-bar');
+    const statusEl = itemEl?.querySelector('.upload-status');
     
     try {
-        if (statusSpan) statusSpan.textContent = `Uploading ${current}/${total}: ${file.name}...`;
+        if (statusEl) statusEl.textContent = 'Uploading...';
         
         const formData = new FormData();
         formData.append('file', file);
-        if (tags) formData.append('tags', tags);
-        if (category) formData.append('category', category);
-        if (context) formData.append('context', context);
         
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const percentage = Math.round((e.loaded / e.total) * 100);
-                if (percentageSpan) percentageSpan.textContent = `${percentage}%`;
-                if (progressBar) progressBar.style.width = `${percentage}%`;
-            }
-        });
-        
-        xhr.open('POST', '/documents/upload');
-        
-        await new Promise((resolve, reject) => {
-            xhr.onload = () => {
-                if (xhr.status === 200) {
-                    const result = JSON.parse(xhr.responseText);
-                    showNotification(`[OK] Uploaded: ${file.name}`, 'success');
-                    resolve(result);
-                } else {
-                    reject(new Error(`Upload failed: ${xhr.status}`));
+        return new Promise((resolve) => {
+            const xhr = new XMLHttpRequest();
+            
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentage = Math.round((e.loaded / e.total) * 100);
+                    if (percentEl) percentEl.textContent = `${percentage}%`;
+                    if (barEl) barEl.style.width = `${percentage}%`;
+                    if (percentage === 100 && statusEl) statusEl.textContent = 'Processing...';
                 }
-            };
-            xhr.onerror = () => reject(new Error('Upload failed'));
+            });
+            
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    try {
+                        const result = JSON.parse(xhr.responseText);
+                        if (result.success) {
+                            if (itemEl) itemEl.style.borderLeftColor = 'var(--color-success, #22c55e)';
+                            if (statusEl) statusEl.textContent = `Done · ${result.document?.chunk_count || 0} chunks`;
+                            uploadResults.completed++;
+                        } else {
+                            throw new Error(result.message || 'Upload failed');
+                        }
+                    } catch (e) {
+                        if (itemEl) itemEl.style.borderLeftColor = 'var(--color-error, #ef4444)';
+                        if (statusEl) statusEl.textContent = `Error: ${e.message}`;
+                        uploadResults.failed++;
+                    }
+                } else {
+                    if (itemEl) itemEl.style.borderLeftColor = 'var(--color-error, #ef4444)';
+                    if (statusEl) statusEl.textContent = `Error: HTTP ${xhr.status}`;
+                    uploadResults.failed++;
+                }
+                updateUploadSummary();
+                resolve();
+            });
+            
+            xhr.addEventListener('error', () => {
+                if (itemEl) itemEl.style.borderLeftColor = 'var(--color-error, #ef4444)';
+                if (statusEl) statusEl.textContent = 'Network error';
+                uploadResults.failed++;
+                updateUploadSummary();
+                resolve();
+            });
+            
+            xhr.open('POST', '/documents/upload');
             xhr.send(formData);
         });
         
     } catch (error) {
         console.error('Upload error:', error);
-        showNotification(`[ERROR] Failed to upload ${file.name}`, 'error');
+        if (itemEl) itemEl.style.borderLeftColor = 'var(--color-error, #ef4444)';
+        if (statusEl) statusEl.textContent = `Error: ${error.message}`;
+        uploadResults.failed++;
+        updateUploadSummary();
     }
 }
+
+// Legacy function aliases for compatibility
+function cancelUpload() { clearAllFiles(); }
+function uploadWithMetadata() { uploadAllFiles(); }
 
 async function loadDocuments() {
     const listEl = document.getElementById('documents-list');
@@ -290,7 +321,7 @@ async function searchDocuments() {
         if (data.success && data.results && data.results.length > 0) {
             resultsEl.innerHTML = data.results.map(r => `
                 <div style="text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px;">
-                    <div class="font-medium">${escapeHtml(r.filename || 'Document')}</div>
+                    <div class="font-medium">${escapeHtml((r.metadata && r.metadata.filename) || r.filename || 'Document')}</div>
                     <div class="text-sm text-muted mt-1">${escapeHtml(r.content_preview || r.content?.substring(0, 150) || '')}</div>
                     <div class="text-xs text-muted mt-2">Score: ${(r.score * 100).toFixed(1)}%</div>
                 </div>
@@ -355,4 +386,7 @@ window.loadDocuments = loadDocuments;
 window.deleteDocument = deleteDocument;
 window.uploadWithMetadata = uploadWithMetadata;
 window.cancelUpload = cancelUpload;
+window.uploadAllFiles = uploadAllFiles;
+window.clearAllFiles = clearAllFiles;
+window.removeFile = removeFile;
 

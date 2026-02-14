@@ -43,7 +43,11 @@ echo -e "${GREEN}✓ Directory created: $REMOTE_DIR${NC}"
 
 # Step 2: Sync project files (excluding large directories)
 echo -e "\n${YELLOW}➤ Step 2: Syncing project files...${NC}"
-rsync -avz --progress \
+# Persist history/recordings across deploys:
+# Keep state under $NVIDIA_STATE_DIR (outside the repo) and symlink it back into the repo.
+NVIDIA_STATE_DIR="${NVIDIA_STATE_DIR:-/home/brutally/.brutally-honest-ai-state}"
+
+rsync -avz --progress --keep-dirlinks \
     --exclude 'venv/' \
     --exclude '__pycache__/' \
     --exclude '*.pyc' \
@@ -53,10 +57,43 @@ rsync -avz --progress \
     --exclude 'models/*.gguf' \
     --exclude 'documents/*' \
     --exclude 'uploads/*' \
+    --exclude 'data/' \
+    --exclude 'recordings/' \
+    --exclude 'frontend/uploads/recordings/' \
     --exclude '.env' \
     --exclude '.env.local' \
     "$LOCAL_DIR/" "$REMOTE_HOST:$REMOTE_DIR/"
 echo -e "${GREEN}✓ Files synced${NC}"
+
+# Ensure persistent state folders + symlinks exist (no sudo required)
+echo -e "\n${YELLOW}➤ Step 2b: Ensuring persistent state (history + recordings)...${NC}"
+ssh "$REMOTE_HOST" << REMOTE_SCRIPT
+set -e
+mkdir -p "$NVIDIA_STATE_DIR/data" "$NVIDIA_STATE_DIR/recordings" "$NVIDIA_STATE_DIR/frontend_uploads_recordings"
+cd "$REMOTE_DIR"
+
+if [ -d "data" ] && [ ! -L "data" ]; then
+  cp -a "data/." "$NVIDIA_STATE_DIR/data/" 2>/dev/null || true
+  rm -rf "data"
+fi
+if [ -d "recordings" ] && [ ! -L "recordings" ]; then
+  cp -a "recordings/." "$NVIDIA_STATE_DIR/recordings/" 2>/dev/null || true
+  rm -rf "recordings"
+fi
+mkdir -p "frontend/uploads"
+if [ -d "frontend/uploads/recordings" ] && [ ! -L "frontend/uploads/recordings" ]; then
+  cp -a "frontend/uploads/recordings/." "$NVIDIA_STATE_DIR/frontend_uploads_recordings/" 2>/dev/null || true
+  rm -rf "frontend/uploads/recordings"
+fi
+
+ln -sfn "$NVIDIA_STATE_DIR/data" "data"
+ln -sfn "$NVIDIA_STATE_DIR/recordings" "recordings"
+ln -sfn "$NVIDIA_STATE_DIR/frontend_uploads_recordings" "frontend/uploads/recordings"
+
+if [ ! -f "data/transcription_history.json" ]; then echo "[]" > "data/transcription_history.json"; fi
+if [ ! -f "data/validation_history.json" ]; then echo "[]" > "data/validation_history.json"; fi
+REMOTE_SCRIPT
+echo -e "${GREEN}✓ Persistent state configured at: $NVIDIA_STATE_DIR${NC}"
 
 # Step 3: Install system dependencies on remote
 echo -e "\n${YELLOW}➤ Step 3: Installing system dependencies...${NC}"

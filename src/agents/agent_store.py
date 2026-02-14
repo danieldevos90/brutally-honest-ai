@@ -46,7 +46,7 @@ class AgentStore:
             
             if self.embedding_model is None:
                 from sentence_transformers import SentenceTransformer
-                self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+                self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')  # CPU to save GPU for Whisper
             
             # Create collection if not exists
             collections = self.client.get_collections().collections

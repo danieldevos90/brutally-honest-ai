@@ -1,0 +1,150 @@
+[
+  {
+    "id": "03a14454-200b-4a8e-8bf5-f98c21db8356",
+    "timestamp": "2026-02-03T18:08:06.046Z",
+    "type": "auth",
+    "action": "login_failed",
+    "details": {
+      "attemptedEmail": "admin@brutallyhonest.ai",
+      "reason": "user_not_found"
+    },
+    "userId": null,
+    "device": "web"
+  },
+  {
+    "id": "c08cca9a-4723-4371-b630-d1f72bf091ac",
+    "timestamp": "2026-02-03T18:08:18.026Z",
+    "type": "auth",
+    "action": "login_success",
+    "details": {
+      "email": "admin@brutallyhonest.io",
+      "userId": "admin"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "0cde30c0-5a26-4b83-8cf1-c6c7e19e2715",
+    "timestamp": "2026-02-03T18:08:53.937Z",
+    "type": "auth",
+    "action": "login_success",
+    "details": {
+      "email": "admin@brutallyhonest.io",
+      "userId": "admin"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "586b3bb1-de2f-43a7-a8f7-39143a6fa1e1",
+    "timestamp": "2026-02-03T20:29:00.440Z",
+    "type": "auth",
+    "action": "login_success",
+    "details": {
+      "email": "admin@brutallyhonest.io",
+      "userId": "admin"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "3af4eb58-6aef-4602-b591-4949094ce7ae",
+    "timestamp": "2026-02-03T20:29:08.178Z",
+    "type": "auth",
+    "action": "user_created",
+    "details": {
+      "email": "testuser@example.com",
+      "role": "user"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "d821e813-2097-45c6-af09-1c09dbf99299",
+    "timestamp": "2026-02-03T20:31:29.226Z",
+    "type": "auth",
+    "action": "login_success",
+    "details": {
+      "email": "admin@brutallyhonest.io",
+      "userId": "admin"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "f2b9d764-e9bf-49a6-912f-0e1c15bf02d2",
+    "timestamp": "2026-02-03T21:04:43.815Z",
+    "type": "auth",
+    "action": "login_success",
+    "details": {
+      "email": "admin@brutallyhonest.io",
+      "userId": "admin"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "a843bb46-eac2-4d99-9210-fa2325c81997",
+    "timestamp": "2026-02-03T21:04:51.005Z",
+    "type": "transcribe",
+    "action": "job_submitted",
+    "details": {
+      "filename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+      "job_id": "5aa46917",
+      "validateDocs": false
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "bf0240a0-1af6-4a5f-8ad6-761503039732",
+    "timestamp": "2026-02-03T21:05:31.024Z",
+    "type": "transcribe",
+    "action": "job_submitted",
+    "details": {
+      "filename": "test_audio.mp3",
+      "job_id": "607960d8",
+      "validateDocs": false
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "0c9c01a9-d1fb-4c7f-81cd-bb1cef4ce7e5",
+    "timestamp": "2026-02-03T21:18:51.092Z",
+    "type": "auth",
+    "action": "login_success",
+    "details": {
+      "email": "admin@brutallyhonest.io",
+      "userId": "admin"
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "170e23cf-2856-422b-8779-e07971128c6a",
+    "timestamp": "2026-02-03T21:18:51.708Z",
+    "type": "transcribe",
+    "action": "job_submitted",
+    "details": {
+      "filename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+      "job_id": "c49b6618",
+      "validateDocs": false
+    },
+    "userId": "admin",
+    "device": "web"
+  },
+  {
+    "id": "7543e832-d48e-4511-ab62-ce2001ab62bb",
+    "timestamp": "2026-02-03T21:20:49.217Z",
+    "type": "transcribe",
+    "action": "job_submitted",
+    "details": {
+      "filename": "In Gesprek Audiotekst 1 - CD track 1.mp3",
+      "job_id": "862832fa",
+      "validateDocs": false
+    },
+    "userId": "admin",
+    "device": "web"
+  }
+]

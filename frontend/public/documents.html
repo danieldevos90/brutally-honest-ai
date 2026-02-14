@@ -165,6 +165,7 @@
 
             const supportedTypes = ['.txt', '.pdf', '.doc', '.docx'];
             const maxSize = 10 * 1024 * 1024; // 10MB
+            const validFiles = [];
 
             for (let file of files) {
                 // Check file type
@@ -180,25 +181,46 @@
                     continue;
                 }
 
-                await uploadFile(file);
+                validFiles.push(file);
             }
+
+            // Upload all valid files in parallel (don't await - let them run concurrently)
+            validFiles.forEach(file => uploadFile(file));
         }
 
+        // Track active uploads for concurrent processing
+        let activeUploads = 0;
+        
         async function uploadFile(file) {
-            const progressDiv = document.getElementById('upload-progress');
-            const statusSpan = document.getElementById('upload-status');
-            const percentageSpan = document.getElementById('upload-percentage');
-            const progressBar = document.getElementById('progress-bar');
             const statusSection = document.getElementById('upload-status-section');
             const statusList = document.getElementById('upload-status-list');
+            
+            // Create individual progress item for this file
+            const progressItem = document.createElement('div');
+            progressItem.className = 'card mb-3';
+            progressItem.style.borderLeft = '4px solid var(--color-primary)';
+            progressItem.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-primary">${file.name}</span>
+                    <span class="upload-percent text-xs text-muted">0%</span>
+                </div>
+                <div class="cred-bar mt-2">
+                    <div class="cred-bar-fill cred-bar-success upload-progress-bar" style="width: 0%;"></div>
+                </div>
+                <div class="upload-status-text text-xs text-tertiary mt-1">Uploading...</div>
+            `;
+            
+            // Show status section and add this upload
+            statusSection.classList.remove('hidden');
+            statusList.appendChild(progressItem);
+            
+            const percentSpan = progressItem.querySelector('.upload-percent');
+            const progressBar = progressItem.querySelector('.upload-progress-bar');
+            const statusText = progressItem.querySelector('.upload-status-text');
+            
+            activeUploads++;
 
             try {
-                // Show progress
-                progressDiv.classList.remove('hidden');
-                statusSpan.textContent = `Uploading ${file.name}...`;
-                percentageSpan.textContent = '0%';
-                progressBar.style.width = '0%';
-
                 // Create form data
                 const formData = new FormData();
                 formData.append('file', file);
@@ -209,70 +231,58 @@
                 xhr.upload.addEventListener('progress', function(e) {
                     if (e.lengthComputable) {
                         const percentage = Math.round((e.loaded / e.total) * 100);
-                        percentageSpan.textContent = `${percentage}%`;
+                        percentSpan.textContent = `${percentage}%`;
                         progressBar.style.width = `${percentage}%`;
+                        if (percentage < 100) {
+                            statusText.textContent = 'Uploading...';
+                        } else {
+                            statusText.textContent = 'Processing...';
+                        }
                     }
                 });
 
                 xhr.addEventListener('load', function() {
+                    activeUploads--;
                     if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.success) {
-                            statusSpan.textContent = `[OK] ${file.name} processed successfully`;
-                            percentageSpan.textContent = '100%';
-                            progressBar.style.width = '100%';
-                            
-                            // Show upload status
-                            statusSection.classList.remove('hidden');
-                            const statusItem = document.createElement('div');
-                            statusItem.className = 'card mb-3';
-                            statusItem.style.borderLeft = '4px solid var(--color-success)';
-                            statusItem.innerHTML = `
-                                <div class="font-medium text-primary">${file.name}</div>
-                                <div class="text-xs text-tertiary mt-1">
-                                    ${response.document.text_length} characters • ${(response.document.file_size / 1024).toFixed(1)} KB • Processed and indexed
-                                </div>
-                            `;
-                            statusList.appendChild(statusItem);
-                            
-                            // Hide progress after delay
-                            setTimeout(() => {
-                                progressDiv.classList.add('hidden');
-                            }, 2000);
-                            
-                            // Update stats
-                            updateStats();
-                        } else {
-                            throw new Error(response.message || 'Upload failed');
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                progressItem.style.borderLeft = '4px solid var(--color-success)';
+                                percentSpan.textContent = '100%';
+                                progressBar.style.width = '100%';
+                                statusText.textContent = `${response.document.text_length} characters • ${(response.document.file_size / 1024).toFixed(1)} KB • Processed and indexed`;
+                                
+                                // Update stats
+                                updateStats();
+                            } else {
+                                progressItem.style.borderLeft = '4px solid var(--color-error, #dc3545)';
+                                statusText.textContent = `Error: ${response.message || 'Upload failed'}`;
+                            }
+                        } catch (e) {
+                            progressItem.style.borderLeft = '4px solid var(--color-error, #dc3545)';
+                            statusText.textContent = 'Error: Invalid response';
                         }
                     } else {
-                        throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
+                        progressItem.style.borderLeft = '4px solid var(--color-error, #dc3545)';
+                        statusText.textContent = `Error: HTTP ${xhr.status}`;
                     }
                 });
 
                 xhr.addEventListener('error', function() {
+                    activeUploads--;
                     console.error('Network error during upload');
-                    statusSpan.textContent = `[ERROR] Network error uploading ${file.name}`;
-                    progressBar.style.background = 'var(--color-error, #dc3545)';
-                    
-                    setTimeout(() => {
-                        progressDiv.classList.add('hidden');
-                        progressBar.style.background = '';
-                    }, 3000);
+                    progressItem.style.borderLeft = '4px solid var(--color-error, #dc3545)';
+                    statusText.textContent = 'Network error';
                 });
 
                 xhr.open('POST', '/documents/upload');
                 xhr.send(formData);
 
             } catch (error) {
+                activeUploads--;
                 console.error('Upload error:', error);
-                if (statusSpan) statusSpan.textContent = `[ERROR] Upload failed: ${error.message}`;
-                if (progressBar) progressBar.style.background = 'var(--color-error, #dc3545)';
-                
-                setTimeout(() => {
-                    if (progressDiv) progressDiv.classList.add('hidden');
-                    if (progressBar) progressBar.style.background = '';
-                }, 3000);
+                progressItem.style.borderLeft = '4px solid var(--color-error, #dc3545)';
+                statusText.textContent = `Error: ${error.message}`;
             }
         }
 

@@ -36,6 +36,22 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import json
 from enum import Enum
+
+# ============================================
+# Upload Safety Helpers
+# ============================================
+
+async def _read_upload_with_limit(file: UploadFile, max_bytes: int) -> bytes:
+    """
+    Read an UploadFile without unbounded RAM growth.
+    Reads at most max_bytes + 1, so we can reject "too large" uploads without OOM.
+    """
+    if max_bytes <= 0:
+        return await file.read()
+    data = await file.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise HTTPException(status_code=400, detail=f"File too large (max {max_bytes // (1024 * 1024)}MB)")
+    return data
 # Data storage paths
 DATA_DIR = Path(__file__).parent / "data"
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
@@ -98,6 +114,14 @@ from ai.enhanced_processor import get_enhanced_processor
 from documents.processor import get_document_processor, DocumentInfo
 from documents.vector_store import get_vector_store
 from analysis.interview_analyzer import get_interview_analyzer
+from services.upload_queue_manager import (
+    get_queue_manager, initialize_queue_manager,
+    QueueItem, QueueItemStatus, QueuePriority, ProcessingType
+)
+from services.user_job_manager import (
+    get_job_manager, UserJobManager, UserJob,
+    JobStatus as UserJobStatus, JobType
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -350,10 +374,29 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Failed to initialize device manager: {e}")
     
+    # Initialize upload queue manager for multi-device concurrent processing
+    try:
+        queue_manager = await initialize_queue_manager(
+            transcription_callback=process_queued_transcription,
+            document_callback=process_queued_document
+        )
+        logger.info("✅ Upload queue manager initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize queue manager: {e}")
+    
     yield  # Application runs here
     
     # === SHUTDOWN ===
     logger.info("🛑 Shutting down API server...")
+    
+    # Stop queue manager
+    try:
+        queue_manager = get_queue_manager()
+        await queue_manager.stop()
+        logger.info("✅ Queue manager stopped")
+    except Exception as e:
+        logger.error(f"❌ Queue manager shutdown error: {e}")
+    
     try:
         manager = get_device_manager_instance()
         await manager.disconnect_all()
@@ -1034,7 +1077,8 @@ async def upload_recording(file: UploadFile = File(...)):
         logger.info(f"📤 Upload request for: {file.filename}")
         
         # Read file data
-        file_data = await file.read()
+        # Prevent unbounded memory usage on huge uploads.
+        file_data = await _read_upload_with_limit(file, 20 * 1024 * 1024)
         
         conn = await get_connector()
         success = await conn.upload_file(file.filename, file_data)
@@ -1137,13 +1181,10 @@ async def transcribe_uploaded_file(
             )
         
         # Read file data
-        audio_data = await file.read()
+        audio_data = await _read_upload_with_limit(file, 100 * 1024 * 1024)
         
         if len(audio_data) == 0:
             raise HTTPException(status_code=400, detail="Empty file")
-        
-        if len(audio_data) > 100 * 1024 * 1024:  # 100MB limit
-            raise HTTPException(status_code=400, detail="File too large (max 100MB)")
         
         logger.info(f"📁 File received: {file.filename} ({len(audio_data)} bytes)")
         
@@ -1441,13 +1482,10 @@ async def transcribe_file_async(
             )
         
         # Read file data
-        audio_data = await file.read()
+        audio_data = await _read_upload_with_limit(file, 500 * 1024 * 1024)
         
         if len(audio_data) == 0:
             raise HTTPException(status_code=400, detail="Empty file")
-        
-        if len(audio_data) > 500 * 1024 * 1024:  # 500MB limit for async
-            raise HTTPException(status_code=400, detail="File too large (max 500MB)")
         
         # Create job
         job_id = create_job(file.filename, len(audio_data), validate_documents)
@@ -1538,6 +1576,282 @@ async def delete_job(job_id: str, api_key: Dict[str, Any] = Depends(require_api_
     del transcription_jobs[job_id]
     return {"success": True, "message": f"Job {job_id} deleted"}
 
+
+# ============================================
+# USER JOB ENDPOINTS - Cross-device sync
+# ============================================
+
+@app.get("/api/user/{user_id}/jobs", tags=["User Jobs"])
+async def get_user_jobs(
+    user_id: str,
+    include_completed: bool = True,
+    limit: int = 50,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Get all jobs for a specific user.
+    This enables cross-device sync - any device can see all jobs for the logged-in user.
+    """
+    job_manager = get_job_manager()
+    jobs = job_manager.get_user_jobs(user_id, limit=limit, include_completed=include_completed)
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "jobs": [job.to_dict() for job in jobs],
+        "total": len(jobs),
+        "active_count": len([j for j in jobs if j.status in [UserJobStatus.PENDING, UserJobStatus.UPLOADING, UserJobStatus.PROCESSING]])
+    }
+
+
+@app.get("/api/user/{user_id}/jobs/active", tags=["User Jobs"])
+async def get_user_active_jobs(
+    user_id: str,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Get only active (processing/pending) jobs for a user.
+    Use this for real-time status polling across devices.
+    """
+    job_manager = get_job_manager()
+    active_jobs = job_manager.get_active_jobs(user_id)
+    
+    return {
+        "success": True,
+        "user_id": user_id,
+        "jobs": [job.to_dict() for job in active_jobs],
+        "count": len(active_jobs)
+    }
+
+
+@app.get("/api/user/{user_id}/jobs/{job_id}", tags=["User Jobs"])
+async def get_user_job_status(
+    user_id: str,
+    job_id: str,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """Get status of a specific job for a user"""
+    job_manager = get_job_manager()
+    job = job_manager.get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    if job.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Job belongs to a different user")
+    
+    return {
+        "success": True,
+        **job.to_dict()
+    }
+
+
+@app.post("/api/user/{user_id}/jobs", tags=["User Jobs"])
+async def create_user_job(
+    user_id: str,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    job_type: str = Form("transcription"),
+    validate_documents: bool = Form(False),
+    device_name: str = Form(None),
+    device_id: str = Form(None),
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Create a new job for a user with file storage.
+    The file is stored on the server, enabling job resumption and cross-device monitoring.
+    """
+    try:
+        # Validate file
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        # Read file data
+        file_data = await _read_upload_with_limit(file, 100 * 1024 * 1024)
+        
+        if len(file_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        # Determine job type
+        jtype = JobType.TRANSCRIPTION if job_type == "transcription" else JobType.DOCUMENT_UPLOAD
+        
+        # Create job in user job manager
+        job_manager = get_job_manager()
+        user_job = job_manager.create_job(
+            user_id=user_id,
+            filename=file.filename,
+            file_size=len(file_data),
+            job_type=jtype,
+            device_name=device_name,
+            device_id=device_id
+        )
+        
+        # Store file for later processing/resumption
+        job_manager.store_file(user_job.id, file_data)
+        
+        logger.info(f"📤 Created user job {user_job.id} for user {user_id}: {file.filename}")
+        
+        # Also create in legacy system and start processing
+        if jtype == JobType.TRANSCRIPTION:
+            # Create legacy job for backward compatibility
+            legacy_job_id = create_job(file.filename, len(file_data), validate_documents)
+            
+            # Link the jobs
+            user_job.result = {"legacy_job_id": legacy_job_id}
+            job_manager._save_jobs()
+            
+            # Schedule background processing
+            background_tasks.add_task(
+                process_user_transcription_job,
+                user_job.id,
+                legacy_job_id,
+                file_data,
+                file.filename,
+                validate_documents
+            )
+        
+        return {
+            "success": True,
+            "job_id": user_job.id,
+            "user_id": user_id,
+            "filename": file.filename,
+            "file_size": len(file_data),
+            "status": user_job.status.value,
+            "message": "Job created and file stored"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"User job creation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create job: {str(e)}")
+
+
+@app.delete("/api/user/{user_id}/jobs/{job_id}", tags=["User Jobs"])
+async def delete_user_job(
+    user_id: str,
+    job_id: str,
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """Delete a user job and its stored file"""
+    job_manager = get_job_manager()
+    job = job_manager.get_job(job_id)
+    
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    
+    if job.user_id != user_id:
+        raise HTTPException(status_code=403, detail="Job belongs to a different user")
+    
+    job_manager.delete_job(job_id)
+    return {"success": True, "message": f"Job {job_id} deleted"}
+
+
+@app.get("/api/jobs/summary", tags=["User Jobs"])
+async def get_jobs_summary(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get summary of all jobs (admin view)"""
+    job_manager = get_job_manager()
+    return {
+        "success": True,
+        **job_manager.get_all_jobs_summary()
+    }
+
+
+async def process_user_transcription_job(
+    user_job_id: str,
+    legacy_job_id: str,
+    audio_data: bytes,
+    filename: str,
+    validate_documents: bool
+):
+    """Process transcription job with user job tracking"""
+    job_manager = get_job_manager()
+    
+    try:
+        # Update user job status
+        job_manager.update_job(user_job_id, status=UserJobStatus.PROCESSING, 
+                               progress=5, progress_message="Starting transcription...",
+                               phase="loading", phase_progress=0)
+        
+        # Start the legacy processing (which updates the legacy job)
+        await process_transcription_job(legacy_job_id, audio_data, filename, validate_documents)
+        
+        # Sync final status from legacy job to user job
+        legacy_job = get_job(legacy_job_id)
+        if legacy_job:
+            if legacy_job["status"] == JobStatus.COMPLETED:
+                job_manager.update_job(
+                    user_job_id,
+                    status=UserJobStatus.COMPLETED,
+                    progress=100,
+                    progress_message="Complete!",
+                    phase="complete",
+                    phase_progress=100,
+                    result=legacy_job.get("result")
+                )
+            elif legacy_job["status"] == JobStatus.FAILED:
+                job_manager.update_job(
+                    user_job_id,
+                    status=UserJobStatus.FAILED,
+                    progress=100,
+                    progress_message="Failed",
+                    error=legacy_job.get("error")
+                )
+    except Exception as e:
+        logger.error(f"User job {user_job_id} processing error: {e}")
+        job_manager.update_job(
+            user_job_id,
+            status=UserJobStatus.FAILED,
+            progress=100,
+            progress_message=f"Error: {str(e)}",
+            error=str(e)
+        )
+
+
+# Background task to sync user job status with legacy job
+async def sync_user_job_from_legacy(user_job_id: str, legacy_job_id: str):
+    """Periodically sync user job status from legacy job until complete"""
+    job_manager = get_job_manager()
+    
+    while True:
+        await asyncio.sleep(2)  # Poll every 2 seconds
+        
+        user_job = job_manager.get_job(user_job_id)
+        if not user_job or user_job.status in [UserJobStatus.COMPLETED, UserJobStatus.FAILED]:
+            break
+        
+        legacy_job = get_job(legacy_job_id)
+        if not legacy_job:
+            break
+        
+        # Sync status
+        job_manager.update_job(
+            user_job_id,
+            progress=legacy_job.get("progress", 0),
+            progress_message=legacy_job.get("progress_message", ""),
+            phase=legacy_job.get("phase", "loading"),
+            phase_progress=legacy_job.get("phase_progress", 0)
+        )
+        
+        # Check if done
+        if legacy_job["status"] == JobStatus.COMPLETED:
+            job_manager.update_job(
+                user_job_id,
+                status=UserJobStatus.COMPLETED,
+                progress=100,
+                phase="complete",
+                result=legacy_job.get("result")
+            )
+            break
+        elif legacy_job["status"] == JobStatus.FAILED:
+            job_manager.update_job(
+                user_job_id,
+                status=UserJobStatus.FAILED,
+                error=legacy_job.get("error")
+            )
+            break
+
+
 @app.post("/device/command")
 async def send_command(command_data: Dict[str, Any]):
     """Send a command to the device"""
@@ -1622,13 +1936,10 @@ async def upload_document(
             )
         
         # Read file data
-        file_data = await file.read()
+        file_data = await _read_upload_with_limit(file, 10 * 1024 * 1024)
         
         if len(file_data) == 0:
             raise HTTPException(status_code=400, detail="Empty file")
-        
-        if len(file_data) > 10 * 1024 * 1024:  # 10MB limit
-            raise HTTPException(status_code=400, detail="File too large (max 10MB)")
         
         # Process document
         processor = await get_document_processor()
@@ -2302,7 +2613,7 @@ async def comprehensive_analysis(
     
     try:
         # Read uploaded file
-        audio_data = await file.read()
+        audio_data = await _read_upload_with_limit(file, 200 * 1024 * 1024)
         filename = file.filename or "uploaded_audio"
         
         logger.info(f"📊 Comprehensive analysis request: {filename} ({len(audio_data)} bytes)")
@@ -2585,13 +2896,21 @@ async def validate_text_claims(request_data: Dict[str, Any]):
         # Get vector store for document search
         vector_store = await get_vector_store()
         
+        # Get model from environment
+        llm_model = os.environ.get("LLM_MODEL", "llama3.2:3b")
+        
         # Helper function to call Ollama
-        async def call_ollama(prompt: str) -> str:
+        async def call_ollama(prompt: str, max_tokens: int = 500) -> str:
             try:
                 response = http_requests.post(
                     "http://localhost:11434/api/generate",
-                    json={"model": "tinyllama:latest", "prompt": prompt, "stream": False},
-                    timeout=30
+                    json={
+                        "model": llm_model, 
+                        "prompt": prompt, 
+                        "stream": False,
+                        "options": {"temperature": 0.1, "num_predict": max_tokens}
+                    },
+                    timeout=90
                 )
                 if response.status_code == 200:
                     return response.json().get("response", "")
@@ -2600,15 +2919,24 @@ async def validate_text_claims(request_data: Dict[str, Any]):
             return ""
         
         # Extract claims from text using LLM
-        extract_prompt = f"""Extract all factual claims from the following text. 
-Return a JSON array of claim objects, each with "claim" field.
-Only extract specific, verifiable factual claims (numbers, dates, names, facts).
+        extract_prompt = f"""You are a claim extractor. Extract all factual claims from this text.
+A factual claim is a statement that can be verified as TRUE or FALSE.
 
-Text: {text}
+TEXT TO ANALYZE:
+"{text}"
 
-Return ONLY valid JSON array like: [{{"claim": "Example claim 1"}}, {{"claim": "Example claim 2"}}]"""
+INSTRUCTIONS:
+1. Extract each distinct factual claim from the text
+2. Keep claims in their ORIGINAL LANGUAGE (if Dutch, keep Dutch)
+3. Each claim should be a complete, verifiable statement
+4. Return ONLY a valid JSON array
+
+OUTPUT FORMAT (JSON array only, no other text):
+[{{"claim": "The CEO is responsible for safety"}}, {{"claim": "Teams need psychological safety"}}]
+
+JSON:"""
         
-        claims_response = await call_ollama(extract_prompt)
+        claims_response = await call_ollama(extract_prompt, 400)
         
         # Parse claims
         claims = []
@@ -2635,38 +2963,59 @@ Return ONLY valid JSON array like: [{{"claim": "Example claim 1"}}, {{"claim": "
             evidence = []
             for result in search_results:
                 evidence.append({
-                    "source": result.filename,
+                    "source": result.metadata.get("filename", "Unknown"),
                     "content": result.content[:200],
                     "score": result.score
                 })
             
             # Determine status based on evidence
             if evidence:
+                # Format evidence with document names
+                evidence_text = ""
+                for e in evidence:
+                    doc_name = e['source']
+                    content_preview = e['content'][:300] if len(e['content']) > 300 else e['content']
+                    evidence_text += f"\nDocument: {doc_name}\nContent: {content_preview}\n"
+                
                 # Use LLM to validate claim against evidence
-                validate_prompt = f"""Given this claim: "{claim_text}"
+                validate_prompt = f"""You are a fact-checker. Analyze if the evidence supports the claim.
 
-And this evidence from documents:
-{chr(10).join([f"- {e['source']}: {e['content']}" for e in evidence])}
+CLAIM TO VERIFY:
+"{claim_text}"
 
-Determine if the claim is:
-- "confirmed" (evidence supports the claim)
-- "contradicted" (evidence contradicts the claim)  
-- "unverified" (not enough evidence)
+EVIDENCE FROM KNOWLEDGE BASE:
+{evidence_text}
 
-Respond with just one word: confirmed, contradicted, or unverified.
-Then provide a brief explanation."""
+TASK:
+1. Compare the claim to the evidence
+2. Determine if the evidence SUPPORTS, CONTRADICTS, or is UNRELATED to the claim
+3. Cite the specific document name(s) that contain relevant evidence
 
-                validation_response = await call_ollama(validate_prompt)
+RESPONSE FORMAT:
+First line: confirmed OR contradicted OR unverified
+Second line onwards: Brief explanation citing the document name(s)
+
+RESPONSE:"""
+
+                validation_response = await call_ollama(validate_prompt, 300)
                 
                 status = "unverified"
-                if "confirmed" in validation_response.lower():
+                response_lower = validation_response.lower()
+                first_line = validation_response.split('\n')[0].lower() if validation_response else ""
+                
+                if "confirmed" in first_line or (response_lower.startswith("confirmed") or "is confirmed" in response_lower[:50]):
                     status = "confirmed"
-                elif "contradicted" in validation_response.lower():
+                elif "contradicted" in first_line or "contradict" in response_lower[:50]:
                     status = "contradicted"
                 
-                explanation = validation_response.replace("confirmed", "").replace("contradicted", "").replace("unverified", "").strip()
-                if not explanation:
-                    explanation = f"Found {len(evidence)} relevant document(s)"
+                # Clean up explanation
+                explanation = validation_response
+                for word in ["confirmed", "contradicted", "unverified", "RESPONSE:", "Response:"]:
+                    explanation = explanation.replace(word, "").replace(word.upper(), "")
+                explanation = explanation.strip()
+                if not explanation or len(explanation) < 10:
+                    doc_names = ", ".join(set(e['source'] for e in evidence))
+                    explanation = f"Based on evidence from: {doc_names}"
             else:
                 status = "unverified"
                 explanation = "No relevant documents found in knowledge base"
@@ -2839,31 +3188,352 @@ async def websocket_endpoint(websocket: WebSocket):
         except Exception:
             pass
 
-if __name__ == "__main__":
-    print("\n" + "="*60)
-    print("🎯 BRUTALLY HONEST AI - API SERVER")
-    print("="*60)
-    print(f"📡 API URL: http://localhost:8000")
-    print(f"📚 API Docs: http://localhost:8000/docs")
-    print(f"🔌 WebSocket: ws://localhost:8000/ws")
-    print("="*60)
-    print("🔐 AUTHENTICATION")
-    print("="*60)
-    print(f"🔑 Master API Key: {API_MASTER_KEY}")
-    print("")
-    print("Use in requests:")
-    print(f"  Authorization: Bearer {API_MASTER_KEY}")
-    print("  OR")
-    print(f"  X-API-Key: {API_MASTER_KEY}")
-    print("="*60 + "\n")
+# ============================================
+# UPLOAD QUEUE MANAGEMENT
+# Multi-device concurrent processing with GPU resource management
+# ============================================
+
+async def process_queued_transcription(item: QueueItem) -> Dict[str, Any]:
+    """Process a queued transcription item"""
+    try:
+        item.progress = 20
+        item.progress_message = "Loading AI models..."
+        
+        processor = await get_processor()
+        
+        item.progress = 40
+        item.progress_message = "Transcribing audio..."
+        
+        result = await processor.process_audio(item.data, item.filename, transcribe_only=True)
+        
+        item.progress = 80
+        item.progress_message = "Finalizing..."
+        
+        if result.success:
+            return {
+                "success": True,
+                "filename": item.filename,
+                "transcription": result.transcription,
+                "analysis": result.analysis,
+                "summary": result.summary,
+                "sentiment": result.sentiment,
+                "keywords": result.keywords,
+                "confidence": f"{result.confidence * 100:.1f}%" if result.confidence else "N/A",
+                "processing_time": f"{result.processing_time:.2f}s" if result.processing_time else "N/A",
+                "device_id": item.device_id,
+                "source": "queue"
+            }
+        else:
+            raise Exception(result.error or "Transcription failed")
+            
+    except Exception as e:
+        logger.error(f"Queue transcription error: {e}")
+        raise
+
+async def process_queued_document(item: QueueItem) -> Dict[str, Any]:
+    """Process a queued document item"""
+    try:
+        item.progress = 20
+        item.progress_message = "Extracting text..."
+        
+        # Process document
+        doc_processor = await get_document_processor()
+        doc_info = await doc_processor.process_document(item.data, item.filename)
+        
+        # Apply metadata from queue item
+        if item.metadata.get('tags'):
+            doc_info.tags = item.metadata['tags']
+        if item.metadata.get('context'):
+            doc_info.context = item.metadata['context']
+        if item.metadata.get('category'):
+            doc_info.category = item.metadata['category']
+        
+        item.progress = 50
+        item.progress_message = "Storing in vector database..."
+        
+        # Store in vector database
+        vector_store = await get_vector_store()
+        success = await vector_store.store_document(doc_info)
+        
+        item.progress = 90
+        item.progress_message = "Finalizing..."
+        
+        if success:
+            return {
+                "success": True,
+                "document_id": doc_info.id,
+                "filename": doc_info.filename,
+                "file_type": doc_info.file_type,
+                "text_length": doc_info.text_length,
+                "file_size": doc_info.file_size,
+                "device_id": item.device_id,
+                "source": "queue"
+            }
+        else:
+            raise Exception("Failed to store document in vector database")
+            
+    except Exception as e:
+        logger.error(f"Queue document error: {e}")
+        raise
+
+
+@app.post("/queue/upload/transcription", tags=["Queue"])
+async def queue_transcription_upload(
+    file: UploadFile = File(...),
+    device_id: Optional[str] = Form("web"),
+    priority: Optional[str] = Form("normal"),
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Queue an audio file for transcription from any device.
+    Returns immediately with a queue item ID for status tracking.
+    Supports multiple simultaneous uploads from different devices.
+    """
+    try:
+        # Validate file type
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        file_ext = Path(file.filename).suffix.lower()
+        supported_formats = {'.wav', '.mp3', '.m4a', '.ogg', '.flac', '.webm', '.mp4'}
+        
+        if file_ext not in supported_formats:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported audio format: {file_ext}. Supported: {', '.join(supported_formats)}"
+            )
+        
+        # Read file data
+        audio_data = await _read_upload_with_limit(file, 100 * 1024 * 1024)
+        
+        if len(audio_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        # Map priority string to enum
+        priority_map = {
+            "low": QueuePriority.LOW,
+            "normal": QueuePriority.NORMAL,
+            "high": QueuePriority.HIGH,
+            "urgent": QueuePriority.URGENT
+        }
+        queue_priority = priority_map.get(priority.lower(), QueuePriority.NORMAL)
+        
+        # Add to queue
+        queue_manager = get_queue_manager()
+        item = queue_manager.add_item(
+            device_id=device_id or "web",
+            filename=file.filename,
+            data=audio_data,
+            processing_type=ProcessingType.TRANSCRIPTION,
+            priority=queue_priority
+        )
+        
+        return {
+            "success": True,
+            "message": f"Queued for transcription",
+            "queue_item_id": item.id,
+            "device_id": device_id,
+            "filename": file.filename,
+            "file_size": len(audio_data),
+            "priority": priority,
+            "status": "queued",
+            "status_url": f"/queue/status/{item.id}"
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Queue upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Queue upload failed: {str(e)}")
+
+
+@app.post("/queue/upload/document", tags=["Queue"])
+async def queue_document_upload(
+    file: UploadFile = File(...),
+    device_id: Optional[str] = Form("web"),
+    priority: Optional[str] = Form("normal"),
+    tags: Optional[str] = Form(None),
+    context: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    api_key: Dict[str, Any] = Depends(require_api_key)
+):
+    """
+    Queue a document for processing and vector storage.
+    Returns immediately with a queue item ID for status tracking.
+    Supports txt, pdf, doc, docx formats.
+    """
+    try:
+        # Validate file type
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No filename provided")
+        
+        file_ext = Path(file.filename).suffix.lower()
+        supported_formats = {'.txt', '.pdf', '.doc', '.docx'}
+        
+        if file_ext not in supported_formats:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported document format: {file_ext}. Supported: {', '.join(supported_formats)}"
+            )
+        
+        # Read file data
+        file_data = await _read_upload_with_limit(file, 50 * 1024 * 1024)
+        
+        if len(file_data) == 0:
+            raise HTTPException(status_code=400, detail="Empty file")
+        
+        # Map priority string to enum
+        priority_map = {
+            "low": QueuePriority.LOW,
+            "normal": QueuePriority.NORMAL,
+            "high": QueuePriority.HIGH,
+            "urgent": QueuePriority.URGENT
+        }
+        queue_priority = priority_map.get(priority.lower(), QueuePriority.NORMAL)
+        
+        # Prepare metadata
+        metadata = {}
+        if tags:
+            metadata['tags'] = [t.strip() for t in tags.split(',') if t.strip()]
+        if context:
+            metadata['context'] = context
+        if category:
+            metadata['category'] = category
+        
+        # Add to queue
+        queue_manager = get_queue_manager()
+        item = queue_manager.add_item(
+            device_id=device_id or "web",
+            filename=file.filename,
+            data=file_data,
+            processing_type=ProcessingType.DOCUMENT_VECTORIZE,
+            priority=queue_priority,
+            metadata=metadata
+        )
+        
+        return {
+            "success": True,
+            "message": f"Queued for processing",
+            "queue_item_id": item.id,
+            "device_id": device_id,
+            "filename": file.filename,
+            "file_size": len(file_data),
+            "priority": priority,
+            "status": "queued",
+            "status_url": f"/queue/status/{item.id}"
+        }
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Queue document upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Queue upload failed: {str(e)}")
+
+
+@app.get("/queue/status/{item_id}", tags=["Queue"])
+async def get_queue_item_status(item_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get the status of a queued item"""
+    queue_manager = get_queue_manager()
+    status = queue_manager.get_item_status(item_id)
     
-    uvicorn.run(
-        "api_server:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=False,
-        log_level="info"
-    )
+    if not status:
+        raise HTTPException(status_code=404, detail=f"Queue item {item_id} not found")
+    
+    return {
+        "success": True,
+        **status
+    }
+
+
+@app.get("/queue/status/{item_id}/result", tags=["Queue"])
+async def get_queue_item_result(item_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get the result of a completed queue item"""
+    queue_manager = get_queue_manager()
+    item = queue_manager.get_item(item_id)
+    
+    if not item:
+        raise HTTPException(status_code=404, detail=f"Queue item {item_id} not found")
+    
+    if item.status != QueueItemStatus.COMPLETED:
+        return {
+            "success": False,
+            "status": item.status.value,
+            "progress": item.progress,
+            "progress_message": item.progress_message,
+            "message": "Item not yet completed"
+        }
+    
+    return {
+        "success": True,
+        "status": item.status.value,
+        "result": item.result
+    }
+
+
+@app.delete("/queue/cancel/{item_id}", tags=["Queue"])
+async def cancel_queue_item(item_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Cancel a queued item (only works for items still in queue)"""
+    queue_manager = get_queue_manager()
+    success = queue_manager.cancel_item(item_id)
+    
+    if success:
+        return {"success": True, "message": f"Cancelled queue item {item_id}"}
+    else:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel item {item_id} (may already be processing)")
+
+
+@app.get("/queue/stats", tags=["Queue"])
+async def get_queue_stats(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get overall queue statistics and GPU resource status"""
+    queue_manager = get_queue_manager()
+    return {
+        "success": True,
+        **queue_manager.get_queue_stats()
+    }
+
+
+@app.get("/queue/device/{device_id}", tags=["Queue"])
+async def get_device_queue(device_id: str, api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get all queue items for a specific device"""
+    queue_manager = get_queue_manager()
+    items = queue_manager.get_device_queue(device_id)
+    stats = queue_manager.get_device_stats(device_id)
+    
+    return {
+        "success": True,
+        "device_id": device_id,
+        "items": items,
+        "stats": stats
+    }
+
+
+@app.get("/queue/all", tags=["Queue"])
+async def get_all_queues(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get all queues for all devices"""
+    queue_manager = get_queue_manager()
+    return {
+        "success": True,
+        "queues": queue_manager.get_all_queues(),
+        "stats": queue_manager.get_queue_stats()
+    }
+
+
+@app.get("/gpu/status", tags=["System"])
+async def get_gpu_status(api_key: Dict[str, Any] = Depends(require_api_key)):
+    """Get GPU resource status and availability"""
+    queue_manager = get_queue_manager()
+    gpu_status = queue_manager.gpu_manager.get_status()
+    
+    return {
+        "success": True,
+        **gpu_status
+    }
+
+
 # ===== Transcription History Endpoint =====
 @app.get("/api/transcription-history")
 async def get_transcription_history():
@@ -2896,7 +3566,7 @@ async def save_recording_only(
     """
     try:
         # Read file data
-        audio_data = await file.read()
+        audio_data = await _read_upload_with_limit(file, 200 * 1024 * 1024)
         
         if len(audio_data) == 0:
             raise HTTPException(status_code=400, detail="Empty file")
@@ -3054,3 +3724,30 @@ async def reanalyze_transcription(id: str):
     except Exception as e:
         logger.error(f"Re-analyze error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    print("\n" + "=" * 60)
+    print("🎯 BRUTALLY HONEST AI - API SERVER")
+    print("=" * 60)
+    print("📡 API URL: http://localhost:8000")
+    print("📚 API Docs: http://localhost:8000/docs")
+    print("🔌 WebSocket: ws://localhost:8000/ws")
+    print("=" * 60)
+    print("🔐 AUTHENTICATION")
+    print("=" * 60)
+    print(f"🔑 Master API Key: {API_MASTER_KEY}")
+    print("")
+    print("Use in requests:")
+    print(f"  Authorization: Bearer {API_MASTER_KEY}")
+    print("  OR")
+    print(f"  X-API-Key: {API_MASTER_KEY}")
+    print("=" * 60 + "\n")
+
+    uvicorn.run(
+        "api_server:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+        log_level="info",
+    )
